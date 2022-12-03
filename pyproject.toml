@@ -13,6 +13,7 @@ license = { file="LICENSE" }
 readme = "README.md"
 requires-python = ">=3.7"
 dependencies = [
+  "installer"
 ]
 
 classifiers = [
