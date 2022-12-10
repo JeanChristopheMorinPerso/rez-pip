@@ -2,25 +2,23 @@ import os
 import typing
 import aiohttp
 import asyncio
-import tempfile
 
 import rez_pip.pip
 
 
-def downloadPackages(packages: list[rez_pip.pip.PackageInfo]) -> str:
-    return asyncio.run(_downloadPackages(packages))
+def downloadPackages(packages: list[rez_pip.pip.PackageInfo], dest: str) -> str:
+    return asyncio.run(_downloadPackages(packages, dest))
 
 
-async def _downloadPackages(packages: list[rez_pip.pip.PackageInfo]) -> str:
+async def _downloadPackages(packages: list[rez_pip.pip.PackageInfo], dest: str) -> str:
     items: list[typing.Coroutine] = []
 
     wheels = []
-    with tempfile.TemporaryDirectory(prefix="rez-pip") as tempDir:
-        async with aiohttp.ClientSession() as session:
-            for package in packages:
-                items.append(download(package, tempDir, session))
+    async with aiohttp.ClientSession() as session:
+        for package in packages:
+            items.append(download(package, dest, session))
 
-            wheels = await asyncio.gather(*items)
+        wheels = await asyncio.gather(*items)
     return wheels
 
 

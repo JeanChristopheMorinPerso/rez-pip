@@ -1,7 +1,8 @@
-import sys
 import argparse
+import tempfile
 
 import rez_pip.pip
+import rez_pip.install
 import rez_pip.download
 
 
@@ -14,10 +15,12 @@ def run():
 
     print(args)
 
-    packages = rez_pip.pip.get_packages(args.package)
+    with tempfile.TemporaryDirectory(prefix="rez-pip") as tempDir:
+        packages = rez_pip.pip.get_packages(args.package)
 
-    # import pdb
+        wheels = rez_pip.download.downloadPackages(packages, tempDir)
+        print(f"Downloaded {len(wheels)} wheels")
 
-    # pdb.set_trace()
-    wheels = rez_pip.download.downloadPackages(packages)
-    print(f"Downloaded {len(wheels)} wheels")
+        for package, wheel in zip(packages, wheels):
+            print(f"Installing {package.name}-{package.version}")
+            rez_pip.install.install(package, wheel, args.target)
