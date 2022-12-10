@@ -16,12 +16,15 @@ def install(
     wheelPath: typing.Union[str, os.PathLike[str]],
     target: str,
 ):
+    """
+    Technically, target should be optional. We will always want to install in "pip install --target"
+    mode. So right now it's a CLI option for debugging purposes.
+    """
 
     destination = installer.destinations.SchemeDictionaryDestination(
         getSchemeDict(package.name, target),
-        interpreter=sys.executable,
+        interpreter=sys.executable,  # Can be used for shebang I think.
         script_kind=installer.utils.get_launcher_kind(),
-        # destdir=target,
     )
 
     with installer.sources.WheelFile.open(wheelPath) as source:
@@ -48,4 +51,11 @@ def getSchemeDict(name: str, target: str) -> dict[str, str]:
         sysconfig.get_path("include", vars={"installed_base": installed_base}),
         name,
     )
+
+    if target:  # In practice this will always be set.
+        schemeDict["purelib"] = os.path.join(target, "purelib")
+        schemeDict["platlib"] = os.path.join(target, "platlib")
+        schemeDict["headers"] = os.path.join(target, "headers", name)
+        schemeDict["scripts"] = os.path.join(target, "scripts")
+        # Potentiall handle data?
     return schemeDict
