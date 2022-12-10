@@ -35,7 +35,7 @@ class PackageInfo:
         return self.metadata["version"]
 
 
-def get_packages(package: str, pip: str) -> list[PackageInfo]:
+def get_packages(package: str, pip: str, pythonVersion: str) -> list[PackageInfo]:
     # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
     print(f"Resolving dependencies for {package}")
     output = subprocess.check_output(
@@ -47,7 +47,7 @@ def get_packages(package: str, pip: str) -> list[PackageInfo]:
             package,
             "--dry-run",
             "--ignore-installed",
-            # "--python-version=3.7",
+            f"--python-version={pythonVersion}" if pythonVersion else "",
             "--only-binary=:all:",
             "--target=/tmp/asd",
             "--report",
