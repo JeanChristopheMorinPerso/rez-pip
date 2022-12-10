@@ -1,7 +1,9 @@
 import os
 import sys
 import typing
+import pathlib
 import sysconfig
+import importlib.metadata
 
 import installer
 import installer.utils
@@ -15,7 +17,7 @@ def install(
     package: rez_pip.pip.PackageInfo,
     wheelPath: typing.Union[str, os.PathLike[str]],
     target: str,
-):
+) -> list[str]:
     """
     Technically, target should be optional. We will always want to install in "pip install --target"
     mode. So right now it's a CLI option for debugging purposes.
@@ -37,6 +39,18 @@ def install(
             },
         )
 
+    # Use pathlib.Path so that it doesn't actually affect imports.
+    # See https://docs.python.org/3/library/importlib.metadata.html#distribution-discovery
+    sys.path.insert(0, pathlib.Path("/tmp/asd/python"))
+
+    files = []
+
+    # TODO: When can importlib.metadata.files(package.name) return None?
+    for relpath in importlib.metadata.files(package.name):
+        files.append(os.path.join("/tmp/asd/python/", relpath))
+
+    return files
+
 
 # Taken from https://github.com/pypa/installer/blob/main/src/installer/__main__.py#L49
 def getSchemeDict(name: str, target: str) -> dict[str, str]:
@@ -53,8 +67,8 @@ def getSchemeDict(name: str, target: str) -> dict[str, str]:
     )
 
     if target:  # In practice this will always be set.
-        schemeDict["purelib"] = os.path.join(target, "purelib")
-        schemeDict["platlib"] = os.path.join(target, "platlib")
+        schemeDict["purelib"] = os.path.join(target, "python")
+        schemeDict["platlib"] = os.path.join(target, "python")
         schemeDict["headers"] = os.path.join(target, "headers", name)
         schemeDict["scripts"] = os.path.join(target, "scripts")
         # Potentiall handle data?

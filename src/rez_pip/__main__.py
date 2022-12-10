@@ -40,4 +40,5 @@ def run():
 
         for package, wheel in zip(packages, wheels):
             print(f"Installing {package.name}-{package.version}")
-            rez_pip.install.install(package, wheel, args.target)
+            files = rez_pip.install.install(package, wheel, args.target)
+            print(files)
