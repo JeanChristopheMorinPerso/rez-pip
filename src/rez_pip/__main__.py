@@ -50,6 +50,15 @@ def run():
     if args.debug:
         _LOG.setLevel(logging.DEBUG)
 
+    # TODO: The temporary directory will be automatically deleted.
+    # We should add an option to keep temporary files.
+    # I also would like a structure like:
+    #   /<temp dir>/
+    #     /wheels/
+    #     /install/
+    # This would solve the problem with --target and --install-path
+    # and would allow to just use --target to set the path where the rez packages will
+    # be installed.
     with tempfile.TemporaryDirectory(prefix="rez-pip") as tempDir:
         packages = rez_pip.pip.get_packages(args.package, args.pip, args.python_version)
 
