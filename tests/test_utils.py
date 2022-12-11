@@ -1,3 +1,5 @@
+import typing
+
 import pytest
 import packaging.version
 import packaging.specifiers
@@ -113,127 +115,127 @@ def test_packaging_req_to_rez_req(pythonReq: str, rezReq: str):
 #     self.assertEqual(rez.utils.pip.convert_distlib_to_setuptools(dist), None)
 
 
-# def test_get_marker_sys_requirements(self):
-#     """ """
-
-#     def assertSysRequirements(req_str, sys_reqs):
-#         self.assertEqual(rez.utils.pip.get_marker_sys_requirements(req_str), sys_reqs)
-
-#     assertSysRequirements('implementation_name == "cpython"', ["python"])
-#     assertSysRequirements('implementation_version == "3.4.0"', ["python"])
-#     assertSysRequirements('platform_python_implementation == "Jython"', ["python"])
-#     assertSysRequirements('platform.python_implementation == "Jython"', ["python"])
-#     assertSysRequirements('python_implementation == "Jython"', ["python"])
-#     assertSysRequirements('sys_platform == "linux2"', ["platform"])
-#     assertSysRequirements('sys.platform == "linux2"', ["platform"])
-#     assertSysRequirements('os_name == "linux2"', ["platform"])
-#     assertSysRequirements('os.name == "linux2"', ["platform"])
-#     assertSysRequirements('platform_machine == "x86_64"', ["arch"])
-#     assertSysRequirements('platform.machine == "x86_64"', ["arch"])
-#     assertSysRequirements(
-#         'platform_version == "#1 SMP Fri Apr 25 13:07:35 EDT 2014"', ["platform"]
-#     )
-#     assertSysRequirements(
-#         'platform.version == "#1 SMP Fri Apr 25 13:07:35 EDT 2014"', ["platform"]
-#     )
-#     assertSysRequirements('platform_system == "Linux"', ["platform"])
-#     assertSysRequirements('platform_release == "5.2.8-arch1-1-ARCH"', ["platform"])
-#     assertSysRequirements('python_version == "3.7"', ["python"])
-#     assertSysRequirements('python_full_version == "3.7.4"', ["python"])
+@pytest.mark.parametrize(
+    "marker,expected",
+    [
+        ['implementation_name == "cpython"', ["python"]],
+        ['implementation_version == "3.4.0"', ["python"]],
+        ['platform_python_implementation == "Jython"', ["python"]],
+        ['platform.python_implementation == "Jython"', ["python"]],
+        ['python_implementation == "Jython"', ["python"]],
+        ['sys_platform == "linux2"', ["platform"]],
+        ['sys.platform == "linux2"', ["platform"]],
+        ['os_name == "linux2"', ["platform"]],
+        ['os.name == "linux2"', ["platform"]],
+        ['platform_machine == "x86_64"', ["arch"]],
+        ['platform.machine == "x86_64"', ["arch"]],
+        ['platform_version == "#1 SMP Fri Apr 25 13:07:35 EDT 2014"', ["platform"]],
+        ['platform.version == "#1 SMP Fri Apr 25 13:07:35 EDT 2014"', ["platform"]],
+        ['platform_system == "Linux"', ["platform"]],
+        ['platform_release == "5.2.8-arch1-1-ARCH"', ["platform"]],
+        ['python_version == "3.7"', ["python"]],
+        ['python_full_version == "3.7.4"', ["python"]],
+    ],
+)
+def test_convertMarker(marker: str, expected: list[str]):
+    assert rez_pip.utils.convertMarker(marker) == expected
 
 
-# def test_normalize_requirement(self):
-#     """ """
-
-#     def assertRequirements(requirement, expected, conditional_extras):
-#         """ """
-#         result = rez.utils.pip.normalize_requirement(requirement)
-#         self.assertEqual([str(req) for req in result], [str(req) for req in expected])
-#         for index, req in enumerate(result):
-#             self.assertEqual(req.conditional_extras, conditional_extras[index])
-
-#     assertRequirements("packageA", [packaging_Requirement("packageA")], [None])
-#     assertRequirements(
-#         "mypkg ; extra == 'dev'", [packaging_Requirement("mypkg")], [set(["dev"])]
-#     )
-#     assertRequirements(
-#         'win-inet-pton ; (sys_platform == "win32" and python_version == "2.7") and extra == \'socks\'',
-#         [
-#             packaging_Requirement(
-#                 'win-inet-pton; (sys_platform == "win32" and python_version == "2.7")'
-#             )
-#         ],
-#         [set(["socks"])],
-#     )
-
-#     # PySocks (!=1.5.7,<2.0,>=1.5.6) ; extra == 'socks'
-#     assertRequirements(
-#         "PySocks (!=1.5.7,<2.0,>=1.5.6) ; extra == 'socks'",
-#         [packaging_Requirement("PySocks!=1.5.7,<2.0,>=1.5.6")],
-#         [set(["socks"])],
-#     )
-#     # certifi ; extra == 'secure'
-#     assertRequirements(
-#         "certifi ; extra == 'secure'",
-#         [packaging_Requirement("certifi")],
-#         [set(["secure"])],
-#     )
-#     # coverage (>=4.4)
-#     assertRequirements(
-#         "coverage (>=4.4)", [packaging_Requirement("coverage (>=4.4)")], [None]
-#     )
-#     # colorama ; sys_platform == "win32"
-#     assertRequirements(
-#         'colorama ; sys_platform == "win32"',
-#         [packaging_Requirement('colorama ; sys_platform == "win32"')],
-#         [None],
-#     )
-#     # pathlib2-2.3.4: {u'environment': u'python_version<"3.5"', u'requires': [u'scandir']}, {u'requires': [u'six']}
-#     assertRequirements(
-#         {"environment": 'python_version<"3.5"', "requires": ["scandir"]},
-#         [packaging_Requirement('scandir; python_version < "3.5"')],
-#         [None],
-#     )
-
-#     # bleach-3.1.0: {u'requires': [u'six (>=1.9.0)', u'webencodings']}
-#     assertRequirements(
-#         {"requires": ["six (>=1.9.0)", "webencodings"]},
-#         [
-#             packaging_Requirement("six (>=1.9.0)"),
-#             packaging_Requirement("webencodings"),
-#         ],
-#         [None, None],
-#     )
-
-#     assertRequirements(
-#         {"requires": ["six (>=1.9.0)", 'webencodings; sys_platform == "win32"']},
-#         [
-#             packaging_Requirement("six (>=1.9.0)"),
-#             packaging_Requirement('webencodings; sys_platform == "win32"'),
-#         ],
-#         [None, None],
-#     )
-
-#     assertRequirements(
-#         {"requires": ["packageA"], "extra": "doc"},
-#         [packaging_Requirement("packageA")],
-#         [set(["doc"])],
-#     )
-
-#     assertRequirements(
-#         "mypkg ; extra == 'dev' or extra == 'doc'",
-#         [packaging_Requirement("mypkg")],
-#         [set(["dev", "doc"])],
-#     )
-
-#     assertRequirements(
-#         'mypkg ; extra == "dev" and sys_platform == "win32"',
-#         [packaging_Requirement('mypkg; sys_platform == "win32"')],
-#         [set(["dev"])],
-#     )
-
-#     assertRequirements(
-#         'mypkg ; sys_platform == "win32" and extra == "test"',
-#         [packaging_Requirement('mypkg; sys_platform == "win32"')],
-#         [set(["test"])],
-#     )
+@pytest.mark.parametrize(
+    "requirement,expected,conditional_extras",
+    [
+        ["packageA", [packaging.requirements.Requirement("packageA")], [None]],
+        [
+            "mypkg ; extra == 'dev'",
+            [packaging.requirements.Requirement("mypkg")],
+            [set(["dev"])],
+        ],
+        [
+            'win-inet-pton ; (sys_platform == "win32" and python_version == "2.7") and extra == \'socks\'',
+            [
+                packaging.requirements.Requirement(
+                    'win-inet-pton; (sys_platform == "win32" and python_version == "2.7")'
+                )
+            ],
+            [set(["socks"])],
+        ],
+        # PySocks (!=1.5.7,<2.0,>=1.5.6) ; extra == 'socks'
+        [
+            "PySocks (!=1.5.7,<2.0,>=1.5.6) ; extra == 'socks'",
+            [packaging.requirements.Requirement("PySocks!=1.5.7,<2.0,>=1.5.6")],
+            [set(["socks"])],
+        ],
+        # certifi ; extra == 'secure'
+        [
+            "certifi ; extra == 'secure'",
+            [packaging.requirements.Requirement("certifi")],
+            [set(["secure"])],
+        ],
+        # coverage (>=4.4)
+        [
+            "coverage (>=4.4)",
+            [packaging.requirements.Requirement("coverage (>=4.4)")],
+            [None],
+        ],
+        # colorama ; sys_platform == "win32"
+        [
+            'colorama ; sys_platform == "win32"',
+            [packaging.requirements.Requirement('colorama ; sys_platform == "win32"')],
+            [None],
+        ],
+        # pathlib2-2.3.4: {u'environment': u'python_version<"3.5"', u'requires': [u'scandir']}, {u'requires': [u'six']}
+        [
+            {"environment": 'python_version<"3.5"', "requires": ["scandir"]},
+            [packaging.requirements.Requirement('scandir; python_version < "3.5"')],
+            [None],
+        ],
+        # bleach-3.1.0: {u'requires': [u'six (>=1.9.0)', u'webencodings']}
+        [
+            {"requires": ["six (>=1.9.0)", "webencodings"]},
+            [
+                packaging.requirements.Requirement("six (>=1.9.0)"),
+                packaging.requirements.Requirement("webencodings"),
+            ],
+            [None, None],
+        ],
+        [
+            {"requires": ["six (>=1.9.0)", 'webencodings; sys_platform == "win32"']},
+            [
+                packaging.requirements.Requirement("six (>=1.9.0)"),
+                packaging.requirements.Requirement(
+                    'webencodings; sys_platform == "win32"'
+                ),
+            ],
+            [None, None],
+        ],
+        [
+            {"requires": ["packageA"], "extra": "doc"},
+            [packaging.requirements.Requirement("packageA")],
+            [set(["doc"])],
+        ],
+        [
+            "mypkg ; extra == 'dev' or extra == 'doc'",
+            [packaging.requirements.Requirement("mypkg")],
+            [set(["dev", "doc"])],
+        ],
+        [
+            'mypkg ; extra == "dev" and sys_platform == "win32"',
+            [packaging.requirements.Requirement('mypkg; sys_platform == "win32"')],
+            [set(["dev"])],
+        ],
+        [
+            'mypkg ; sys_platform == "win32" and extra == "test"',
+            [packaging.requirements.Requirement('mypkg; sys_platform == "win32"')],
+            [set(["test"])],
+        ],
+    ],
+)
+def test_normalizeRequirement(
+    requirement: typing.Union[str, dict[str, typing.Any]],
+    expected: list[packaging.requirements.Requirement],
+    conditional_extras: list[typing.Optional[set[str]]],
+):
+    result = rez_pip.utils.normalizeRequirement(requirement)
+    assert [str(req) for req in result] == [str(req) for req in expected]
+    for index, req in enumerate(result):
+        assert req.conditional_extras == conditional_extras[index]
