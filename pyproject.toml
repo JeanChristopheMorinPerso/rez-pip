@@ -14,7 +14,9 @@ readme = "README.md"
 requires-python = ">=3.7"
 dependencies = [
   "installer",
-  "aiohttp"
+  "aiohttp",
+  "packaging",
+  "rez"
 ]
 
 classifiers = [
@@ -35,7 +37,7 @@ Homepage = "https://github.com/JeanChristopheMorinPerso/rez-pip"
 Tracker = "https://github.com/JeanChristopheMorinPerso/rez-pip/issues"
 
 [project.scripts]
-rez-pip = "rez_pip.__main__:run"
+rez-pip2 = "rez_pip.__main__:run"
 # [project.entry-points."opentimelineio.plugins"]
 # otio_fcpxxml_adapter = "otio_fcpxxml_adapter"
 
