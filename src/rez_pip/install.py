@@ -73,7 +73,7 @@ def installWheel(
 
     # Use pathlib.Path so that it doesn't actually affect imports.
     # See https://docs.python.org/3/library/importlib.metadata.html#distribution-discovery
-    sys.path.insert(0, pathlib.Path("/tmp/asd/python"))
+    sys.path.insert(0, "/tmp/asd/python")
 
     files = []
 
