@@ -18,3 +18,5 @@ Modern rez-pip implementation
 * [ ] Accept multiple package names as input
 * [ ] Accept requirements files as input
 * [ ] Accept whee files as input
+* [ ] Properly support platform tags (wheels tags) so that GLIBC is respected, min macOS is also supported.
+* [ ] Correctly handle Requires-Python metadata.
