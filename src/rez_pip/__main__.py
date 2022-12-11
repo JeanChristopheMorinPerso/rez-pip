@@ -1,4 +1,5 @@
 import sys
+import logging
 import argparse
 import tempfile
 import importlib.metadata
@@ -11,7 +12,15 @@ import rez_pip.install
 import rez_pip.download
 
 
+_LOG = logging.getLogger("rez_pip")
+
+
 def run():
+    handler = logging.StreamHandler(stream=sys.stdout)
+    handler.setFormatter(logging.Formatter(fmt="%(message)s"))
+    _LOG.addHandler(handler)
+    _LOG.setLevel(logging.INFO)
+
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -34,19 +43,24 @@ def run():
         help="Standalone pip (https://pip.pypa.io/en/stable/installation/#standalone-zip-application)",
     )
 
+    parser.add_argument("-d", "--debug", action="store_true")
+
     args = parser.parse_args()
 
-    print(args)
+    if args.debug:
+        _LOG.setLevel(logging.DEBUG)
 
     with tempfile.TemporaryDirectory(prefix="rez-pip") as tempDir:
         packages = rez_pip.pip.get_packages(args.package, args.pip, args.python_version)
 
         wheels = rez_pip.download.downloadPackages(packages, tempDir)
-        print(f"Downloaded {len(wheels)} wheels")
+        _LOG.info(f"Downloaded {len(wheels)} wheels")
 
         dists: dict[importlib.metadata.Distribution, tuple[list[str], bool]] = {}
+        _LOG.info(f"Installing wheels into {args.target!r}")
+
         for package, wheel in zip(packages, wheels):
-            print(f"Installing {package.name}-{package.version} wheel")
+            _LOG.debug(f"Installing {package.name}-{package.version} wheel")
             dist, files, isPure = rez_pip.install.installWheel(
                 package, wheel, args.target
             )

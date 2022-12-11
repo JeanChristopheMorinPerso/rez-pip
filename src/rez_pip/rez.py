@@ -1,6 +1,7 @@
 import os
 import typing
 import shutil
+import logging
 
 import rez.config
 import rez.package_maker
@@ -8,6 +9,8 @@ import importlib.metadata
 
 import rez_pip.pip
 import rez_pip.utils
+
+_LOG = logging.getLogger(__name__)
 
 
 def make_root(variant, path):
@@ -36,6 +39,7 @@ def createPackage(
     nameCasings: list[str],
     installPath: typing.Optional[str] = None,
 ):
+    _LOG.info(f"Creating rez package for {dist.name}")
     name = rez_pip.utils.pythontDistributionNameToRez(dist.name)
     version = rez_pip.utils.pythonDistributionVersionToRez(dist.version)
 
@@ -53,6 +57,5 @@ def createPackage(
             else config.local_packages_path
         )
 
-    print(f"Creating rez package for {dist.name}")
     # with rez.package_maker.make_package(name, packagesPath, make_root=make_root) as pkg:
     #     pass

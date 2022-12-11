@@ -2,8 +2,11 @@ import os
 import typing
 import aiohttp
 import asyncio
+import logging
 
 import rez_pip.pip
+
+_LOG = logging.getLogger(__name__)
 
 
 def downloadPackages(packages: list[rez_pip.pip.PackageInfo], dest: str) -> str:
@@ -25,7 +28,7 @@ async def _downloadPackages(packages: list[rez_pip.pip.PackageInfo], dest: str) 
 async def download(
     package: rez_pip.pip.PackageInfo, target: str, session: aiohttp.ClientSession
 ) -> str:
-    print(
+    _LOG.debug(
         f"Downloading {package.name}-{package.version} from {package.download_info['url']}"
     )
     async with session.get(
@@ -38,7 +41,7 @@ async def download(
         content = await response.read()
 
     if response.status != 200:
-        print(f"failed to download {package.download_info['url']}")
+        _LOG.error(f"failed to download {package.download_info['url']}")
         return
 
     wheelName: str = os.path.basename(package.download_info["url"])
@@ -46,5 +49,5 @@ async def download(
     with open(wheelPath, "wb") as fd:
         fd.write(content)
 
-    print(f"Downloaded {package.name}-{package.version} to {wheelPath!r}")
+    _LOG.info(f"Downloaded {package.name}-{package.version} to {wheelPath!r}")
     return wheelPath

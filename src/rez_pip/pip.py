@@ -1,8 +1,11 @@
 import sys
 import json
 import typing
+import logging
 import subprocess
 import dataclasses
+
+_LOG = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
@@ -37,7 +40,7 @@ class PackageInfo:
 
 def get_packages(package: str, pip: str, pythonVersion: str) -> list[PackageInfo]:
     # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
-    print(f"Resolving dependencies for {package}")
+    _LOG.info(f"Resolving dependencies for {package}")
     output = subprocess.check_output(
         [
             sys.executable,
@@ -64,5 +67,5 @@ def get_packages(package: str, pip: str, pythonVersion: str) -> list[PackageInfo
         packageInfo = PackageInfo(**rawPackage)
         packages.append(packageInfo)
 
-    print(f"Resolve {len(packages)} dependencies")
+    _LOG.debug(f"Resolved {len(packages)} dependencies")
     return packages

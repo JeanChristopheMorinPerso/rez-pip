@@ -1,7 +1,7 @@
 import os
 import sys
 import typing
-import pathlib
+import logging
 import sysconfig
 import importlib.metadata
 
@@ -11,6 +11,8 @@ import installer.sources
 import installer.destinations
 
 import rez_pip.pip
+
+_LOG = logging.getLogger(__name__)
 
 
 def isWheelPure(source: installer.sources.WheelSource) -> bool:
@@ -59,6 +61,7 @@ def installWheel(
     )
 
     isPure = True
+    _LOG.debug(f"Installing {wheelPath} into {target!r}")
     with installer.sources.WheelFile.open(wheelPath) as source:
         isPure = isWheelPure(source)
 

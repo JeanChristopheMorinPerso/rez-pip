@@ -1,4 +1,5 @@
 import typing
+import logging
 
 import rez.system
 import packaging.version
@@ -7,6 +8,8 @@ import packaging.specifiers
 import packaging.requirements
 import rez.vendor.version.version
 import rez.vendor.version.requirement
+
+_LOG = logging.getLogger(__name__)
 
 
 class RequirementsDict(typing.TypedDict):
@@ -258,8 +261,8 @@ def pythonReqToRezReq(
     :returns: Equivalent rez requirement object.
     """
     if pythonReq.extras:
-        print(
-            f"Ignoring extras requested on {pythonReq!r} - " "this is not yet supported"
+        _LOG.warning(
+            f"Ignoring extras requested on {pythonReq!r} - this is not yet supported"
         )
 
     req = pythontDistributionNameToRez(pythonReq.name)
@@ -544,7 +547,7 @@ def getRezRequirements(
                 continue
 
             if req.conditional_extras:
-                print(
+                _LOG.warning(
                     f"Skipping requirement {req!r} - conditional requirements are "
                     "not yet supported"
                 )
