@@ -620,6 +620,12 @@ def getRezRequirements(
 
     variant_requires = sys_variant_requires + result_variant_requires
 
+    translation = {
+        "python": requires,
+        "rez": {"requires": result_requires, "variant": variant_requires},
+    }
+    _LOG.info(f"{installedDist.name} requirements translation:\n{translation}")
+
     return typing.cast(
         RequirementsDict,
         {
