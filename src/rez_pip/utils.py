@@ -542,7 +542,8 @@ def getRezRequirements(
 
             # skip if req is conditional on extras that weren't requested
             if req.conditional_extras and not (
-                set(installedDist.metadata['Provides-Extra'] or []) & set(req.conditional_extras)
+                set(installedDist.metadata["Provides-Extra"] or [])
+                & set(req.conditional_extras)
             ):
                 continue
 
