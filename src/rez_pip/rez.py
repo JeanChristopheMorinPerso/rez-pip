@@ -13,24 +13,6 @@ import rez_pip.utils
 _LOG = logging.getLogger(__name__)
 
 
-def make_root(variant, path):
-    """Using distlib to iterate over all installed files of the current
-    distribution to copy files to the target directory of the rez package
-    variant
-    """
-    for rel_src, rel_dest in src_dst_lut.items():
-        src = os.path.join(targetpath, rel_src)
-        dest = os.path.join(path, rel_dest)
-
-        if not os.path.exists(os.path.dirname(dest)):
-            os.makedirs(os.path.dirname(dest))
-
-        shutil.copyfile(src, dest)
-
-    if _is_exe(src):
-        shutil.copystat(src, dest)
-
-
 def createPackage(
     dist: importlib.metadata.Distribution,
     isPure: bool,
@@ -57,7 +39,29 @@ def createPackage(
             else config.local_packages_path
         )
 
-    with rez.package_maker.make_package(name, packagesPath) as pkg:
+    def make_root(variant, path):
+        """Using distlib to iterate over all installed files of the current
+        distribution to copy files to the target directory of the rez package
+        variant
+        """
+        # print(dist.files)
+        for srcRelPath in dist.files:
+            src = os.path.join("/tmp/asd/python", srcRelPath)
+
+            # TODO: This is terribly ugly. There must be a better way to do this.
+            if srcRelPath.as_posix().startswith(".."):
+                dest = os.path.join(path, os.path.join(*srcRelPath.parts[1:]))
+                print("Copying to", dest)
+            else:
+                dest = os.path.join(path, "python", srcRelPath)
+
+            if not os.path.exists(os.path.dirname(dest)):
+                os.makedirs(os.path.dirname(dest))
+
+            shutil.copyfile(src, dest)
+            shutil.copystat(src, dest)
+
+    with rez.package_maker.make_package(name, packagesPath, make_root=make_root) as pkg:
         # basics (version etc)
         pkg.version = version
 

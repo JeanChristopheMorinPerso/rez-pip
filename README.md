@@ -12,9 +12,9 @@ Modern rez-pip implementation. Very WIP.
 * [ ] Confirm that the theory works as expected
 * [ ] Windows support
 * [ ] Hook into rez
-    * [ ] Install each package in a different `--target`
-    * [ ] Create rez package
-    * [ ] Copy distribution files to rez package.
+    * [x] Install each package in a different `--target`
+    * [x] Create rez package
+    * [x] Copy distribution files to rez package.
     * etc
 * [ ] Accept multiple package names as input
 * [ ] Accept requirements files as input
