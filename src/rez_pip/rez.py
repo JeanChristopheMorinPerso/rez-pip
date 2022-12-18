@@ -16,7 +16,6 @@ _LOG = logging.getLogger(__name__)
 def createPackage(
     dist: importlib.metadata.Distribution,
     isPure: bool,
-    files: list[str],
     pythonVersion: str,
     nameCasings: list[str],
     installPath: typing.Optional[str] = None,
@@ -45,6 +44,11 @@ def createPackage(
         variant
         """
         # print(dist.files)
+        if not dist.files:
+            raise RuntimeError(
+                f"{dist.name} package has no files registered! Something is wrong maybe?"
+            )
+
         for src in dist.files:
             srcAbsolute = src.locate().resolve()
 
@@ -72,14 +76,16 @@ def createPackage(
             pkg.variants = [variant_requires]
 
         # commands
-        commands: list[str] = []
-        commands.append("env.PYTHONPATH.append('{root}/python')")
+        # TODO: Don't hardcode python in here.
+        # TODO: WHat about "python less" packages, like cmake, etc?
+        commands = ["env.PYTHONPATH.append('{root}/python')"]
 
         console_scripts = [
             ep.name for ep in dist.entry_points if ep.group == "console_scripts"
         ]
         if console_scripts:
             pkg.tools = console_scripts
+            # TODO: Don't hardcode scripts here.
             commands.append("env.PATH.append('{root}/scripts')")
 
         pkg.commands = "\n".join(commands)

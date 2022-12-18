@@ -66,25 +66,22 @@ def run():
         wheels = rez_pip.download.downloadPackages(packages, tempDir)
         _LOG.info(f"Downloaded {len(wheels)} wheels")
 
-        dists: dict[importlib.metadata.Distribution, tuple[list[str], bool]] = {}
+        dists: dict[importlib.metadata.Distribution, bool] = {}
         _LOG.info(f"Installing wheels into {args.target!r}")
 
         for package, wheel in zip(packages, wheels):
             _LOG.debug(f"Installing {package.name}-{package.version} wheel")
-            dist, files, isPure = rez_pip.install.installWheel(
-                package, wheel, args.target
-            )
+            dist, isPure = rez_pip.install.installWheel(package, wheel, args.target)
 
-            dists[dist] = (files, isPure)
+            dists[dist] = isPure
 
         distNames = [dist.name for dist in dists.keys()]
 
         for dist in dists:
-            files, isPure = dists[dist]
+            isPure = dists[dist]
             rez_pip.rez.createPackage(
                 dist,
                 isPure,
-                files,
                 rez.vendor.version.version.Version(args.python_version),
                 distNames,
                 args.install_path,
