@@ -62,6 +62,7 @@ def run():
     with tempfile.TemporaryDirectory(prefix="rez-pip") as tempDir:
         packages = rez_pip.pip.get_packages(args.package, args.pip, args.python_version)
 
+        # TODO: We will want to postpone downloading to the last minute if we can.
         wheels = rez_pip.download.downloadPackages(packages, tempDir)
         _LOG.info(f"Downloaded {len(wheels)} wheels")
 

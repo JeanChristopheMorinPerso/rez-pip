@@ -15,6 +15,9 @@ Modern rez-pip implementation. Very WIP.
     * [x] Install each package in a different `--target`
     * [x] Create rez package
     * [x] Copy distribution files to rez package.
+    * [ ] Make it available as a rez plugin/sub-command
+    * [ ] Discover Python package using rez and use that when available. I think it's still fine to support non-rezified Python interpreters though.
+    * [ ] Only download+convert package if it's not already in the rez repositories.
     * etc
 * [ ] Accept multiple package names as input
 * [ ] Accept requirements files as input
@@ -31,3 +34,16 @@ Modern rez-pip implementation. Very WIP.
     * Basically a tag like 'cp36-abi3-manylinux_2_24_x86_64' means
       that it is compatible with Python 3.6+ and doesn't need to be
       recompiled for newer python versions.
+
+## Tips
+
+For now, it can be run like this:
+
+```
+rm -rf /tmp/asd* && rez-pip2 pytest --target /tmp/asd --install-path /tmp/asd2
+```
+
+`--target` is where the wheels will initially be installed and `--install-path` is
+where the rez packages will be created.
+
+`--target` is temporary and is simply a development flag.
