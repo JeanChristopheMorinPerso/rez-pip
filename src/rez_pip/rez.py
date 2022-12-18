@@ -45,21 +45,17 @@ def createPackage(
         variant
         """
         # print(dist.files)
-        for srcRelPath in dist.files:
-            src = os.path.join("/tmp/asd/python", srcRelPath)
+        for src in dist.files:
+            srcAbsolute = src.locate().resolve()
 
-            # TODO: This is terribly ugly. There must be a better way to do this.
-            if srcRelPath.as_posix().startswith(".."):
-                dest = os.path.join(path, os.path.join(*srcRelPath.parts[1:]))
-                print("Copying to", dest)
-            else:
-                dest = os.path.join(path, "python", srcRelPath)
-
+            # TODO: Replace /tmp/asd with the path to the tmp dir
+            dest = os.path.join(path, srcAbsolute.relative_to("/tmp/asd"))
             if not os.path.exists(os.path.dirname(dest)):
                 os.makedirs(os.path.dirname(dest))
 
-            shutil.copyfile(src, dest)
-            shutil.copystat(src, dest)
+            _LOG.debug(f"Copying {str(srcAbsolute)!r} to {str(dest)!r}")
+            shutil.copyfile(srcAbsolute, dest)
+            shutil.copystat(srcAbsolute, dest)
 
     with rez.package_maker.make_package(name, packagesPath, make_root=make_root) as pkg:
         # basics (version etc)
