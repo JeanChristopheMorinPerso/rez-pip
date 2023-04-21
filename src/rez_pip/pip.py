@@ -38,7 +38,7 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
 
 def get_packages(package: str, pip: str, pythonVersion: str) -> list[PackageInfo]:
     # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
-    _LOG.info(f"Resolving dependencies for {package}")
+    _LOG.info(f"[bold]Resolving dependencies for {package}")
     output = subprocess.check_output(
         [
             sys.executable,
