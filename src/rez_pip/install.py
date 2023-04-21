@@ -86,12 +86,12 @@ def installWheel(
             },
         )
 
-    # Use pathlib.Path so that it doesn't actually affect imports.
-    # See https://docs.python.org/3/library/importlib.metadata.html#distribution-discovery
-    # TODO: Don't hardcode path here.
-    sys.path.insert(0, "/tmp/asd/python")
-
-    dist = importlib.metadata.distribution(package.name)
+    # That's kind of dirty, but using any other method returns inconsistent results.
+    # For example, importlib.metadata.Distribution.discover(path=['/path']) sometimes
+    # won't find the freshly intalled package, even if it exists and everything.
+    dist = importlib.metadata.Distribution.at(
+        os.path.join("/tmp/asd/python", f"{package.name}-{package.version}.dist-info")
+    )
 
     return dist, isPure
 
