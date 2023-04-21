@@ -1,33 +1,31 @@
 import sys
 import json
-import typing
 import logging
 import subprocess
 import dataclasses
+import dataclasses_json
+import packaging.metadata
 
 _LOG = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
-class ArchiveInfo:
+class ArchiveInfo(dataclasses_json.DataClassJsonMixin):
     hash: str
 
 
 @dataclasses.dataclass
-class DownloadInfo:
+class DownloadInfo(dataclasses_json.DataClassJsonMixin):
     url: str
     archive_info: str
 
 
 @dataclasses.dataclass
-class PackageInfo:
+class PackageInfo(dataclasses_json.DataClassJsonMixin):
     download_info: DownloadInfo
     is_direct: bool
     requested: bool
-    metadata: dict[str, typing.Any]
-
-    # def __repr__(self) -> str:
-    #     pass
+    metadata: packaging.metadata.RawMetadata
 
     @property
     def name(self) -> str:
@@ -64,7 +62,7 @@ def get_packages(package: str, pip: str, pythonVersion: str) -> list[PackageInfo
     packages: list[PackageInfo] = []
 
     for rawPackage in rawPackages:
-        packageInfo = PackageInfo(**rawPackage)
+        packageInfo = PackageInfo.from_dict(rawPackage)
         packages.append(packageInfo)
 
     _LOG.debug(f"Resolved {len(packages)} dependencies")

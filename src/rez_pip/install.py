@@ -32,7 +32,7 @@ if typing.TYPE_CHECKING:
 def isWheelPure(source: installer.sources.WheelSource) -> bool:
     stream = source.read_dist_info("WHEEL")
     metadata = installer.utils.parse_metadata_file(stream)
-    return metadata["Root-Is-Purelib"] == "true"
+    return typing.cast(str, metadata["Root-Is-Purelib"]) == "true"
 
 
 # Taken from https://github.com/pypa/installer/blob/main/src/installer/__main__.py#L49
