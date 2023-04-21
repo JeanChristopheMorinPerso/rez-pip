@@ -5,6 +5,7 @@ import logging
 
 import rez.config
 import rez.package_maker
+import rez.vendor.version.version
 import importlib.metadata
 
 import rez_pip.pip
@@ -16,10 +17,10 @@ _LOG = logging.getLogger(__name__)
 def createPackage(
     dist: importlib.metadata.Distribution,
     isPure: bool,
-    pythonVersion: str,
+    pythonVersion: rez.vendor.version.version.Version,
     nameCasings: list[str],
     installPath: typing.Optional[str] = None,
-):
+) -> None:
     _LOG.info(f"Creating rez package for {dist.name}")
     name = rez_pip.utils.pythontDistributionNameToRez(dist.name)
     version = rez_pip.utils.pythonDistributionVersionToRez(dist.version)
@@ -35,15 +36,14 @@ def createPackage(
         packagesPath = (
             rez.config.config.release_packages_path
             if True
-            else config.local_packages_path
+            else rez.config.config.local_packages_path
         )
 
-    def make_root(variant, path):
+    def make_root(variant, path) -> None:
         """Using distlib to iterate over all installed files of the current
         distribution to copy files to the target directory of the rez package
         variant
         """
-        # print(dist.files)
         if not dist.files:
             raise RuntimeError(
                 f"{dist.name} package has no files registered! Something is wrong maybe?"

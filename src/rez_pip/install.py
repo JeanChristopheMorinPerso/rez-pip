@@ -7,6 +7,7 @@ import sys
 import typing
 import zipfile
 import logging
+import pathlib
 import sysconfig
 import importlib.metadata
 
@@ -59,7 +60,7 @@ def getSchemeDict(name: str, target: str) -> dict[str, str]:
 
 def installWheel(
     package: rez_pip.pip.PackageInfo,
-    wheelPath: typing.Union[str, os.PathLike[str]],
+    wheelPath: pathlib.Path,
     target: str,
 ) -> tuple[importlib.metadata.Distribution, bool]:
     # TODO: Technically, target should be optional. We will always want to install in "pip install --target"

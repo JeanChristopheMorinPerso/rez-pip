@@ -176,8 +176,8 @@ def pythonSpecifierToRezRequirement(
             parts = parts[:-1] + ["0"]
             return ".".join(parts)
 
-    def convert_spec(spec: packaging.specifiers.Specifier):
-        def parsed_rez_ver():
+    def convert_spec(spec: packaging.specifiers.Specifier) -> str:
+        def parsed_rez_ver() -> str:
             v = spec.version.replace(".*", "")
             return pythonDistributionVersionToRez(v)
 
@@ -311,7 +311,7 @@ def normalizeRequirement(
         req: packaging.requirements.Requirement,
         marker_str: typing.Optional[str] = None,
         conditional_extras: typing.Union[set[str], None] = None,
-    ):
+    ) -> packaging.requirements.Requirement:
         new_req_str = req.name
 
         if req.specifier:
@@ -455,7 +455,7 @@ def convertMarker(marker: str) -> list[str]:
 
 def getRezRequirements(
     installedDist: importlib.metadata.Distribution,
-    pythonVersion: str,
+    pythonVersion: rez.vendor.version.version,
     isPure: bool,
     nameCasings: typing.Optional[list[str]] = None,
 ) -> RequirementsDict:

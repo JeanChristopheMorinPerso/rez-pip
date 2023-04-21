@@ -9,11 +9,13 @@ import rez_pip.pip
 _LOG = logging.getLogger(__name__)
 
 
-def downloadPackages(packages: list[rez_pip.pip.PackageInfo], dest: str) -> str:
+def downloadPackages(packages: list[rez_pip.pip.PackageInfo], dest: str) -> list[str]:
     return asyncio.run(_downloadPackages(packages, dest))
 
 
-async def _downloadPackages(packages: list[rez_pip.pip.PackageInfo], dest: str) -> str:
+async def _downloadPackages(
+    packages: list[rez_pip.pip.PackageInfo], dest: str
+) -> list[str]:
     items: list[typing.Coroutine] = []
 
     wheels = []
@@ -22,12 +24,16 @@ async def _downloadPackages(packages: list[rez_pip.pip.PackageInfo], dest: str) 
             items.append(download(package, dest, session))
 
         wheels = await asyncio.gather(*items)
+
+    if not all(wheels):
+        raise RuntimeError("Some wheels failed to be downloaded")
+
     return wheels
 
 
 async def download(
     package: rez_pip.pip.PackageInfo, target: str, session: aiohttp.ClientSession
-) -> str:
+) -> str | None:
     _LOG.debug(
         f"Downloading {package.name}-{package.version} from {package.download_info['url']}"
     )
@@ -42,7 +48,7 @@ async def download(
 
     if response.status != 200:
         _LOG.error(f"failed to download {package.download_info['url']}")
-        return
+        return None
 
     wheelName: str = os.path.basename(package.download_info["url"])
     wheelPath = os.path.join(target, wheelName)

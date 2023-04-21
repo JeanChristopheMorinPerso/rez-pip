@@ -1,6 +1,7 @@
 import sys
 import logging
 import argparse
+import pathlib
 import tempfile
 import importlib.metadata
 
@@ -15,7 +16,7 @@ import rez_pip.download
 _LOG = logging.getLogger("rez_pip")
 
 
-def run():
+def run() -> None:
     handler = logging.StreamHandler(stream=sys.stdout)
     handler.setFormatter(logging.Formatter(fmt="%(message)s"))
     _LOG.addHandler(handler)
@@ -62,7 +63,7 @@ def run():
     with tempfile.TemporaryDirectory(prefix="rez-pip") as tempDir:
         packages = rez_pip.pip.get_packages(args.package, args.pip, args.python_version)
 
-        # TODO: We will want to postpone downloading to the last minute if we can.
+        # TODO: Should we postpone downloading to the last minute if we can?
         wheels = rez_pip.download.downloadPackages(packages, tempDir)
         _LOG.info(f"Downloaded {len(wheels)} wheels")
 
@@ -71,7 +72,9 @@ def run():
 
         for package, wheel in zip(packages, wheels):
             _LOG.debug(f"Installing {package.name}-{package.version} wheel")
-            dist, isPure = rez_pip.install.installWheel(package, wheel, args.target)
+            dist, isPure = rez_pip.install.installWheel(
+                package, pathlib.Path(wheel), args.target
+            )
 
             dists[dist] = isPure
 
