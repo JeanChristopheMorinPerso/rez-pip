@@ -7,7 +7,7 @@ Modern rez-pip implementation. Very WIP.
 * [x] Specify Python version to use
 * [ ] Better logs and CLI experience
     * [x] Use logging
-    * [ ] Progress bars for download?
+    * [x] Progress bars for download?
 * [ ] Confirm that Python 2 is supported
 * [ ] Confirm that the theory works as expected
 * [ ] Windows support
@@ -19,7 +19,7 @@ Modern rez-pip implementation. Very WIP.
     * [ ] Discover Python package using rez and use that when available. I think it's still fine to support non-rezified Python interpreters though.
     * [ ] Only download+convert package if it's not already in the rez repositories.
     * etc
-* [ ] Accept multiple package names as input
+* [x] Accept multiple package names as input
 * [ ] Accept requirements files as input
 * [ ] Accept whee files as input
 * [ ] Properly support platform tags (wheels tags) so that GLIBC is respected, min macOS is also supported.
