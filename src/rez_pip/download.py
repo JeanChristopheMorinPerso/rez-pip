@@ -11,6 +11,8 @@ import rez_pip.pip
 
 _LOG = logging.getLogger(__name__)
 
+_lock = asyncio.Lock()
+
 
 def downloadPackages(packages: list[rez_pip.pip.PackageInfo], dest: str) -> list[str]:
     return asyncio.run(_downloadPackages(packages, dest))
@@ -19,7 +21,7 @@ def downloadPackages(packages: list[rez_pip.pip.PackageInfo], dest: str) -> list
 async def _downloadPackages(
     packages: list[rez_pip.pip.PackageInfo], dest: str
 ) -> list[str]:
-    items: list[typing.Coroutine] = []
+    items: list[typing.Coroutine[typing.Any, typing.Any, str | None]] = []
     wheels = []
 
     async with aiohttp.ClientSession() as session:
@@ -31,8 +33,22 @@ async def _downloadPackages(
             rich.progress.TransferSpeedColumn(),
             transient=True,
         ) as progress:
+
+            tasks: dict[str, rich.progress.TaskID] = {}
+
+            # Create all the downlod tasks first
             for package in packages:
-                items.append(download(package, dest, session, progress))
+                tasks[package.name] = progress.add_task(package.name)
+
+            # Then create the "total" progress bar. This ensures that total is at the bottom.
+            mainTask = progress.add_task(f"[bold]Total (0/{len(packages)})", total=0)
+
+            for package in packages:
+                items.append(
+                    download(
+                        package, dest, session, progress, tasks[package.name], mainTask
+                    )
+                )
 
             wheels = await asyncio.gather(*items)
 
@@ -47,6 +63,8 @@ async def download(
     target: str,
     session: aiohttp.ClientSession,
     progress: rich.progress.Progress,
+    taskID: rich.progress.TaskID,
+    mainTaskID: rich.progress.TaskID,
 ) -> str | None:
 
     _LOG.debug(
@@ -61,9 +79,16 @@ async def download(
         },
     ) as response:
 
-        task = progress.add_task(
-            package.name, total=int(response.headers.get("content-length", 0))
-        )
+        size = int(response.headers.get("content-length", 0))
+        progress.update(taskID, total=size)
+
+        async with _lock:
+            mainTask = [task for task in progress.tasks if task.id == mainTaskID][0]
+
+            progress.update(
+                mainTaskID,
+                total=typing.cast(int, mainTask.total) + size,
+            )
 
         if response.status != 200:
             _LOG.error(f"failed to download {package.download_info.url}")
@@ -75,11 +100,18 @@ async def download(
             async for chunk, asd in response.content.iter_chunks():
                 if not chunk:
                     break
-                progress.update(task, advance=len(chunk))
+                progress.update(taskID, advance=len(chunk))
+                progress.update(mainTaskID, advance=len(chunk))
                 fd.write(chunk)
 
-    progress.update(task, visible=False)
+    progress.update(taskID, visible=False)
 
+    total = len(progress.tasks) - 1
+    async with _lock:
+        completedItems = [task for task in progress.tasks if not task.visible]
+        progress.update(
+            mainTaskID, description=f"[bold]Total ({len(completedItems)}/{total})"
+        )
     _LOG.info(
         f"Downloaded {package.name}-{package.version} to {wheelPath!r} ({os.stat(wheelPath).st_size} bytes)"
     )
