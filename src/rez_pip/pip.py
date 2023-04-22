@@ -4,7 +4,6 @@ import logging
 import subprocess
 import dataclasses
 
-import rich.markup
 import dataclasses_json
 import packaging.metadata
 
@@ -42,9 +41,6 @@ def get_packages(
     packages: list[str], pip: str, pythonVersion: str
 ) -> list[PackageInfo]:
     # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
-    _LOG.info(
-        f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(packages))}"
-    )
     output = subprocess.check_output(
         [
             sys.executable,
@@ -71,5 +67,4 @@ def get_packages(
         packageInfo = PackageInfo.from_dict(rawPackage)
         packages.append(packageInfo)
 
-    _LOG.debug(f"Resolved {len(packages)} dependencies")
     return packages

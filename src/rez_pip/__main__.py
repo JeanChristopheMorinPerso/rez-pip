@@ -5,6 +5,8 @@ import pathlib
 import tempfile
 import importlib.metadata
 
+import rich
+import rich.markup
 import rich.logging
 import rez.vendor.version.version
 
@@ -12,7 +14,6 @@ import rez_pip.pip
 import rez_pip.rez
 import rez_pip.install
 import rez_pip.download
-
 
 _LOG = logging.getLogger("rez_pip")
 
@@ -62,9 +63,14 @@ def run() -> None:
     # and would allow to just use --target to set the path where the rez packages will
     # be installed.
     with tempfile.TemporaryDirectory(prefix="rez-pip") as tempDir:
-        packages = rez_pip.pip.get_packages(
-            args.packages, args.pip, args.python_version
-        )
+        with rich.get_console().status(
+            f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(args.packages))}"
+        ):
+            packages = rez_pip.pip.get_packages(
+                args.packages, args.pip, args.python_version
+            )
+
+        _LOG.info(f"Resolved {len(packages)} dependencies")
 
         # TODO: Should we postpone downloading to the last minute if we can?
         _LOG.info("[bold]Downloading...")
@@ -72,24 +78,25 @@ def run() -> None:
         _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
 
         dists: dict[importlib.metadata.Distribution, bool] = {}
-        _LOG.info(f"[bold]Installing wheels into {args.target!r}")
 
-        for package, wheel in zip(packages, wheels):
-            _LOG.debug(f"[bold]Installing {package.name}-{package.version} wheel")
-            dist, isPure = rez_pip.install.installWheel(
-                package, pathlib.Path(wheel), args.target
-            )
+        with rich.get_console().status(f"[bold]Installing wheels into {args.target!r}"):
+            for package, wheel in zip(packages, wheels):
+                _LOG.info(f"[bold]Installing {package.name}-{package.version} wheel")
+                dist, isPure = rez_pip.install.installWheel(
+                    package, pathlib.Path(wheel), args.target
+                )
 
-            dists[dist] = isPure
+                dists[dist] = isPure
 
         distNames = [dist.name for dist in dists.keys()]
 
-        for dist in dists:
-            isPure = dists[dist]
-            rez_pip.rez.createPackage(
-                dist,
-                isPure,
-                rez.vendor.version.version.Version(args.python_version),
-                distNames,
-                args.install_path,
-            )
+        with rich.get_console().status("[bold]Creating rez packages..."):
+            for dist in dists:
+                isPure = dists[dist]
+                rez_pip.rez.createPackage(
+                    dist,
+                    isPure,
+                    rez.vendor.version.version.Version(args.python_version),
+                    distNames,
+                    args.install_path,
+                )

@@ -3,8 +3,8 @@ import typing
 import asyncio
 import logging
 
+import rich
 import aiohttp
-import rich.console
 import rich.progress
 
 import rez_pip.pip
@@ -32,8 +32,8 @@ async def _downloadPackages(
             rich.progress.DownloadColumn(),
             rich.progress.TransferSpeedColumn(),
             transient=True,
+            console=rich.get_console(),
         ) as progress:
-
             tasks: dict[str, rich.progress.TaskID] = {}
 
             # Create all the downlod tasks first
