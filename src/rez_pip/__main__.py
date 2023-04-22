@@ -26,7 +26,7 @@ def run() -> None:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument("package", help="Package to install")
+    parser.add_argument("packages", nargs="+", help="Package to install")
     parser.add_argument(
         "--target", required=True, metavar="path", help="Target directory"
     )
@@ -62,7 +62,9 @@ def run() -> None:
     # and would allow to just use --target to set the path where the rez packages will
     # be installed.
     with tempfile.TemporaryDirectory(prefix="rez-pip") as tempDir:
-        packages = rez_pip.pip.get_packages(args.package, args.pip, args.python_version)
+        packages = rez_pip.pip.get_packages(
+            args.packages, args.pip, args.python_version
+        )
 
         # TODO: Should we postpone downloading to the last minute if we can?
         _LOG.info("[bold]Downloading...")

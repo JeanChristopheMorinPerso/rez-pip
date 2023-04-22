@@ -37,16 +37,18 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
         return self.metadata["version"]
 
 
-def get_packages(package: str, pip: str, pythonVersion: str) -> list[PackageInfo]:
+def get_packages(
+    packages: list[str], pip: str, pythonVersion: str
+) -> list[PackageInfo]:
     # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
-    _LOG.info(f"[bold]Resolving dependencies for {package}")
+    _LOG.info(f"[bold]Resolving dependencies for {', '.join(packages)}")
     output = subprocess.check_output(
         [
             sys.executable,
             pip,
             "install",
             "-q",
-            package,
+            *packages,
             "--dry-run",
             "--ignore-installed",
             f"--python-version={pythonVersion}" if pythonVersion else "",
