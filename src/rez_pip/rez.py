@@ -2,11 +2,11 @@ import os
 import typing
 import shutil
 import logging
+import importlib.metadata
 
 import rez.config
 import rez.package_maker
 import rez.vendor.version.version
-import importlib.metadata
 
 import rez_pip.pip
 import rez_pip.utils

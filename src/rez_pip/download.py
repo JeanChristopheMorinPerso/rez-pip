@@ -1,8 +1,9 @@
 import os
 import typing
-import aiohttp
 import asyncio
 import logging
+
+import aiohttp
 import rich.console
 import rich.progress
 

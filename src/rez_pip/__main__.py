@@ -3,9 +3,9 @@ import logging
 import argparse
 import pathlib
 import tempfile
-import rich.logging
 import importlib.metadata
 
+import rich.logging
 import rez.vendor.version.version
 
 import rez_pip.pip

@@ -1,9 +1,9 @@
 import typing
 import logging
+import importlib.metadata
 
 import rez.system
 import packaging.version
-import importlib.metadata
 import packaging.specifiers
 import packaging.requirements
 import rez.vendor.version.version
