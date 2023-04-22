@@ -47,3 +47,27 @@ rm -rf /tmp/asd* && rez-pip2 pytest --target /tmp/asd --install-path /tmp/asd2
 where the rez packages will be created.
 
 `--target` is temporary and is simply a development flag.
+
+# Packages to test against
+
+* pytest
+* PySide, PySIde2, PySide6
+* PyQt4, PyQt5
+* psycopg2-binary
+* ipython
+* numpy
+* protobuf
+* click
+* Pygments (https://github.com/AcademySoftwareFoundation/rez/issues/1430)
+* google_api_core (https://github.com/AcademySoftwareFoundation/rez/issues/1414)
+* sphinx
+* networkx[default] (https://github.com/AcademySoftwareFoundation/rez/issues/1409)
+* black (https://github.com/AcademySoftwareFoundation/rez/issues/1341)
+* pylint (https://github.com/AcademySoftwareFoundation/rez/issues/1024)
+* ampq (https://github.com/AcademySoftwareFoundation/rez/issues/906)
+* cmd2 (https://github.com/AcademySoftwareFoundation/rez/issues/895)
+* astroid (https://github.com/AcademySoftwareFoundation/rez/issues/876)
+* Qt.py (https://github.com/AcademySoftwareFoundation/rez/issues/503)
+* Pillow
+* BeautifulSoup
+* python-dateutil (https://github.com/AcademySoftwareFoundation/rez/issues/390)

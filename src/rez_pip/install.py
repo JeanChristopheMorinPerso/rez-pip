@@ -90,9 +90,14 @@ def installWheel(
     # That's kind of dirty, but using any other method returns inconsistent results.
     # For example, importlib.metadata.Distribution.discover(path=['/path']) sometimes
     # won't find the freshly intalled package, even if it exists and everything.
-    dist = importlib.metadata.Distribution.at(
-        os.path.join("/tmp/asd/python", f"{package.name}-{package.version}.dist-info")
+    path = os.path.join(
+        "/tmp/asd/python",
+        f"{package.name.replace('-', '_')}-{package.version}.dist-info",
     )
+    dist = importlib.metadata.Distribution.at(path)
+
+    if not dist.files:
+        raise RuntimeError(f"{path!r} does not exist!")
 
     return dist, isPure
 
