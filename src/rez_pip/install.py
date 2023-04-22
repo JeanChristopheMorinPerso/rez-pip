@@ -97,7 +97,14 @@ def installWheel(
     dist = importlib.metadata.Distribution.at(path)
 
     if not dist.files:
-        raise RuntimeError(f"{path!r} does not exist!")
+        path = os.path.join(
+            "/tmp/asd/python",
+            # Some packages like sphinx will have have a sphinx.dist-info instead of Sphinx.dist-info.
+            f"{package.name.replace('-', '_').lower()}-{package.version}.dist-info",
+        )
+        dist = importlib.metadata.Distribution.at(path)
+        if not dist.files:
+            raise RuntimeError(f"{path!r} does not exist!")
 
     return dist, isPure
 

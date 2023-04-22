@@ -69,5 +69,5 @@ where the rez packages will be created.
 * astroid (https://github.com/AcademySoftwareFoundation/rez/issues/876)
 * Qt.py (https://github.com/AcademySoftwareFoundation/rez/issues/503)
 * Pillow
-* BeautifulSoup
+* BeautifulSoup4
 * python-dateutil (https://github.com/AcademySoftwareFoundation/rez/issues/390)
