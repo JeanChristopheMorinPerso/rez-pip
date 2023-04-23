@@ -1,8 +1,7 @@
 import os
-import unittest.mock
+import typing
 
 import pytest
-import aiohttp
 
 import pytest_httpserver
 
@@ -19,7 +18,7 @@ import rez_pip.download
     ids=["single-package", "multiple-packages"],
 )
 def test_download_single_package(
-    packages: dict[str, str],
+    packages: typing.Dict[str, str],
     httpserver: pytest_httpserver.HTTPServer,
     tmp_path: pytest.TempPathFactory,
 ):

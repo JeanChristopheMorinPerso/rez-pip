@@ -10,18 +10,21 @@ import rich.progress
 import rez_pip.pip
 
 _LOG = logging.getLogger(__name__)
-
 _lock = asyncio.Lock()
 
 
-def downloadPackages(packages: list[rez_pip.pip.PackageInfo], dest: str) -> list[str]:
+def downloadPackages(
+    packages: typing.List[rez_pip.pip.PackageInfo], dest: str
+) -> typing.List[str]:
     return asyncio.run(_downloadPackages(packages, dest))
 
 
 async def _downloadPackages(
-    packages: list[rez_pip.pip.PackageInfo], dest: str
-) -> list[str]:
-    items: list[typing.Coroutine[typing.Any, typing.Any, str | None]] = []
+    packages: typing.List[rez_pip.pip.PackageInfo], dest: str
+) -> typing.List[str]:
+    items: typing.List[
+        typing.Coroutine[typing.Any, typing.Any, typing.Optional[str]]
+    ] = []
     wheels = []
 
     async with aiohttp.ClientSession() as session:
@@ -34,7 +37,7 @@ async def _downloadPackages(
             transient=True,
             console=rich.get_console(),
         ) as progress:
-            tasks: dict[str, rich.progress.TaskID] = {}
+            tasks: typing.Dict[str, rich.progress.TaskID] = {}
 
             # Create all the downlod tasks first
             for package in packages:
@@ -65,7 +68,7 @@ async def download(
     progress: rich.progress.Progress,
     taskID: rich.progress.TaskID,
     mainTaskID: rich.progress.TaskID,
-) -> str | None:
+) -> typing.Optional[str]:
 
     _LOG.debug(
         f"Downloading {package.name}-{package.version} from {package.download_info.url}"

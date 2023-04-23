@@ -1,9 +1,14 @@
 import sys
+import typing
 import logging
 import argparse
 import pathlib
 import tempfile
-import importlib.metadata
+
+if sys.version_info >= (3, 10):
+    import importlib.metadata as importlib_metadata
+else:
+    import importlib_metadata
 
 import rich
 import rich.markup
@@ -77,7 +82,7 @@ def run() -> None:
         wheels = rez_pip.download.downloadPackages(packages, tempDir)
         _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
 
-        dists: dict[importlib.metadata.Distribution, bool] = {}
+        dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
 
         with rich.get_console().status(f"[bold]Installing wheels into {args.target!r}"):
             for package, wheel in zip(packages, wheels):

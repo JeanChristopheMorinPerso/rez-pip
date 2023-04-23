@@ -1,5 +1,6 @@
 import sys
 import json
+import typing
 import logging
 import subprocess
 import dataclasses
@@ -38,8 +39,8 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
 
 
 def get_packages(
-    packages: list[str], pip: str, pythonVersion: str
-) -> list[PackageInfo]:
+    packageNames: typing.List[str], pip: str, pythonVersion: str
+) -> typing.List[PackageInfo]:
     # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
     output = subprocess.check_output(
         [
@@ -47,7 +48,7 @@ def get_packages(
             pip,
             "install",
             "-q",
-            *packages,
+            *packageNames,
             "--dry-run",
             "--ignore-installed",
             f"--python-version={pythonVersion}" if pythonVersion else "",
@@ -61,7 +62,7 @@ def get_packages(
     rawData = json.loads(output)
     rawPackages = rawData["install"]
 
-    packages: list[PackageInfo] = []
+    packages: typing.List[PackageInfo] = []
 
     for rawPackage in rawPackages:
         packageInfo = PackageInfo.from_dict(rawPackage)

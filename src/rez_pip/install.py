@@ -9,7 +9,17 @@ import zipfile
 import logging
 import pathlib
 import sysconfig
-import importlib.metadata
+
+if sys.version_info >= (3, 10):
+    import importlib.metadata as importlib_metadata
+else:
+    import importlib_metadata
+
+if typing.TYPE_CHECKING:
+    if sys.version_info >= (3, 8):
+        from typing import Literal
+    else:
+        from typing_extensions import Literal
 
 import installer
 import installer.utils
@@ -23,8 +33,6 @@ import rez_pip.pip
 _LOG = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
-    from typing import Literal
-
     LauncherKind = Literal["posix", "win-ia32", "win-amd64", "win-arm", "win-arm64"]
     ScriptSection = Literal["console", "gui"]
 
@@ -36,7 +44,7 @@ def isWheelPure(source: installer.sources.WheelSource) -> bool:
 
 
 # Taken from https://github.com/pypa/installer/blob/main/src/installer/__main__.py#L49
-def getSchemeDict(name: str, target: str) -> dict[str, str]:
+def getSchemeDict(name: str, target: str) -> typing.Dict[str, str]:
     vars = {}
     vars["base"] = vars["platbase"] = installed_base = target
 
@@ -62,11 +70,11 @@ def installWheel(
     package: rez_pip.pip.PackageInfo,
     wheelPath: pathlib.Path,
     target: str,
-) -> tuple[importlib.metadata.Distribution, bool]:
+) -> typing.Tuple[importlib_metadata.Distribution, bool]:
     # TODO: Technically, target should be optional. We will always want to install in "pip install --target"
     #       mode. So right now it's a CLI option for debugging purposes.
 
-    destination = WheelDestination(
+    destination = CustomWheelDestination(
         getSchemeDict(package.name, target),
         # TODO: Use Python from rez package, or simply use "/usr/bin/env python"?
         interpreter=sys.executable,
@@ -94,7 +102,7 @@ def installWheel(
         "/tmp/asd/python",
         f"{package.name.replace('-', '_')}-{package.version}.dist-info",
     )
-    dist = importlib.metadata.Distribution.at(path)
+    dist = importlib_metadata.Distribution.at(path)
 
     if not dist.files:
         path = os.path.join(
@@ -102,7 +110,7 @@ def installWheel(
             # Some packages like sphinx will have have a sphinx.dist-info instead of Sphinx.dist-info.
             f"{package.name.replace('-', '_').lower()}-{package.version}.dist-info",
         )
-        dist = importlib.metadata.Distribution.at(path)
+        dist = importlib_metadata.Distribution.at(path)
         if not dist.files:
             raise RuntimeError(f"{path!r} does not exist!")
 
@@ -110,7 +118,7 @@ def installWheel(
 
 
 # TODO: Document where this code comes from.
-class WheelDestination(installer.destinations.SchemeDictionaryDestination):
+class CustomWheelDestination(installer.destinations.SchemeDictionaryDestination):
     # Exactly the same as SchemeDictionaryDestination, but uses our custom Script class.
     def write_script(
         self, name: str, module: str, attr: str, section: "ScriptSection"

@@ -1,8 +1,13 @@
 import os
+import sys
 import typing
 import shutil
 import logging
-import importlib.metadata
+
+if sys.version_info >= (3, 10):
+    import importlib.metadata as importlib_metadata
+else:
+    import importlib_metadata
 
 import rez.config
 import rez.package_maker
@@ -15,10 +20,10 @@ _LOG = logging.getLogger(__name__)
 
 
 def createPackage(
-    dist: importlib.metadata.Distribution,
+    dist: importlib_metadata.Distribution,
     isPure: bool,
     pythonVersion: rez.vendor.version.version.Version,
-    nameCasings: list[str],
+    nameCasings: typing.List[str],
     installPath: typing.Optional[str] = None,
 ) -> None:
     _LOG.info(f"Creating rez package for {dist.name}")
@@ -26,9 +31,9 @@ def createPackage(
     version = rez_pip.utils.pythonDistributionVersionToRez(dist.version)
 
     requirements = rez_pip.utils.getRezRequirements(dist, pythonVersion, isPure, [])
-    requires = requirements["requires"]
-    variant_requires = requirements["variant_requires"]
-    metadata = requirements["metadata"]
+    requires = requirements.requires
+    variant_requires = requirements.variant_requires
+    metadata = requirements.metadata
 
     if installPath:
         packagesPath = installPath

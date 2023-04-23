@@ -70,7 +70,6 @@ def test_pythonSpecifierToRezRequirement(pythonSpec: str, rezReq: str):
 
 
 def test_pythonSpecifierToRezRequirement_raises():
-    """ """
     with pytest.raises(ValueError):
         rez_pip.utils.pythonSpecifierToRezRequirement(
             packaging.specifiers.SpecifierSet("<2,>3")
@@ -137,7 +136,7 @@ def test_packaging_req_to_rez_req(pythonReq: str, rezReq: str):
         ['python_full_version == "3.7.4"', ["python"]],
     ],
 )
-def test_convertMarker(marker: str, expected: list[str]):
+def test_convertMarker(marker: str, expected: typing.List[str]):
     assert rez_pip.utils.convertMarker(marker) == expected
 
 
@@ -231,9 +230,9 @@ def test_convertMarker(marker: str, expected: list[str]):
     ],
 )
 def test_normalizeRequirement(
-    requirement: typing.Union[str, dict[str, typing.Any]],
-    expected: list[packaging.requirements.Requirement],
-    conditional_extras: list[typing.Optional[set[str]]],
+    requirement: typing.Union[str, typing.Dict[str, typing.Any]],
+    expected: typing.List[packaging.requirements.Requirement],
+    conditional_extras: typing.List[typing.Optional[typing.Set[str]]],
 ):
     result = rez_pip.utils.normalizeRequirement(requirement)
     assert [str(req) for req in result] == [str(req) for req in expected]
