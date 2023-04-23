@@ -13,7 +13,13 @@ license = { file="LICENSE" }
 readme = "README.md"
 requires-python = ">=3.7"
 dependencies = [
-  "installer"
+  "installer>=0.7.0",
+  "aiohttp",
+  "packaging>=23.1",
+  "rez",
+  "dataclasses-json",
+  "rich",
+  "importlib_metadata>=4.6 ; python_version < '3.10'",
 ]
 
 classifiers = [
@@ -33,6 +39,8 @@ keywords = []
 Homepage = "https://github.com/JeanChristopheMorinPerso/rez-pip"
 Tracker = "https://github.com/JeanChristopheMorinPerso/rez-pip/issues"
 
+[project.scripts]
+rez-pip2 = "rez_pip.__main__:run"
 # [project.entry-points."opentimelineio.plugins"]
 # otio_fcpxxml_adapter = "otio_fcpxxml_adapter"
 
