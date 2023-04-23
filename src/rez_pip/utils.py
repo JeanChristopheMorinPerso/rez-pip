@@ -281,9 +281,13 @@ def pythonReqToRezReq(
     return rez.vendor.version.requirement.Requirement(req)
 
 
+class CustomPyPackagingRequirement(packaging.requirements.Requirement):
+    conditional_extras: typing.Optional[typing.Set[str]]
+
+
 def normalizeRequirement(
     requirement: typing.Union[str, typing.Dict[typing.Any, typing.Any]]
-) -> typing.List[packaging.requirements.Requirement]:
+) -> typing.List[CustomPyPackagingRequirement]:
     """Normalize a package requirement.
 
     Requirements from distlib packages can be a mix of string- or dict- based
@@ -315,10 +319,10 @@ def normalizeRequirement(
     """
 
     def reconstruct(
-        req: packaging.requirements.Requirement,
+        req: CustomPyPackagingRequirement,
         marker_str: typing.Optional[str] = None,
         conditional_extras: typing.Union[typing.Set[str], None] = None,
-    ) -> packaging.requirements.Requirement:
+    ) -> CustomPyPackagingRequirement:
         new_req_str = req.name
 
         if req.specifier:
@@ -330,34 +334,34 @@ def normalizeRequirement(
         if marker_str:
             new_req_str += " ; " + marker_str
 
-        new_req = packaging.requirements.Requirement(new_req_str)
-        setattr(new_req, "conditional_extras", conditional_extras)
+        new_req = CustomPyPackagingRequirement(new_req_str)
+        new_req.conditional_extras = conditional_extras
         return new_req
 
     # PEP426 dict syntax
     # So only metadata that are of version 2.0 will be in dict. The other versions
     # (1.0, 1.1, 1.2, 2.1) will be strings.
     if isinstance(requirement, dict):
-        result: typing.List[packaging.requirements.Requirement] = []
+        result: typing.List[CustomPyPackagingRequirement] = []
         requires = requirement["requires"]
         extra = requirement.get("extra")
         marker_str = requirement.get("environment")
 
         # conditional extra, equivalent to: 'foo ; extra = "doc"'
         if extra:
-            conditional_extras = set([extra])
+            conditional_extras1 = set([extra])
         else:
-            conditional_extras = None
+            conditional_extras1 = None
 
         for req_str in requires:
-            req = packaging.requirements.Requirement(req_str)
-            new_req = reconstruct(req, marker_str, conditional_extras)
+            req = CustomPyPackagingRequirement(req_str)
+            new_req = reconstruct(req, marker_str, conditional_extras1)
             result.append(new_req)
 
         return result
 
     # string-based syntax
-    req = packaging.requirements.Requirement(requirement)
+    req = CustomPyPackagingRequirement(requirement)
 
     # detect case: "mypkg ; extra == 'dev'"
     # note: packaging lib already delimits with whitespace
@@ -366,7 +370,7 @@ def normalizeRequirement(
 
     # already in PEP508, packaging lib- friendly format
     if "extra" not in marker_parts:
-        setattr(req, "conditional_extras", None)
+        req.conditional_extras = None
         return [req]
 
     # Parse conditional extras out of marker
@@ -550,7 +554,7 @@ def getRezRequirements(
             # skip if req is conditional on extras that weren't requested
             if req.conditional_extras and not (
                 set(installedDist.metadata["Provides-Extra"] or [])
-                & set(req.conditional_extras)
+                & req.conditional_extras
             ):
                 continue
 

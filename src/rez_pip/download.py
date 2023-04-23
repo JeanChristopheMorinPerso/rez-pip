@@ -69,7 +69,6 @@ async def download(
     taskID: rich.progress.TaskID,
     mainTaskID: rich.progress.TaskID,
 ) -> typing.Optional[str]:
-
     _LOG.debug(
         f"Downloading {package.name}-{package.version} from {package.download_info.url}"
     )
@@ -81,7 +80,6 @@ async def download(
             "User-Agent": "rez-pip/0.1.0",
         },
     ) as response:
-
         size = int(response.headers.get("content-length", 0))
         progress.update(taskID, total=size)
 
@@ -94,7 +92,9 @@ async def download(
             )
 
         if response.status != 200:
-            _LOG.error(f"failed to download {package.download_info.url}")
+            _LOG.error(
+                f"failed to download {package.download_info.url}: {response.status} - {response.reason}, {response.request_info}"
+            )
             return None
 
         wheelName: str = os.path.basename(package.download_info.url)

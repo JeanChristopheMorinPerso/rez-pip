@@ -10,6 +10,21 @@ def lint(session: nox.Session):
     pass
 
 
+@nox.session()
+def mypy(session: nox.Session):
+    session.install("mypy")
+    session.install(".")
+
+    session.run("mypy")
+
+
+@nox.session()
+def format(session: nox.Session):
+    session.install("black")
+
+    session.run("black", ".", "--check")
+
+
 @nox.session(python=["3.7", "3.8", "3.9", "3.10", "3.11"])
 def test(session: nox.Session):
     session.install("-r", "tests/requirements.txt")

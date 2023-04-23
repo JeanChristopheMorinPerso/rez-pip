@@ -44,7 +44,7 @@ def createPackage(
             else rez.config.config.local_packages_path
         )
 
-    def make_root(variant, path) -> None:
+    def make_root(variant: rez.packages.Variant, path: str) -> None:
         """Using distlib to iterate over all installed files of the current
         distribution to copy files to the target directory of the rez package
         variant
