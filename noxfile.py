@@ -31,7 +31,14 @@ def test(session: nox.Session):
     session.install(".")
 
     session.run(
-        "pytest", "-v", "--cov=rez_pip", "--cov-report=term-missing", *session.posargs
+        "pytest",
+        "-v",
+        "--strict-markers",
+        "--cov=rez_pip",
+        "--cov-branch",
+        "--cov-report=term-missing",
+        "--cov-report=xml",
+        *session.posargs,
     )
 
 

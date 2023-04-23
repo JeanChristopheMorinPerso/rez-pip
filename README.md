@@ -1,4 +1,6 @@
 # rez-pip
+[![Coverage](https://codecov.io/gh/JeanChristopheMorinPerso/rez-pip/branch/main/graph/badge.svg?token=SYLI4WI7F1)](https://codecov.io/gh/JeanChristopheMorinPerso/rez-pip)
+
 Modern rez-pip implementation. Very WIP.
 
 ## TODOs
