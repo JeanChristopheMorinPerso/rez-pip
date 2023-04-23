@@ -1,0 +1,29 @@
+
+name: test
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  test:
+    name: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Test
+      run: pipx run nox --error-on-missing-interpreter -s test-${{ matrix.python }}
