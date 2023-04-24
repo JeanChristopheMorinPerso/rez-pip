@@ -1,4 +1,9 @@
 """Development automation"""
+import os
+import json
+import platform
+import urllib.request
+
 import nox
 
 # nox.options.sessions = ["lint", "test", "doctest"]
@@ -45,3 +50,43 @@ def test(session: nox.Session):
 @nox.session()
 def update_pip(session: nox.Session):
     pass
+
+
+@nox.session(name="pre-test")
+def pre_test(session: nox.Session):
+    with urllib.request.urlopen(
+        "https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json"
+    ) as fd:
+        versionsManifest = json.load(fd)
+
+    downloadDir = os.path.join("tests", "data", "python")
+    try:
+        os.makedirs(downloadDir)
+    except FileExistsError:
+        pass
+
+    versions = ["2.7.18", "3.11.3"]
+
+    platformMap = {"Linux": "linux", "Windows": "win32", "Darwin": "darwin"}
+
+    for manifest in versionsManifest:
+        if manifest["version"] in versions:
+            for version in manifest["files"]:
+                if (
+                    version["arch"] == "x64"
+                    and version["platform"] == platformMap[platform.system()]
+                ):
+                    path = f"{downloadDir}/{version['filename']}"
+                    if os.path.exists(path):
+                        break
+
+                    with urllib.request.urlopen(version["download_url"]) as fd:
+                        session.log(
+                            f"Downloading {version['download_url']} to {path!r}"
+                        )
+                        with open(f"{downloadDir}/{version['filename']}", "wb") as fd2:
+                            fd2.write(fd.read())
+                            break
+
+            else:
+                session.error(f"Failed to find URL for Python {manifest['version']}")

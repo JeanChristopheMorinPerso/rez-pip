@@ -2,7 +2,6 @@ import os
 import typing
 
 import pytest
-
 import pytest_httpserver
 
 import rez_pip.pip
