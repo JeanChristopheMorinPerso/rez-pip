@@ -28,7 +28,7 @@ jobs:
     - name: Test
       run: |
         pipx run nox -s pre-test
-        pipx run nox --error-on-missing-interpreter -s test-${{ matrix.python }} -- --showlocals
+        pipx run nox --error-on-missing-interpreter -s test-${{ matrix.python }} -- --showlocals -v -s
 
     - name: Codecov upload
       uses: codecov/codecov-action@v3
