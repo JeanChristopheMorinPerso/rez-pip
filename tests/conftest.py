@@ -2,6 +2,7 @@ import os
 import glob
 import tarfile
 import zipfile
+import platform
 
 # import time
 # import typing
@@ -64,38 +65,47 @@ def rezRepo() -> str:
 @pytest.fixture(scope="session")
 def createPythonRezPackages(rezRepo: str):
     pythonArchives = glob.glob(
-        os.path.join(os.path.dirname(__file__), "data", "python", "*")
+        os.path.join(os.path.dirname(__file__), "data", "_tmp_download", "*")
     )
 
     for pythonArchive in pythonArchives:
         print(f"Creating rez package for {pythonArchive} in {rezRepo!r}")
+
+        if pythonArchive.endswith(".tar.gz"):
+            openArchive = tarfile.open
+        elif pythonArchive.endswith(".nupkg"):
+            openArchive = zipfile.ZipFile
+        else:
+            raise RuntimeError(f"{pythonArchive} is of unknown type")
 
         def make_root(variant: rez.packages.Variant, path: str) -> None:
             """Using distlib to iterate over all installed files of the current
             distribution to copy files to the target directory of the rez package
             variant
             """
-            if pythonArchive.endswith(".tar.gz"):
-                with tarfile.open(pythonArchive) as tar:
-                    tar.extractall(path=os.path.join(path, "python"))
-            elif pythonArchive.endswith(".zip"):
-                with zipfile.ZipFile(pythonArchive) as zipFd:
-                    zipFd.extractall(path=os.path.join(path, "python"))
-            else:
-                raise RuntimeError(f"{pythonArchive} is of known type")
+            with openArchive(pythonArchive) as archive:
+                archive.extractall(path=os.path.join(path, "python"))
 
         with rez.package_maker.make_package(
             "python",
             rezRepo,
             make_root=make_root,
         ) as pkg:
-            pass
             pkg.version = os.path.basename(pythonArchive).split("-")[1]
 
-            pkg.commands = "\n".join(
-                [
+            commands = [
+                "env.PATH.prepend('{root}/python/bin')",
+                "env.LD_LIBRARY_PATH.prepend('{root}/python/lib')",
+            ]
+            if platform.system() == "Windows":
+                commands = [
+                    "env.PATH.prepend('{root}/python/tools')",
+                    "env.PATH.prepend('{root}/python/tools/DLLs')",
+                ]
+            elif platform.system() == "Darwin":
+                commands = [
                     "env.PATH.prepend('{root}/python/bin')",
-                    "env.LD_LIBRARY_PATH.prepend('{root}/python/lib')",
                     "env.DYLD_LIBRARY_PATH.prepend('{root}/python/lib')",
                 ]
-            )
+
+            pkg.commands = "\n".join(commands)

@@ -67,6 +67,7 @@ def run() -> None:
     # This would solve the problem with --target and --install-path
     # and would allow to just use --target to set the path where the rez packages will
     # be installed.
+
     with tempfile.TemporaryDirectory(prefix="rez-pip") as tempDir:
         with rich.get_console().status(
             f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(args.packages))}"
