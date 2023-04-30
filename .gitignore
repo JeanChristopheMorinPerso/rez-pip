@@ -131,3 +131,5 @@ dmypy.json
 # Custom
 .nox
 .vscode
+tests/data/rez_repo
+tests/data/_tmp_download

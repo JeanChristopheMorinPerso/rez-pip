@@ -32,12 +32,6 @@ def test(session: nox.Session):
 
     session.run(
         "pytest",
-        "-v",
-        "--strict-markers",
-        "--cov=rez_pip",
-        "--cov-branch",
-        "--cov-report=term-missing",
-        "--cov-report=xml",
         *session.posargs,
     )
 
