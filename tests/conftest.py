@@ -5,53 +5,15 @@ import typing
 import tarfile
 import zipfile
 import platform
+import functools
 import urllib.request
+import xml.etree.ElementTree
 
 import pytest
 import rez.packages
 import rez.package_maker
 
 DOWNLOAD_DIR = os.path.abspath(os.path.join("tests", "data", "_tmp_download"))
-
-# @pytest.fixture(scope="session")
-# def pypi() -> typing.Generator[str, None, None]:
-#     configPath = os.path.join(os.path.dirname(__file__), "simpleindex.toml")
-
-#     @dataclasses.dataclass
-#     class ServerConfig:
-#         host: str
-#         port: int
-
-#     with open(configPath, encoding="utf-8") as fd:
-#         config = ServerConfig(**toml.load(fd)["server"])
-
-#     proc = subprocess.Popen(
-#         ["simpleindex", configPath],
-#         stdout=subprocess.PIPE,
-#         stderr=subprocess.STDOUT,
-#         cwd=os.path.dirname(__file__),
-#     )
-
-#     url = f"http://{config.host}:{config.port}"
-
-#     retries = 50
-#     while retries > 0:
-#         conn = http.client.HTTPConnection(f"{config.host}:{config.port}")
-#         try:
-#             conn.request("HEAD", "/")
-#             response = conn.getresponse()
-#             if response is not None:
-#                 yield url
-#                 break
-#         except ConnectionRefusedError:
-#             time.sleep(0.1)
-#             retries -= 1
-
-#     proc.terminate()
-#     proc.wait()
-
-#     if not retries:
-#         raise RuntimeError("Failed to start simpleindex")
 
 
 @pytest.fixture(scope="session")
@@ -79,6 +41,34 @@ def downloadPythonVersions(
             urls[
                 version
             ] = f"https://globalcdn.nuget.org/packages/{nugetName}.{version}.nupkg"
+    elif platform.system() == "Darwin":
+        # Use conda packages artifacts since they are portable and don't need to
+        # be installed. That's quite dirty and I'm not sure if it goes against
+        # their terms of use.
+        arch = "64" if platform.machine() == "x86_64" else "arm64"
+        with urllib.request.urlopen(
+            f"https://repo.anaconda.com/pkgs/main/osx-{arch}/"
+        ) as fd:
+            repodata = fd.read()
+
+        tree = xml.etree.ElementTree.fromstring(repodata)
+
+        versionFlter = "|".join([version.replace(".", "\\.") for version in versions])
+        regex = re.compile(rf"python-(?P<version>{versionFlter}).*\.tar\.bz2")
+        for row in tree.iter("td"):
+            name = next(row.itertext(), "")
+            if not name:
+                continue
+
+            match = regex.match(name)
+            if match:
+                urls[
+                    match.group("version")
+                ] = f"https://repo.anaconda.com/pkgs/main/osx-{arch}/{name}"
+            if len(urls) == len(versions):
+                break
+        if len(urls) != len(versions):
+            pytest.fail(f"Only found {len(urls)} versions in Anaconda repo: {urls}")
 
     else:
         with urllib.request.urlopen(
@@ -131,6 +121,8 @@ def setupRezPackages(
 
         if archivePath.endswith(".tar.gz"):
             openArchive = tarfile.open
+        elif archivePath.endswith(".tar.bz2"):
+            openArchive = functools.partial(tarfile.open, mode="r:bz2")
         elif archivePath.endswith(".nupkg"):
             openArchive = zipfile.ZipFile
         else:
@@ -166,7 +158,6 @@ def setupRezPackages(
             elif platform.system() == "Darwin":
                 commands = [
                     "env.PATH.prepend('{root}/python/bin')",
-                    "env.DYLD_LIBRARY_PATH.prepend('{root}/python/lib')",
                 ]
 
             pkg.commands = "\n".join(commands)

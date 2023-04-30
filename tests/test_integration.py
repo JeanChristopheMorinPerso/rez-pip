@@ -1,4 +1,5 @@
 import os
+import re
 import platform
 import subprocess
 
@@ -40,7 +41,9 @@ def test_python_packages(setupRezPackages: str):
         )
 
         assert code == 0
-        assert stdout.decode("utf-8").strip().split(" ")[-1] == str(package.version)
+        assert re.findall(r"\d\.\d+\.\d+", stdout.decode("utf-8"), flags=re.MULTILINE)[
+            0
+        ] == str(package.version)
 
         code, stdout, _ = ctx.execute_shell(
             command=[executable, "-c", "import sys; print(sys.executable)"],
