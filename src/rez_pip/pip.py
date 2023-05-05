@@ -1,5 +1,4 @@
 import json
-import shlex
 import typing
 import logging
 import subprocess
@@ -59,7 +58,7 @@ def get_packages(
         "-",
     ]
 
-    _LOG.debug(f"Running {shlex.join(command)!r}")
+    _LOG.debug(f"Running {' '.join(command)!r}")
     output = subprocess.check_output(command)
 
     rawData = json.loads(output)

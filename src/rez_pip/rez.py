@@ -136,7 +136,7 @@ def createPackage(
 def getPythonExecutables(range_: str, name: str = "python") -> typing.Dict[str, str]:
     packages = sorted(
         rez.packages.iter_packages(name, range_=range_ if range_ != "latest" else None),
-        key=lambda x: x.version,
+        key=lambda x: x.version,  # type: ignore
     )
 
     if range_ == "latest":
