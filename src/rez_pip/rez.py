@@ -133,7 +133,9 @@ def createPackage(
             pkg.authors = [author]
 
 
-def getPythonExecutables(range_: str, name: str = "python") -> typing.Dict[str, str]:
+def getPythonExecutables(
+    range_: typing.Optional[str], name: str = "python"
+) -> typing.Dict[str, str]:
     packages = sorted(
         rez.packages.iter_packages(name, range_=range_ if range_ != "latest" else None),
         key=lambda x: x.version,  # type: ignore
@@ -153,5 +155,9 @@ def getPythonExecutables(range_: str, name: str = "python") -> typing.Dict[str, 
             if path:
                 pythons[str(package.version)] = path
                 break
+        else:
+            _LOG.warning(
+                f"Failed to find a Python executable in the {package.qualified_name!r} rez package"
+            )
 
     return pythons
