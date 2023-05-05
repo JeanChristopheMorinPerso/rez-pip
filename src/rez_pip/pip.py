@@ -1,4 +1,3 @@
-import sys
 import json
 import typing
 import logging
@@ -39,25 +38,28 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
 
 
 def get_packages(
-    packageNames: typing.List[str], pip: str, pythonVersion: str
+    packageNames: typing.List[str], pip: str, pythonVersion: str, pythonExecutable: str
 ) -> typing.List[PackageInfo]:
     # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
-    output = subprocess.check_output(
-        [
-            sys.executable,
-            pip,
-            "install",
-            "-q",
-            *packageNames,
-            "--dry-run",
-            "--ignore-installed",
-            f"--python-version={pythonVersion}" if pythonVersion else "",
-            "--only-binary=:all:",
-            "--target=/tmp/asd",
-            "--report",
-            "-",
-        ]
-    )
+
+    command = [
+        pythonExecutable,
+        pip,
+        "install",
+        "-q",
+        *packageNames,
+        "--dry-run",
+        "--ignore-installed",
+        f"--python-version={pythonVersion}" if pythonVersion else "",
+        "--only-binary=:all:",
+        "--target=/tmp/asd",
+        "--disable-pip-version-check",
+        "--report",
+        "-",
+    ]
+
+    _LOG.debug(f"Running {' '.join(command)!r}")
+    output = subprocess.check_output(command)
 
     rawData = json.loads(output)
     rawPackages = rawData["install"]

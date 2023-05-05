@@ -10,7 +10,9 @@ else:
     import importlib_metadata
 
 import rez.config
+import rez.packages
 import rez.package_maker
+import rez.resolved_context
 import rez.vendor.version.version
 
 import rez_pip.pip
@@ -24,6 +26,7 @@ def createPackage(
     isPure: bool,
     pythonVersion: rez.vendor.version.version.Version,
     nameCasings: typing.List[str],
+    tmpInstallPath: str,
     installPath: typing.Optional[str] = None,
 ) -> None:
     _LOG.info(f"Creating rez package for {dist.name}")
@@ -57,8 +60,9 @@ def createPackage(
         for src in dist.files:
             srcAbsolute = src.locate().resolve()
 
-            # TODO: Replace /tmp/asd with the path to the tmp dir
-            dest = os.path.join(path, srcAbsolute.relative_to("/tmp/asd"))
+            dest = os.path.join(
+                path, srcAbsolute.relative_to(os.path.realpath(tmpInstallPath))
+            )
             if not os.path.exists(os.path.dirname(dest)):
                 os.makedirs(os.path.dirname(dest))
 
@@ -127,3 +131,33 @@ def createPackage(
                 author += f" <{dist.metadata['Author-email']}>"
 
             pkg.authors = [author]
+
+
+def getPythonExecutables(
+    range_: typing.Optional[str], name: str = "python"
+) -> typing.Dict[str, str]:
+    packages = sorted(
+        rez.packages.iter_packages(name, range_=range_ if range_ != "latest" else None),
+        key=lambda x: x.version,  # type: ignore
+    )
+
+    if range_ == "latest":
+        packages = [packages[-1]]
+
+    pythons: typing.Dict[str, str] = {}
+    for package in packages:
+        resolvedContext = rez.resolved_context.ResolvedContext(
+            [f"{package.name}=={package.version}"]
+        )
+
+        for trimmedVersion in map(package.version.trim, [2, 1, 0]):
+            path = resolvedContext.which(f"python{trimmedVersion}")
+            if path:
+                pythons[str(package.version)] = path
+                break
+        else:
+            _LOG.warning(
+                f"Failed to find a Python executable in the {package.qualified_name!r} rez package"
+            )
+
+    return pythons

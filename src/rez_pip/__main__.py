@@ -1,4 +1,5 @@
 import sys
+import shutil
 import typing
 import logging
 import argparse
@@ -40,9 +41,8 @@ def run() -> None:
 
     parser.add_argument(
         "--python-version",
-        default=f"{sys.version_info[0]}.{sys.version_info[1]}",
         metavar="version",
-        help="Python version of the package",
+        help="Range of python versions. It can also be a single version or 'latest'",
     )
     parser.add_argument(
         "--pip",
@@ -68,41 +68,53 @@ def run() -> None:
     # and would allow to just use --target to set the path where the rez packages will
     # be installed.
 
-    with tempfile.TemporaryDirectory(prefix="rez-pip") as tempDir:
-        with rich.get_console().status(
-            f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(args.packages))}"
-        ):
-            packages = rez_pip.pip.get_packages(
-                args.packages, args.pip, args.python_version
-            )
+    pythonVersions = rez_pip.rez.getPythonExecutables(
+        args.python_version, name="python"
+    )
 
-        _LOG.info(f"Resolved {len(packages)} dependencies")
-
-        # TODO: Should we postpone downloading to the last minute if we can?
-        _LOG.info("[bold]Downloading...")
-        wheels = rez_pip.download.downloadPackages(packages, tempDir)
-        _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
-
-        dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
-
-        with rich.get_console().status(f"[bold]Installing wheels into {args.target!r}"):
-            for package, wheel in zip(packages, wheels):
-                _LOG.info(f"[bold]Installing {package.name}-{package.version} wheel")
-                dist, isPure = rez_pip.install.installWheel(
-                    package, pathlib.Path(wheel), args.target
+    for pythonVersion, pythonExecutable in pythonVersions.items():
+        with tempfile.TemporaryDirectory(prefix="rez-pip") as tempDir:
+            with rich.get_console().status(
+                f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(args.packages))} (python-{pythonVersion})"
+            ):
+                packages = rez_pip.pip.get_packages(
+                    args.packages, args.pip, pythonVersion, pythonExecutable
                 )
 
-                dists[dist] = isPure
+            _LOG.info(f"Resolved {len(packages)} dependencies")
 
-        distNames = [dist.name for dist in dists.keys()]
+            # TODO: Should we postpone downloading to the last minute if we can?
+            _LOG.info("[bold]Downloading...")
+            wheels = rez_pip.download.downloadPackages(packages, tempDir)
+            _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
 
-        with rich.get_console().status("[bold]Creating rez packages..."):
-            for dist in dists:
-                isPure = dists[dist]
-                rez_pip.rez.createPackage(
-                    dist,
-                    isPure,
-                    rez.vendor.version.version.Version(args.python_version),
-                    distNames,
-                    args.install_path,
-                )
+            dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
+
+            with rich.get_console().status(
+                f"[bold]Installing wheels into {args.target!r}"
+            ):
+                for package, wheel in zip(packages, wheels):
+                    _LOG.info(
+                        f"[bold]Installing {package.name}-{package.version} wheel"
+                    )
+                    dist, isPure = rez_pip.install.installWheel(
+                        package, pathlib.Path(wheel), args.target
+                    )
+
+                    dists[dist] = isPure
+
+            distNames = [dist.name for dist in dists.keys()]
+
+            with rich.get_console().status("[bold]Creating rez packages..."):
+                for dist in dists:
+                    isPure = dists[dist]
+                    rez_pip.rez.createPackage(
+                        dist,
+                        isPure,
+                        rez.vendor.version.version.Version(pythonVersion),
+                        distNames,
+                        args.target,
+                        args.install_path,
+                    )
+
+            shutil.rmtree(args.target)
