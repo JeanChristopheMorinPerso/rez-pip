@@ -3,7 +3,11 @@ name: test
 
 on:
   push:
+    paths-ignore:
+    - .github/workflows/update_pip.yaml
   pull_request:
+    paths-ignore:
+    - .github/workflows/update_pip.yaml
 
 concurrency:
   cancel-in-progress: true
