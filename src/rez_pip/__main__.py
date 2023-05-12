@@ -1,3 +1,4 @@
+import os
 import sys
 import shutil
 import typing
@@ -18,6 +19,7 @@ import rez.vendor.version.version
 
 import rez_pip.pip
 import rez_pip.rez
+import rez_pip.data
 import rez_pip.install
 import rez_pip.download
 
@@ -46,7 +48,7 @@ def run() -> None:
     )
     parser.add_argument(
         "--pip",
-        default="/home/jcmorin/jcmenv/aswf/rez-pip/pip.pyz",
+        default=os.path.join(os.path.dirname(rez_pip.data.__file__), "pip.pyz"),
         metavar="path",
         help="Standalone pip (https://pip.pypa.io/en/stable/installation/#standalone-zip-application)",
     )
