@@ -88,6 +88,62 @@ jobs:
             return prs[0].number;
           }
 
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 16
+
+    - name: Install JS deps
+      if: steps.download_pip.outputs.downloaded-pip-path != 'none'
+      run: npm install @octokit/auth-app @actions/github @octokit/request
+
+    - name: Get token
+      id: auth-token
+      if: steps.download_pip.outputs.downloaded-pip-path != 'none'
+      uses: actions/github-script@v6
+      env:
+        GH_BOT_APP_ID: ${{ secrets.GH_BOT_APP_ID }}
+        GH_BOT_PRIVATE_KEY: ${{ secrets.GH_BOT_PRIVATE_KEY }}
+      with:
+        script: |
+          const authAppMod = require('@octokit/auth-app');
+          const githubMod = require('@actions/github');
+          const requestMod = require('@octokit/request');
+
+          const appId = process.env.GH_BOT_APP_ID;
+          core.setSecret(appId);
+          const privateKey = process.env.GH_BOT_PRIVATE_KEY;
+          core.setSecret(privateKey);
+
+          console.log('Creating app object');
+          const app = authAppMod.createAppAuth({
+              appId,
+              privateKey,
+              request: requestMod.request.defaults({
+                  baseUrl: 'https://api/github.com',
+              }),
+          });
+
+          console.log('Creating auth app');
+          const authApp = await app({ type: 'app' });
+
+          console.log('Creating octokit client');
+          const octokit = githubMod.getOctokit(authApp.token);
+
+          console.log('Fetching installation ID');
+          const { data: { id: installationId } } = await octokit.rest.apps.getRepoInstallation({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+          });
+
+          console.log('Creating installation access token');
+          const { data: installation } = await octokit.rest.apps.createInstallationAccessToken({
+              installation_id: installationId,
+          });
+
+          core.setSecret(installation.token);
+          core.info('Token generated successfully!');
+          return installation.token;
+
     - name: Create commit
       if: steps.download_pip.outputs.downloaded-pip-path != 'none'
       run: |
@@ -105,10 +161,12 @@ jobs:
 
         git add src/rez_pip/data/pip.pyz
 
-        git config user.name = 'github-actions'
-        git config user.email = 'github-actions[bot]@users.noreply.github.com'
+        # https://stackoverflow.com/a/74071223
+        git config user.name = 'rez-pip-update-bot[bot]'
+        # 133434221 comes from https://api.github.com/users/rez-pip-update-bot[bot]
+        git config user.email = '133434221+rez-pip-update-bot[bot]@users.noreply.github.com'
 
-        git commit --signoff -m 'Update pip from ${{ steps.download_pip.outputs.previous-pip-version }} to ${{ steps.download_pip.outputs.new-pip-version }}'
+        git commit -m 'Update pip from ${{ steps.download_pip.outputs.previous-pip-version }} to ${{ steps.download_pip.outputs.new-pip-version }}'
 
         git push origin __update_pip__
 
@@ -116,6 +174,7 @@ jobs:
       if: steps.download_pip.outputs.downloaded-pip-path != 'none' && steps.get-pull-request-number.outputs.result != ''
       uses: actions/github-script@v6
       with:
+        github-token: ${{ steps.auth-token.outputs.result }}
         script: |
           const pr = await github.rest.pulls.get({
               owner: context.repo.owner,
