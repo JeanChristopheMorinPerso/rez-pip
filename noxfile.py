@@ -37,5 +37,7 @@ def test(session: nox.Session):
 
 
 @nox.session()
-def update_pip(session: nox.Session):
-    pass
+def download_pip(session: nox.Session):
+    session.install("packaging", "gidgethub", "aiohttp")
+
+    session.run("python", "./scripts/download_pip.py")
