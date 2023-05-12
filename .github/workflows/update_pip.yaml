@@ -105,8 +105,10 @@ jobs:
 
         git add src/rez_pip/data/pip.pyz
 
-        git config user.name = 'github-actions'
-        git config user.email = 'github-actions[bot]@users.noreply.github.com'
+        # https://stackoverflow.com/a/74071223
+        git config user.name = 'rez-pip-update-bot[bot]'
+        # 133434221 comes from https://api.github.com/users/rez-pip-update-bot[bot]
+        git config user.email = '133434221+rez-pip-update-bot[bot]@users.noreply.github.com'
 
         git commit --signoff -m 'Update pip from ${{ steps.download_pip.outputs.previous-pip-version }} to ${{ steps.download_pip.outputs.new-pip-version }}'
 
