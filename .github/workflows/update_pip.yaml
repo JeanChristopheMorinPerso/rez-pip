@@ -21,6 +21,10 @@ jobs:
       with:
         python-version: 3.11
 
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 16
+
     - name: Check if pip is up-to-date and download if not
       run: |
         set -e
@@ -105,17 +109,61 @@ jobs:
 
         git add src/rez_pip/data/pip.pyz
 
-        git config user.name = 'github-actions'
-        git config user.email = 'github-actions[bot]@users.noreply.github.com'
+        # https://stackoverflow.com/a/74071223
+        git config user.name = 'rez-pip-update-bot[bot]'
+        # 133434221 comes from https://api.github.com/users/rez-pip-update-bot[bot]
+        git config user.email = '133434221+rez-pip-update-bot[bot]@users.noreply.github.com'
 
-        git commit --signoff -m 'Update pip from ${{ steps.download_pip.outputs.previous-pip-version }} to ${{ steps.download_pip.outputs.new-pip-version }}'
+        git commit -m 'Update pip from ${{ steps.download_pip.outputs.previous-pip-version }} to ${{ steps.download_pip.outputs.new-pip-version }}'
 
         git push origin __update_pip__
+
+    - name: Install JS deps
+      if: steps.download_pip.outputs.downloaded-pip-path != 'none' && steps.get-pull-request-number.outputs.result != ''
+      run: npm install @octokit/auth-app @actions/github @octokit/request
+
+    - name: Get token
+      id: auth-token
+      if: steps.download_pip.outputs.downloaded-pip-path != 'none' && steps.get-pull-request-number.outputs.result != ''
+      uses: actions/github-script@v6
+      with:
+        script: |
+          // Taken from https://github.com/tibdex/github-app-token/blob/main/src/index.ts
+          const authAppMod = require('@octokit/auth-app');
+          const githubMod = require('@actions/github');
+          const requestMod = require('@octokit/request');
+
+          const appId = '${{ secrets.GH_BOT_APP_ID }}';
+          const privateKey = '${{ secrets.GH_BOT_PRIVATE_KEY }}';
+
+          const app = authAppMod.createAppAuth({
+              appId,
+              privateKey,
+              request: requestMod.request.defaults({
+                  baseUrl: 'https://api/github.com',
+              }),
+          });
+
+          const authApp = await app({ type: 'app' });
+          const octokit = githubMod.getOctokit(authApp.token);
+          const { data: { id: installationId } } = await octokit.rest.apps.getRepoInstallation({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+          });
+
+          const { data: installation } = await octokit.rest.apps.createInstallationAccessToken({
+              installation_id: installationId,
+          });
+
+          core.setSecret(installation.token);
+          core.info('Token generated successfully!');
+          return installation.token;
 
     - name: Update PR
       if: steps.download_pip.outputs.downloaded-pip-path != 'none' && steps.get-pull-request-number.outputs.result != ''
       uses: actions/github-script@v6
       with:
+        github-token: ${{ steps.auth-token.outputs.result }}
         script: |
           const pr = await github.rest.pulls.get({
               owner: context.repo.owner,
