@@ -1,0 +1,153 @@
+name: update_pip
+
+on:
+  schedule:
+  - cron: '* * * * 0'
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  update:
+    name: update
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Check if pip is up-to-date and download if not
+      run: |
+        set -e
+
+        error_code=0
+        git fetch origin __update_pip__ > /dev/null 2>&1 || error_code=$?
+        if [ $error_code -eq 0 ]; then
+            echo 'Switching to __update_pip__ branch'
+            set -x
+            git switch __update_pip__
+            git pull origin __update_pip__
+        fi
+
+        set -x
+        pipx run nox -s download_pip
+        if [ $error_code -ne 0]; then
+          git switch -
+        fi
+
+      id: download_pip
+
+    - name: Confirm step outputs
+      run: |
+        set -e
+        if [[ '${{ steps.download_pip.outputs.downloaded-pip-path }}' == '' ]]; then
+            echo 'steps.download_pip.outputs.downloaded-pip-path is empty!'
+            exit 1
+        fi
+
+        if [[ '${{ steps.download_pip.outputs.previous-pip-version }}' == '' ]]; then
+            echo 'steps.download_pip.outputs.previous-pip-version is empty!'
+            exit 1
+        fi
+
+        echo 'Testing if ${{ steps.download_pip.outputs.downloaded-pip-path }} exists'
+        test -f ${{ steps.download_pip.outputs.downloaded-pip-path }}
+
+    - name: Get __update_pip__ PR number
+      uses: actions/github-script@v6
+      if: steps.download_pip.outputs.downloaded-pip-path != 'none'
+      id: get-pull-request-number
+      with:
+        script: |
+          const head = `${context.repo.owner}/__update_pip__`;
+
+          const prs = await github.paginate(
+              github.rest.pulls.list,
+              {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  state: 'open',
+                  head: head,
+              }
+          );
+
+          if (prs.length > 1) {
+              core.setFailed(`Found ${prs.length} pull requests with branch ${head}. Only one should have matched.`);
+              return;
+          }
+
+          if (prs.length === 0) {
+            core.info('No pull request found for branch __update_pip__');
+            return;
+          } else {
+            core.info(`Found a pull request at ${prs[0]['html_url']}`);
+            return prs[0].number;
+          }
+
+    - name: Create commit
+      if: steps.download_pip.outputs.downloaded-pip-path != 'none'
+      run: |
+        set -ex
+        if [ -z ${{ steps.get-pull-request-number.outputs.result }} ]; then
+            echo 'Creating branch named __update_pip__'
+            git switch -c __update_pip__
+        else
+            echo '__update_pip__ already exists. Re-using it'
+            git fetch origin __update_pip__
+            git switch __update_pip__
+        fi
+
+        cp -v ${{ steps.download_pip.outputs.downloaded-pip-path }} src/rez_pip/data/pip.pyz
+
+        git add src/rez_pip/data/pip.pyz
+
+        git config user.name = 'github-actions'
+        git config user.email = '41898282+github-actions[bot]@users.noreply.github.com'
+
+        git commit --signoff -m 'Update pip from ${{ steps.download_pip.outputs.previous-pip-version }} to ${{ steps.download_pip.outputs.new-pip-version }}'
+
+        git push origin __update_pip__
+
+    - name: Update PR
+      if: steps.get-pull-request-number.outputs.result != ''
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ steps.get-pull-request-number.outputs.result }},
+          });
+
+          core.info(`Updating ${pr['html_url']}`);
+
+          await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ steps.get-pull-request-number.outputs.result }},
+              title: `Update pip to ${{ steps.download_pip.outputs.new-pip-version }}`,
+              body: 'Changelog: https://pip.pypa.io/en/stable/news/#v${{ steps.download_pip.outputs.new-pip-version }}'
+          });
+
+    - name: Create PR
+      if: steps.get-pull-request-number.outputs.result == ''
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const version = '${{ steps.download_pip.outputs.new-pip-version }}'.replaceAll('.', '-');
+
+          const result = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base: 'main',
+              head: '__update_pip__',
+              title: `Update pip to ${{ steps.download_pip.outputs.new-pip-version }}`,
+              body: `Changelog: https://pip.pypa.io/en/stable/news/#v${version}`
+          });
+
+          core.info(`Created ${result['data']['html_url']}`);
