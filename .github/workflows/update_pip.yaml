@@ -2,7 +2,7 @@ name: update_pip
 
 on:
   schedule:
-  - cron: '* * * * 0'
+  - cron: '0 0 * * 0'  # Run at midnight UTC only on sunday
   workflow_dispatch:
 
 permissions:
