@@ -134,10 +134,19 @@ def createPackage(
 
 
 def getPythonExecutables(
-    range_: typing.Optional[str], name: str = "python"
+    range_: typing.Optional[str], packageFamily: str = "python"
 ) -> typing.Dict[str, str]:
+    """
+    Get the available python executable from rez packages.
+
+    :param range_: version specifier
+    :param packageFamily: Name of the rez package family for the python package. This allows ot support PyPy, etc.
+    :returns: Dict where the keys are the python versions and values are abolute paths to executables.
+    """
     packages = sorted(
-        rez.packages.iter_packages(name, range_=range_ if range_ != "latest" else None),
+        rez.packages.iter_packages(
+            packageFamily, range_=range_ if range_ != "latest" else None
+        ),
         key=lambda x: x.version,  # type: ignore
     )
 

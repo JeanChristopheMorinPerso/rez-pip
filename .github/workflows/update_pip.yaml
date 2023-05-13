@@ -106,7 +106,7 @@ jobs:
           core.setSecret(privateKey);
 
           console.log('Creating app object');
-          const app = authAppMod.createAppAuth({
+          const appAuth = authAppMod.createAppAuth({
               appId,
               privateKey,
               request: requestMod.request.defaults({
@@ -115,10 +115,10 @@ jobs:
           });
 
           console.log('Creating auth app');
-          const authApp = await app({ type: 'app' });
+          const accessToken = await appAuth({ type: 'app' });
 
           console.log('Creating octokit client');
-          const octokit = githubMod.getOctokit(authApp.token);
+          const octokit = githubMod.getOctokit(accessToken.token);
 
           console.log('Fetching installation ID');
           const { data: { id: installationId } } = await octokit.rest.apps.getRepoInstallation({

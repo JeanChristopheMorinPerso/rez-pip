@@ -71,7 +71,7 @@ def run() -> None:
     # be installed.
 
     pythonVersions = rez_pip.rez.getPythonExecutables(
-        args.python_version, name="python"
+        args.python_version, packageFamily="python"
     )
 
     for pythonVersion, pythonExecutable in pythonVersions.items():
