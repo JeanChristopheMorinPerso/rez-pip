@@ -7,19 +7,19 @@ name = "rez-pip"
 version = "0.1.0"
 description = "Modern rez-pip"
 authors = [
-  { name="Jean-Christophe Morin", email="jean_christophe_morin@hotmail.com" },
+    { name="Jean-Christophe Morin", email="jean_christophe_morin@hotmail.com" },
 ]
 license = { file="LICENSE" }
 readme = "README.md"
 requires-python = ">=3.7"
 dependencies = [
-  "installer>=0.7.0",
-  "aiohttp",
-  "packaging>=23.1",
-  "rez",
-  "dataclasses-json",
-  "rich",
-  "importlib_metadata>=4.6 ; python_version < '3.10'",
+    "installer>=0.7.0",
+    "aiohttp",
+    "packaging>=23.1",
+    "rez",
+    "dataclasses-json",
+    "rich",
+    "importlib_metadata>=4.6 ; python_version < '3.10'",
 ]
 
 classifiers = [
@@ -41,8 +41,6 @@ Tracker = "https://github.com/JeanChristopheMorinPerso/rez-pip/issues"
 
 [project.scripts]
 rez-pip2 = "rez_pip.__main__:run"
-# [project.entry-points."opentimelineio.plugins"]
-# otio_fcpxxml_adapter = "otio_fcpxxml_adapter"
 
 [tool.hatch.build.targets.sdist]
 # Ensure the sdist includes a setup.py for older pip versions
