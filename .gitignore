@@ -133,3 +133,5 @@ dmypy.json
 .vscode
 tests/data/rez_repo
 tests/data/_tmp_download
+docs/build
+docs/bin
