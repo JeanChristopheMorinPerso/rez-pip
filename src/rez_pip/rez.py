@@ -52,6 +52,11 @@ def createPackage(
         distribution to copy files to the target directory of the rez package
         variant
         """
+        formattedRequirements = ", ".join(str(req) for req in variant.variant_requires)
+
+        _LOG.info(
+            rf"Installing {variant.qualified_package_name} \[{formattedRequirements}]"
+        )
         if not dist.files:
             raise RuntimeError(
                 f"{dist.name} package has no files registered! Something is wrong maybe?"
@@ -70,7 +75,9 @@ def createPackage(
             shutil.copyfile(srcAbsolute, dest)
             shutil.copystat(srcAbsolute, dest)
 
-    with rez.package_maker.make_package(name, packagesPath, make_root=make_root) as pkg:
+    with rez.package_maker.make_package(
+        name, packagesPath, make_root=make_root, skip_existing=True, warn_on_skip=False
+    ) as pkg:
         # basics (version etc)
         pkg.version = version
 
@@ -131,6 +138,10 @@ def createPackage(
                 author += f" <{dist.metadata['Author-email']}>"
 
             pkg.authors = [author]
+
+    _LOG.info(
+        f"[bold]Installed {len(pkg.installed_variants)} variants and skipped {len(pkg.skipped_variants)}"
+    )
 
 
 def getPythonExecutables(

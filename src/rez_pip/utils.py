@@ -635,7 +635,7 @@ def getRezRequirements(
         "python": requires,
         "rez": {"requires": result_requires, "variant": variant_requires},
     }
-    _LOG.info(f"{installedDist.name} requirements translation:\n{translation}")
+    _LOG.debug(f"{installedDist.name} requirements translation: {translation}")
 
     return RequirementsDict(
         requires=result_requires,
