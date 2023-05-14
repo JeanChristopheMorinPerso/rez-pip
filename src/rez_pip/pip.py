@@ -1,11 +1,14 @@
 import json
 import typing
 import logging
+import tempfile
 import subprocess
 import dataclasses
 
 import dataclasses_json
 import packaging.metadata
+
+import rez_pip.exceptions
 
 _LOG = logging.getLogger(__name__)
 
@@ -38,36 +41,50 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
 
 
 def get_packages(
-    packageNames: typing.List[str], pip: str, pythonVersion: str, pythonExecutable: str
+    packageNames: typing.List[str],
+    pip: str,
+    pythonVersion: str,
+    pythonExecutable: str,
+    extraArgs: typing.List[str],
 ) -> typing.List[PackageInfo]:
     # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
 
-    command = [
-        pythonExecutable,
-        pip,
-        "install",
-        "-q",
-        *packageNames,
-        "--dry-run",
-        "--ignore-installed",
-        f"--python-version={pythonVersion}" if pythonVersion else "",
-        "--only-binary=:all:",
-        "--target=/tmp/asd",
-        "--disable-pip-version-check",
-        "--report",
-        "-",
-    ]
+    with tempfile.NamedTemporaryFile(prefix="pip-install-output") as fd:
+        command = [
+            pythonExecutable,
+            pip,
+            "install",
+            "-q",
+            *packageNames,
+            "--disable-pip-version-check",
+            "--dry-run",
+            "--ignore-installed",
+            f"--python-version={pythonVersion}" if pythonVersion else "",
+            "--only-binary=:all:",
+            "--target=/tmp/asd",
+            "--disable-pip-version-check",
+            "--report",
+            fd.name,
+            *extraArgs,
+        ]
 
-    _LOG.debug(f"Running {' '.join(command)!r}")
-    output = subprocess.check_output(command)
+        _LOG.debug(f"Running {' '.join(command)!r}")
+        try:
+            output = subprocess.check_call(command, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as exc:
+            raise rez_pip.exceptions.PipError(
+                f"[bold red]Failed to run pip command[/]: {' '.join(exc.cmd)!r}\n\n"
+                "[bold]Pip reported this[/]:\n\n"
+                f"{exc.stdout.decode('utf-8').strip()}",
+            )
 
-    rawData = json.loads(output)
-    rawPackages = rawData["install"]
+        rawData = json.load(fd)
+        rawPackages = rawData["install"]
 
-    packages: typing.List[PackageInfo] = []
+        packages: typing.List[PackageInfo] = []
 
-    for rawPackage in rawPackages:
-        packageInfo = PackageInfo.from_dict(rawPackage)
-        packages.append(packageInfo)
+        for rawPackage in rawPackages:
+            packageInfo = PackageInfo.from_dict(rawPackage)
+            packages.append(packageInfo)
 
-    return packages
+        return packages

@@ -22,43 +22,96 @@ import rez_pip.rez
 import rez_pip.data
 import rez_pip.install
 import rez_pip.download
+import rez_pip.exceptions
 
 _LOG = logging.getLogger("rez_pip")
 
 
-def run() -> None:
+def _run() -> None:
     handler = rich.logging.RichHandler(show_time=False, markup=True, show_path=False)
     handler.setFormatter(logging.Formatter(fmt="%(message)s"))
     _LOG.addHandler(handler)
-    _LOG.setLevel(logging.INFO)
 
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description="Ingest and convert python packages to rez packages.",
+        add_help=False,
     )
-    parser.add_argument("packages", nargs="+", help="Package to install")
+    parser.add_argument("packages", nargs="+", help="Packages to install.")
     parser.add_argument(
-        "--target", required=True, metavar="path", help="Target directory"
+        "-r",
+        "--requirement",
+        action="append",
+        metavar="<file>",
+        help="Install from the given requirements file. This option can be used multiple times.",
     )
-    parser.add_argument("--install-path", help="Technically this should be --target")
+    parser.add_argument(
+        "-c",
+        "--constraint",
+        action="append",
+        metavar="<file>",
+        help="Constrain versions using the given constraints file. This option can be used multiple times.",
+    )
+    parser.add_argument(
+        "--target", required=True, metavar="<path>", help="Target directory"
+    )
+    parser.add_argument(
+        "--install-path",
+        metavar="<path>",
+        help="Technically this should be --target",
+    )
 
     parser.add_argument(
         "--python-version",
-        metavar="version",
+        metavar="<version>",
         help="Range of python versions. It can also be a single version or 'latest'",
     )
     parser.add_argument(
         "--pip",
         default=os.path.join(os.path.dirname(rez_pip.data.__file__), "pip.pyz"),
-        metavar="path",
-        help="Standalone pip (https://pip.pypa.io/en/stable/installation/#standalone-zip-application)",
+        metavar="<path>",
+        help="Standalone pip (https://pip.pypa.io/en/stable/installation/#standalone-zip-application) (default: bundled).",
     )
 
-    parser.add_argument("-d", "--debug", action="store_true")
+    parser.add_argument(
+        "-l",
+        "--log-level",
+        default="info",
+        choices=["info", "debug", "warning", "error"],
+        help="Logging level.",
+    )
 
-    args = parser.parse_args()
+    # Manually define just to keep the style consistent (capital letters, dot, etc.)
+    parser.add_argument(
+        "-h", "--help", action="help", help="Show this help message and exit."
+    )
 
-    if args.debug:
-        _LOG.setLevel(logging.DEBUG)
+    parser.usage = f"""
+
+  %(prog)s [options] <package(s)>
+  %(prog)s <package(s)> [-- [pip options]]
+"""
+    ownArgs = []
+    pipArgs = []
+    if "--" in sys.argv:
+        # anything after -- will be passed as is to pip.
+        splitIndex = sys.argv[1:].index("--")
+        ownArgs = sys.argv[1:][:splitIndex]
+        pipArgs = sys.argv[1:][splitIndex + 1 :]
+    else:
+        ownArgs = sys.argv[1:]
+
+    args = parser.parse_args(ownArgs)
+    _LOG.setLevel(args.log_level.upper())
+
+    if not args.pip.endswith(".pyz"):
+        raise rez_pip.exceptions.RezPipError(
+            f"[bold red]{args.pip!r} does not look like a valid zipapp. A zipapp should end with '.pyz'.[/]\n\n"
+            "  [grey74]Standalone pip documentation[/]: https://pip.pypa.io/en/stable/installation/#standalone-zip-application\n"
+            "  [grey74]zipapp documentation[/]: https://docs.python.org/3/library/zipapp.html"
+        )
+
+    if not os.path.exists(args.pip):
+        raise rez_pip.exceptions.RezPipError(f"zipapp at {args.pip!r} does not exists")
 
     # TODO: The temporary directory will be automatically deleted.
     # We should add an option to keep temporary files.
@@ -80,7 +133,7 @@ def run() -> None:
                 f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(args.packages))} (python-{pythonVersion})"
             ):
                 packages = rez_pip.pip.get_packages(
-                    args.packages, args.pip, pythonVersion, pythonExecutable
+                    args.packages, args.pip, pythonVersion, pythonExecutable, pipArgs
                 )
 
             _LOG.info(f"Resolved {len(packages)} dependencies")
@@ -120,3 +173,11 @@ def run() -> None:
                     )
 
             shutil.rmtree(args.target)
+
+
+def run() -> None:
+    try:
+        _run()
+    except rez_pip.exceptions.RezPipError as exc:
+        rich.get_console().print(exc, soft_wrap=True)
+        sys.exit(1)
