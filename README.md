@@ -42,13 +42,10 @@ Modern rez-pip implementation. Very WIP.
 For now, it can be run like this:
 
 ```
-rm -rf /tmp/asd* && rez-pip2 pytest --target /tmp/asd --install-path /tmp/asd2
+rez-pip2 pytest
 ```
 
-`--target` is where the wheels will initially be installed and `--install-path` is
-where the rez packages will be created.
-
-`--target` is temporary and is simply a development flag.
+By default, rez packages will be released. You can choose a different path by passing the `--install-path` argument to rez-pip2.
 
 # Packages to test against
 

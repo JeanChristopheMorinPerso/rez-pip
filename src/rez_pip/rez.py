@@ -26,7 +26,7 @@ def createPackage(
     isPure: bool,
     pythonVersion: rez.vendor.version.version.Version,
     nameCasings: typing.List[str],
-    tmpInstallPath: str,
+    installedWheelsDir: str,
     installPath: typing.Optional[str] = None,
 ) -> None:
     _LOG.info(f"Creating rez package for {dist.name}")
@@ -34,6 +34,7 @@ def createPackage(
     version = rez_pip.utils.pythonDistributionVersionToRez(dist.version)
 
     requirements = rez_pip.utils.getRezRequirements(dist, pythonVersion, isPure, [])
+
     requires = requirements.requires
     variant_requires = requirements.variant_requires
     metadata = requirements.metadata
@@ -66,7 +67,7 @@ def createPackage(
             srcAbsolute = src.locate().resolve()
 
             dest = os.path.join(
-                path, srcAbsolute.relative_to(os.path.realpath(tmpInstallPath))
+                path, srcAbsolute.relative_to(os.path.realpath(installedWheelsDir))
             )
             if not os.path.exists(os.path.dirname(dest)):
                 os.makedirs(os.path.dirname(dest))
