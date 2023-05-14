@@ -27,52 +27,53 @@ import rez_pip.exceptions
 _LOG = logging.getLogger("rez_pip")
 
 
-def _run() -> None:
-    handler = rich.logging.RichHandler(show_time=False, markup=True, show_path=False)
-    handler.setFormatter(logging.Formatter(fmt="%(message)s"))
-    _LOG.addHandler(handler)
-
+def parseArgs() -> typing.Tuple[argparse.Namespace, typing.List[str]]:
     parser = argparse.ArgumentParser(
         description="Ingest and convert python packages to rez packages.",
         add_help=False,
     )
     parser.add_argument("packages", nargs="*", help="Packages to install.")
-    parser.add_argument(
+
+    generalGroup = parser.add_argument_group(title="general options")
+    generalGroup.add_argument(
         "-r",
         "--requirement",
         action="append",
         metavar="<file>",
         help="Install from the given requirements file. This option can be used multiple times.",
     )
-    parser.add_argument(
+    generalGroup.add_argument(
         "-c",
         "--constraint",
         action="append",
         metavar="<file>",
         help="Constrain versions using the given constraints file. This option can be used multiple times.",
     )
-    parser.add_argument(
-        "--target", required=True, metavar="<path>", help="Target directory"
-    )
-    parser.add_argument(
+    generalGroup.add_argument(
         "--install-path",
         metavar="<path>",
         help="Technically this should be --target",
     )
 
-    parser.add_argument(
+    generalGroup.add_argument(
         "--python-version",
         metavar="<version>",
         help="Range of python versions. It can also be a single version or 'latest'",
     )
-    parser.add_argument(
+    generalGroup.add_argument(
         "--pip",
         default=os.path.join(os.path.dirname(rez_pip.data.__file__), "pip.pyz"),
         metavar="<path>",
         help="Standalone pip (https://pip.pypa.io/en/stable/installation/#standalone-zip-application) (default: bundled).",
     )
 
-    parser.add_argument(
+    # Manually define just to keep the style consistent (capital letters, dot, etc.)
+    generalGroup.add_argument(
+        "-h", "--help", action="help", help="Show this help message and exit."
+    )
+
+    debugGroup = parser.add_argument_group(title="debug options")
+    debugGroup.add_argument(
         "-l",
         "--log-level",
         default="info",
@@ -80,9 +81,10 @@ def _run() -> None:
         help="Logging level.",
     )
 
-    # Manually define just to keep the style consistent (capital letters, dot, etc.)
-    parser.add_argument(
-        "-h", "--help", action="help", help="Show this help message and exit."
+    debugGroup.add_argument(
+        "--keep-tmp-dirs",
+        action="store_true",
+        help="Keep some temporary directory at the end of the process for further inspection.",
     )
 
     parser.usage = f"""
@@ -90,19 +92,22 @@ def _run() -> None:
   %(prog)s [options] <package(s)>
   %(prog)s <package(s)> [-- [pip options]]
 """
-    ownArgs = []
+    knownArgs = []
     pipArgs = []
     if "--" in sys.argv:
         # anything after -- will be passed as is to pip.
         splitIndex = sys.argv[1:].index("--")
-        ownArgs = sys.argv[1:][:splitIndex]
+        knownArgs = sys.argv[1:][:splitIndex]
         pipArgs = sys.argv[1:][splitIndex + 1 :]
     else:
-        ownArgs = sys.argv[1:]
+        knownArgs = sys.argv[1:]
 
-    args = parser.parse_args(ownArgs)
-    _LOG.setLevel(args.log_level.upper())
+    args = parser.parse_args(knownArgs)
 
+    return args, pipArgs
+
+
+def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) -> None:
     if not args.pip.endswith(".pyz"):
         raise rez_pip.exceptions.RezPipError(
             f"[bold red]{args.pip!r} does not look like a valid zipapp. A zipapp should end with '.pyz'.[/]\n\n"
@@ -118,77 +123,81 @@ def _run() -> None:
             "no packages were passed and --requirements was not used. At least one of the must be passed."
         )
 
-    # TODO: The temporary directory will be automatically deleted.
-    # We should add an option to keep temporary files.
-    # I also would like a structure like:
-    #   /<temp dir>/
-    #     /wheels/
-    #     /install/
-    # This would solve the problem with --target and --install-path
-    # and would allow to just use --target to set the path where the rez packages will
-    # be installed.
-
     pythonVersions = rez_pip.rez.getPythonExecutables(
         args.python_version, packageFamily="python"
     )
 
     for pythonVersion, pythonExecutable in pythonVersions.items():
-        with tempfile.TemporaryDirectory(prefix="rez-pip") as tempDir:
-            with rich.get_console().status(
-                f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(args.packages))} (python-{pythonVersion})"
-            ):
-                packages = rez_pip.pip.get_packages(
-                    args.packages,
-                    args.pip,
-                    pythonVersion,
-                    pythonExecutable,
-                    args.requirement or [],
-                    args.constraint or [],
-                    pipArgs,
+        wheelsDir = os.path.join(pipWorkArea, "wheels")
+        os.mkdir(wheelsDir)
+
+        installedWheelsDir = os.path.join(pipWorkArea, "installed")
+        os.mkdir(installedWheelsDir)
+
+        with rich.get_console().status(
+            f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(args.packages))} (python-{pythonVersion})"
+        ):
+            packages = rez_pip.pip.get_packages(
+                args.packages,
+                args.pip,
+                pythonVersion,
+                pythonExecutable,
+                args.requirement or [],
+                args.constraint or [],
+                pipArgs,
+            )
+
+        _LOG.info(f"Resolved {len(packages)} dependencies")
+
+        # TODO: Should we postpone downloading to the last minute if we can?
+        _LOG.info("[bold]Downloading...")
+        wheels = rez_pip.download.downloadPackages(packages, wheelsDir)
+        _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
+
+        dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
+
+        with rich.get_console().status(
+            f"[bold]Installing wheels into {installedWheelsDir!r}"
+        ):
+            for package, wheel in zip(packages, wheels):
+                _LOG.info(f"[bold]Installing {package.name}-{package.version} wheel")
+                dist, isPure = rez_pip.install.installWheel(
+                    package, pathlib.Path(wheel), installedWheelsDir
                 )
 
-            _LOG.info(f"Resolved {len(packages)} dependencies")
+                dists[dist] = isPure
 
-            # TODO: Should we postpone downloading to the last minute if we can?
-            _LOG.info("[bold]Downloading...")
-            wheels = rez_pip.download.downloadPackages(packages, tempDir)
-            _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
+        distNames = [dist.name for dist in dists.keys()]
 
-            dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
-
-            with rich.get_console().status(
-                f"[bold]Installing wheels into {args.target!r}"
-            ):
-                for package, wheel in zip(packages, wheels):
-                    _LOG.info(
-                        f"[bold]Installing {package.name}-{package.version} wheel"
-                    )
-                    dist, isPure = rez_pip.install.installWheel(
-                        package, pathlib.Path(wheel), args.target
-                    )
-
-                    dists[dist] = isPure
-
-            distNames = [dist.name for dist in dists.keys()]
-
-            with rich.get_console().status("[bold]Creating rez packages..."):
-                for dist in dists:
-                    isPure = dists[dist]
-                    rez_pip.rez.createPackage(
-                        dist,
-                        isPure,
-                        rez.vendor.version.version.Version(pythonVersion),
-                        distNames,
-                        args.target,
-                        args.install_path,
-                    )
-
-            shutil.rmtree(args.target)
+        with rich.get_console().status("[bold]Creating rez packages..."):
+            for dist in dists:
+                isPure = dists[dist]
+                rez_pip.rez.createPackage(
+                    dist,
+                    isPure,
+                    rez.vendor.version.version.Version(pythonVersion),
+                    distNames,
+                    installedWheelsDir,
+                    args.install_path,
+                )
 
 
 def run() -> None:
+    args, pipArgs = parseArgs()
+
+    handler = rich.logging.RichHandler(show_time=False, markup=True, show_path=False)
+    handler.setFormatter(logging.Formatter(fmt="%(message)s"))
+    _LOG.addHandler(handler)
+    _LOG.setLevel(args.log_level.upper())
+
+    pipWorkArea = tempfile.mkdtemp(prefix="rez-pip-target")
+
     try:
-        _run()
+        _run(args, pipArgs, pipWorkArea)
     except rez_pip.exceptions.RezPipError as exc:
         rich.get_console().print(exc, soft_wrap=True)
         sys.exit(1)
+    finally:
+        if not args.keep_tmp_dirs:
+            _LOG.info(f"Removing {pipWorkArea}")
+            shutil.rmtree(pipWorkArea)

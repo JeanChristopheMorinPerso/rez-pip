@@ -69,20 +69,20 @@ def getSchemeDict(name: str, target: str) -> typing.Dict[str, str]:
 def installWheel(
     package: rez_pip.pip.PackageInfo,
     wheelPath: pathlib.Path,
-    target: str,
+    targetPath: str,
 ) -> typing.Tuple[importlib_metadata.Distribution, bool]:
     # TODO: Technically, target should be optional. We will always want to install in "pip install --target"
     #       mode. So right now it's a CLI option for debugging purposes.
 
     destination = CustomWheelDestination(
-        getSchemeDict(package.name, target),
+        getSchemeDict(package.name, targetPath),
         # TODO: Use Python from rez package, or simply use "/usr/bin/env python"?
         interpreter=sys.executable,
         script_kind=installer.utils.get_launcher_kind(),
     )
 
     isPure = True
-    _LOG.debug(f"Installing {wheelPath} into {target!r}")
+    _LOG.debug(f"Installing {wheelPath} into {targetPath!r}")
     with installer.sources.WheelFile.open(wheelPath) as source:
         isPure = isWheelPure(source)
 
@@ -95,18 +95,20 @@ def installWheel(
             },
         )
 
+    targetPathPython = os.path.join(targetPath, "python")
+
     # That's kind of dirty, but using any other method returns inconsistent results.
     # For example, importlib.metadata.Distribution.discover(path=['/path']) sometimes
     # won't find the freshly intalled package, even if it exists and everything.
     path = os.path.join(
-        "/tmp/asd/python",
+        targetPathPython,
         f"{package.name.replace('-', '_')}-{package.version}.dist-info",
     )
     dist = importlib_metadata.Distribution.at(path)
 
     if not dist.files:
         path = os.path.join(
-            "/tmp/asd/python",
+            targetPathPython,
             # Some packages like sphinx will have have a sphinx.dist-info instead of Sphinx.dist-info.
             f"{package.name.replace('-', '_').lower()}-{package.version}.dist-info",
         )
