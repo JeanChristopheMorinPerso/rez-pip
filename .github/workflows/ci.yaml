@@ -6,10 +6,10 @@ on:
     paths-ignore:
     - .github/workflows/update_pip.yaml
     - docs
-  pull_request:
-    paths-ignore:
-    - .github/workflows/update_pip.yaml
-    - docs
+  # pull_request:
+  #   paths-ignore:
+  #   - .github/workflows/update_pip.yaml
+  #   - docs
 
 concurrency:
   cancel-in-progress: true
@@ -19,6 +19,7 @@ jobs:
   test:
     name: test
     runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
         python: ['3.7', '3.8', '3.9', '3.10', '3.11']
