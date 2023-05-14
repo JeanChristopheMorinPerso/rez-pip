@@ -1,7 +1,9 @@
+import sys
 import json
 import typing
 import logging
 import tempfile
+import itertools
 import subprocess
 import dataclasses
 
@@ -45,6 +47,8 @@ def get_packages(
     pip: str,
     pythonVersion: str,
     pythonExecutable: str,
+    requirements: typing.List[str],
+    constraints: typing.List[str],
     extraArgs: typing.List[str],
 ) -> typing.List[PackageInfo]:
     # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
@@ -56,6 +60,8 @@ def get_packages(
             "install",
             "-q",
             *packageNames,
+            *list(itertools.chain(*zip(["-r"] * len(requirements), requirements))),
+            *list(itertools.chain(*zip(["-c"] * len(constraints), constraints))),
             "--disable-pip-version-check",
             "--dry-run",
             "--ignore-installed",
@@ -63,19 +69,34 @@ def get_packages(
             "--only-binary=:all:",
             "--target=/tmp/asd",
             "--disable-pip-version-check",
-            "--report",
+            "--report",  # This is the "magic". Pip will generate a JSON with all the resolved URLs.
             fd.name,
             *extraArgs,
         ]
 
         _LOG.debug(f"Running {' '.join(command)!r}")
-        try:
-            output = subprocess.check_call(command, stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError as exc:
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+
+        pipOutput = []
+        while True:
+            stdout = typing.cast(typing.IO[str], process.stdout).readline()
+            if process.poll() is not None:
+                break
+            if stdout:
+                pipOutput.append(stdout.rstrip())
+                sys.stdout.write(stdout)
+
+        if process.poll() != 0:
+            output = "\n".join(pipOutput)
             raise rez_pip.exceptions.PipError(
-                f"[bold red]Failed to run pip command[/]: {' '.join(exc.cmd)!r}\n\n"
+                f"[bold red]Failed to run pip command[/]: {' '.join(command)!r}\n\n"
                 "[bold]Pip reported this[/]:\n\n"
-                f"{exc.stdout.decode('utf-8').strip()}",
+                f"{output}",
             )
 
         rawData = json.load(fd)

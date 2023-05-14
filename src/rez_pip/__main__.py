@@ -36,7 +36,7 @@ def _run() -> None:
         description="Ingest and convert python packages to rez packages.",
         add_help=False,
     )
-    parser.add_argument("packages", nargs="+", help="Packages to install.")
+    parser.add_argument("packages", nargs="*", help="Packages to install.")
     parser.add_argument(
         "-r",
         "--requirement",
@@ -113,6 +113,11 @@ def _run() -> None:
     if not os.path.exists(args.pip):
         raise rez_pip.exceptions.RezPipError(f"zipapp at {args.pip!r} does not exists")
 
+    if not args.packages and not args.requirement:
+        raise rez_pip.exceptions.RezPipError(
+            "no packages were passed and --requirements was not used. At least one of the must be passed."
+        )
+
     # TODO: The temporary directory will be automatically deleted.
     # We should add an option to keep temporary files.
     # I also would like a structure like:
@@ -133,7 +138,13 @@ def _run() -> None:
                 f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(args.packages))} (python-{pythonVersion})"
             ):
                 packages = rez_pip.pip.get_packages(
-                    args.packages, args.pip, pythonVersion, pythonExecutable, pipArgs
+                    args.packages,
+                    args.pip,
+                    pythonVersion,
+                    pythonExecutable,
+                    args.requirement or [],
+                    args.constraint or [],
+                    pipArgs,
                 )
 
             _LOG.info(f"Resolved {len(packages)} dependencies")
