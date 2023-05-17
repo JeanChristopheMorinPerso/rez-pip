@@ -22,8 +22,8 @@ Modern rez-pip implementation. Very WIP.
     * [ ] Only download+convert package if it's not already in the rez repositories.
     * etc
 * [x] Accept multiple package names as input
-* [ ] Accept requirements files as input
-* [ ] Accept whee files as input
+* [x] Accept requirements files as input
+* [ ] Accept wheel files as input
 * [ ] Properly support platform tags (wheels tags) so that GLIBC is respected, min macOS is also supported.
 * [ ] Correctly handle Requires-Python metadata.
 * [ ] Review all TODOs in the code.

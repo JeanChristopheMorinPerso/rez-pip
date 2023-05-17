@@ -55,7 +55,7 @@ When a package contains compiled code (or more commonly called an extension), th
         ['platform-linux', 'arch-x86_64', 'python-3.10']
     ]
 
-In this case, the ``rez-pip`` command was run with `--python-version 3.10` and it installed the package ``package``
+In this case, the ``rez-pip`` command was run with ``--python-version 3.10`` and it installed the package ``package``
 it created a rez package with a ``python-3.10`` variant.
 
 This is because the package contains compiled code and so is only compatible with this version of python.

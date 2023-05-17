@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rez-pip"
-version = "0.1.0"
+version = "0.2.0"
 description = "Modern rez-pip"
 authors = [
     { name="Jean-Christophe Morin", email="jean_christophe_morin@hotmail.com" },
@@ -30,6 +30,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Operating System :: OS Independent",
     "Natural Language :: English"
 ]
@@ -38,6 +39,7 @@ keywords = []
 [project.urls]
 Homepage = "https://github.com/JeanChristopheMorinPerso/rez-pip"
 Tracker = "https://github.com/JeanChristopheMorinPerso/rez-pip/issues"
+Documentation = "https://rez-pip.readthedocs.io"
 
 [project.scripts]
 rez-pip2 = "rez_pip.__main__:run"

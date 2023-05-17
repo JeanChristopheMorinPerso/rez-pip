@@ -18,6 +18,8 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
+    # Third-part
+    "sphinx_inline_tabs",
 ]
 
 templates_path = ["_templates"]
