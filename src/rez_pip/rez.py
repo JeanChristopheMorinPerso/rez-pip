@@ -28,6 +28,7 @@ def createPackage(
     nameCasings: typing.List[str],
     installedWheelsDir: str,
     prefix: typing.Optional[str] = None,
+    release: bool = False,
 ) -> None:
     _LOG.info(f"Creating rez package for {dist.name}")
     name = rez_pip.utils.pythontDistributionNameToRez(dist.name)
@@ -44,7 +45,7 @@ def createPackage(
     else:
         packagesPath = (
             rez.config.config.release_packages_path
-            if True
+            if release
             else rez.config.config.local_packages_path
         )
 

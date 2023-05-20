@@ -55,6 +55,11 @@ def parseArgs() -> typing.Tuple[argparse.Namespace, typing.List[str]]:
         metavar="<path>",
         help="Custom repository path (can be any directory, even non rez repository path) (default: configured local_packages_path)",
     )
+    generalGroup.add_argument(
+        "--release",
+        action="store_true",
+        help="Release the converted packages (Default: configured release_packages_path)",
+    )
 
     generalGroup.add_argument(
         "--python-version",
@@ -180,6 +185,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
                     distNames,
                     installedWheelsDir,
                     args.prefix,
+                    args.release,
                 )
 
 
