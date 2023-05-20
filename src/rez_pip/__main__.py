@@ -50,9 +50,10 @@ def parseArgs() -> typing.Tuple[argparse.Namespace, typing.List[str]]:
         help="Constrain versions using the given constraints file. This option can be used multiple times.",
     )
     generalGroup.add_argument(
-        "--install-path",
+        "-p",
+        "--prefix",
         metavar="<path>",
-        help="Technically this should be --target",
+        help="Custom repository path (can be any directory, even non rez repository path) (default: configured local_packages_path)",
     )
 
     generalGroup.add_argument(
@@ -178,7 +179,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
                     rez.vendor.version.version.Version(pythonVersion),
                     distNames,
                     installedWheelsDir,
-                    args.install_path,
+                    args.prefix,
                 )
 
 

@@ -27,7 +27,7 @@ def createPackage(
     pythonVersion: rez.vendor.version.version.Version,
     nameCasings: typing.List[str],
     installedWheelsDir: str,
-    installPath: typing.Optional[str] = None,
+    prefix: typing.Optional[str] = None,
 ) -> None:
     _LOG.info(f"Creating rez package for {dist.name}")
     name = rez_pip.utils.pythontDistributionNameToRez(dist.name)
@@ -39,8 +39,8 @@ def createPackage(
     variant_requires = requirements.variant_requires
     metadata = requirements.metadata
 
-    if installPath:
-        packagesPath = installPath
+    if prefix:
+        packagesPath = prefix
     else:
         packagesPath = (
             rez.config.config.release_packages_path
