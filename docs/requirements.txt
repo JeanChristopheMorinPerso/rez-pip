@@ -1,4 +1,4 @@
-sphinx ~= 6.0
+sphinx ~= 7.0
 furo
 sphinx-autobuild
 sphinx-inline-tabs
