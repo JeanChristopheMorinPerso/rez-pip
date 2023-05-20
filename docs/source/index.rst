@@ -40,7 +40,7 @@ resort option.
 
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 0
    :hidden:
 
    user_guide

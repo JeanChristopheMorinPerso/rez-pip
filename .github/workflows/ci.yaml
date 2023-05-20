@@ -5,7 +5,8 @@ on:
   push:
     paths-ignore:
     - .github/workflows/update_pip.yaml
-    - docs
+    - docs/**
+    - .readthedocs.yaml
   # pull_request:
   #   paths-ignore:
   #   - .github/workflows/update_pip.yaml
