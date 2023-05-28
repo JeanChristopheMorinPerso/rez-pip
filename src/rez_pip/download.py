@@ -1,6 +1,7 @@
 import os
 import typing
 import asyncio
+import hashlib
 import logging
 
 import rich
@@ -48,7 +49,7 @@ async def _downloadPackages(
 
             for package in packages:
                 items.append(
-                    download(
+                    _download(
                         package, dest, session, progress, tasks[package.name], mainTask
                     )
                 )
@@ -61,7 +62,23 @@ async def _downloadPackages(
     return wheels
 
 
-async def download(
+def getSHA256(path: str) -> str:
+    buf = bytearray(2**18)  # Reusable buffer to reduce allocations.
+    view = memoryview(buf)
+
+    digestobj = hashlib.new("sha256")
+
+    with open(path, "rb") as fd:
+        while True:
+            size = fd.readinto(buf)
+            if size == 0:
+                break  # EOF
+            digestobj.update(view[:size])
+
+    return digestobj.hexdigest()
+
+
+async def _download(
     package: rez_pip.pip.PackageInfo,
     target: str,
     session: aiohttp.ClientSession,
@@ -69,43 +86,56 @@ async def download(
     taskID: rich.progress.TaskID,
     mainTaskID: rich.progress.TaskID,
 ) -> typing.Optional[str]:
-    _LOG.debug(
-        f"Downloading {package.name}-{package.version} from {package.download_info.url}"
-    )
+    wheelName: str = os.path.basename(package.download_info.url)
+    wheelPath = os.path.join(target, wheelName)
 
-    async with session.get(
-        package.download_info.url,
-        headers={
-            "Content-Type": "application/octet-stream",
-            "User-Agent": "rez-pip/0.1.0",
-        },
-    ) as response:
-        size = int(response.headers.get("content-length", 0))
-        progress.update(taskID, total=size)
+    # TODO: Handle case where sha256 doesn't exist. We should also support the other supported
+    # hash types.
+    if (
+        os.path.exists(wheelPath)
+        and getSHA256(wheelPath) == package.download_info.archive_info.hashes["sha256"]
+    ):
+        _LOG.info(f"{wheelName} found in cache at {wheelPath!r}. Skipping download.")
+    else:
+        _LOG.debug(
+            f"Downloading {package.name}-{package.version} from {package.download_info.url}"
+        )
 
-        async with _lock:
-            mainTask = [task for task in progress.tasks if task.id == mainTaskID][0]
+        async with session.get(
+            package.download_info.url,
+            headers={
+                "Content-Type": "application/octet-stream",
+                "User-Agent": "rez-pip/0.1.0",
+            },
+        ) as response:
+            size = int(response.headers.get("content-length", 0))
+            progress.update(taskID, total=size)
 
-            progress.update(
-                mainTaskID,
-                total=typing.cast(int, mainTask.total) + size,
+            async with _lock:
+                mainTask = [task for task in progress.tasks if task.id == mainTaskID][0]
+
+                progress.update(
+                    mainTaskID,
+                    total=typing.cast(int, mainTask.total) + size,
+                )
+
+            if response.status != 200:
+                _LOG.error(
+                    f"failed to download {package.download_info.url}: {response.status} - {response.reason}, {response.request_info}"
+                )
+                return None
+
+            with open(wheelPath, "wb") as fd:
+                async for chunk, asd in response.content.iter_chunks():
+                    if not chunk:
+                        break
+                    progress.update(taskID, advance=len(chunk))
+                    progress.update(mainTaskID, advance=len(chunk))
+                    fd.write(chunk)
+
+            _LOG.info(
+                f"Downloaded {package.name}-{package.version} to {wheelPath!r} ({os.stat(wheelPath).st_size} bytes)"
             )
-
-        if response.status != 200:
-            _LOG.error(
-                f"failed to download {package.download_info.url}: {response.status} - {response.reason}, {response.request_info}"
-            )
-            return None
-
-        wheelName: str = os.path.basename(package.download_info.url)
-        wheelPath = os.path.join(target, wheelName)
-        with open(wheelPath, "wb") as fd:
-            async for chunk, asd in response.content.iter_chunks():
-                if not chunk:
-                    break
-                progress.update(taskID, advance=len(chunk))
-                progress.update(mainTaskID, advance=len(chunk))
-                fd.write(chunk)
 
     progress.update(taskID, visible=False)
 
@@ -115,8 +145,5 @@ async def download(
         progress.update(
             mainTaskID, description=f"[bold]Total ({len(completedItems)}/{total})"
         )
-    _LOG.info(
-        f"Downloaded {package.name}-{package.version} to {wheelPath!r} ({os.stat(wheelPath).st_size} bytes)"
-    )
 
     return wheelPath

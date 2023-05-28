@@ -8,7 +8,6 @@ import subprocess
 import dataclasses
 
 import dataclasses_json
-import packaging.metadata
 
 import rez_pip.exceptions
 
@@ -16,14 +15,25 @@ _LOG = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
+class Metadata(dataclasses_json.DataClassJsonMixin):
+    version: str
+    name: str
+
+
+@dataclasses.dataclass
 class ArchiveInfo(dataclasses_json.DataClassJsonMixin):
     hash: str
+    hashes: typing.Dict[str, str]
 
 
 @dataclasses.dataclass
 class DownloadInfo(dataclasses_json.DataClassJsonMixin):
     url: str
-    archive_info: str
+    archive_info: ArchiveInfo
+
+    dataclass_json_config = dataclasses_json.config(  # type: ignore
+        undefined=dataclasses_json.Undefined.EXCLUDE
+    )
 
 
 @dataclasses.dataclass
@@ -31,15 +41,19 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
     download_info: DownloadInfo
     is_direct: bool
     requested: bool
-    metadata: packaging.metadata.RawMetadata
+    metadata: Metadata
+
+    dataclass_json_config = dataclasses_json.config(  # type: ignore
+        undefined=dataclasses_json.Undefined.EXCLUDE
+    )
 
     @property
     def name(self) -> str:
-        return self.metadata["name"]
+        return self.metadata.name
 
     @property
     def version(self) -> str:
-        return self.metadata["version"]
+        return self.metadata.version
 
 
 def get_packages(

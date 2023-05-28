@@ -1,4 +1,5 @@
 pytest>=7.2.0
 pytest-cov>=4.0.0
-pytest-httpserver>=1.0.6
 pytest-print
+# Needed because of the use of async mocks which were fully added in 3.8
+mock; python_version < "3.8"
