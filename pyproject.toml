@@ -42,7 +42,7 @@ Tracker = "https://github.com/JeanChristopheMorinPerso/rez-pip/issues"
 Documentation = "https://rez-pip.readthedocs.io"
 
 [project.scripts]
-rez-pip2 = "rez_pip.__main__:run"
+rez-pip2 = "rez_pip.cli:run"
 
 [tool.hatch.build.targets.sdist]
 # Ensure the sdist includes a setup.py for older pip versions
