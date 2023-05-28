@@ -18,6 +18,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.autosectionlabel",
     # Third-part
     "sphinx_inline_tabs",
 ]
@@ -31,3 +32,8 @@ exclude_patterns = []
 
 html_theme = "furo"
 html_static_path = ["_static"]
+
+# -- Options for sphinx.ext.autosectionlabel ---------------------------------
+# https://www.sphinx-doc.org/en/master/usage/extensions/autosectionlabel.html
+
+autosectionlabel_prefix_document = True

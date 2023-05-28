@@ -13,12 +13,21 @@ the `Python Package Index`_ and other indexes available to your rez package ecos
 .. _rez: https://github.com/AcademySoftwareFoundation/rez
 .. _Python Package Index: https://pypi.org
 
+Features
+========
+
+* Simpler to use thanks to the vendoring of pip.
+* Supports installing Python 2 and 3 packages.
+* Better output logs.
+* Implemented as an out-of-tree plugin, which means faster development cycle and more frequent releases.
+* Maintained by the rez maintainers.
+
 Installation
 ============
 
 ``rez-pip`` can be installed by using pip. We highly recommend that you install
-it into your rez's virtua;env environment, that is the virtualenv env that is
-automatically created by the ``install.py`` script.
+it into your rez's virtual environment (the virtualenv that is
+automatically created by the `install.py <https://github.com/AcademySoftwareFoundation/rez/blob/master/install.py>`_ script).
 
 .. tab:: Linux/macOS
 
@@ -34,9 +43,14 @@ automatically created by the ``install.py`` script.
       C:> source <rez>\Scripts\activate
       C:> python -m pip install rez-pip
 
-If you don't want or can't have a full rez install, yuo can also simply
-install rez-pip into it's own virtualenv. Note that this should be a last
-resort option.
+.. note::
+   Pip is bundled with ``rez-pip``, so no need to install pip as a rez package of have pip available inside your python rez packages.
+   See the :ref:`transition documentation <transition:pip is now bundled/vendored>` section for more information.
+
+.. note::
+   If you don't want or can't have a full rez install, you can also
+   install rez-pip into its own virtualenv. Note that this should be a last
+   resort option.
 
 
 .. toctree::
