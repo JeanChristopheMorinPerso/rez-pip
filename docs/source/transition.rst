@@ -2,14 +2,20 @@
 Transition guide
 ================
 
-Transitioning to the new rez-pip should be pretty straight forward. There is differences between the
-two tools, but there is nothing "major" in terms of installing packages `from` PyPI.
+Transitioning to the new rez-pip should be pretty straight forward. There is differences
+between the two tools, but there is nothing "major" in terms of installing packages
+`from` PyPI.
 
 This page documents the differences between the old and the new rez-pip.
 
+Python 3.7+ only
+================
+
+The new rez-pip can only be installed in a Python 3 rez install. But you should still
+be able to install packages for Python 2.
+
 Arguments differences
 =====================
-
 
 ==================== =========================== =======
 Old rez-pip          New rez-pip                 Notes
@@ -44,3 +50,22 @@ they solve. The python packaging ecosystem and tools have different objectives a
 than rez and the two don't necessarily always play well together. This is obviously a very
 personal opinion, but still an opinion from someone with lots of experience with packaging
 in general.
+
+Pip is now bundled/vendored
+===========================
+
+The previous ``rez-pip`` had a complex logic to find both Python and pip. It was error prone
+confusing and also annoying to setup.
+
+The new rez-pip bundles pip, which means it's ready to be used as is without any extra work/steps.
+We bundle the `standalone zip application`_ which is extremely convenient because it's a single file.
+
+Bundling has multiple advantages:
+
+#. We control the version of pip used. This is important to ensure rez-pip works as expected.
+#. No setup required after installation of rez-pip.
+
+If somehow you want or need to change the version of pip used, you can user the ``--pip`` command-line
+argument. You need to provide a path to a zipapp.
+
+.. _standalone zip application: https://pip.pypa.io/en/stable/installation/#standalone-zip-application
