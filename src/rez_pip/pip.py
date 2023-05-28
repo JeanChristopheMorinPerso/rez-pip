@@ -1,3 +1,4 @@
+import os
 import sys
 import json
 import typing
@@ -9,6 +10,7 @@ import dataclasses
 
 import dataclasses_json
 
+import rez_pip.data
 import rez_pip.exceptions
 
 _LOG = logging.getLogger(__name__)
@@ -56,7 +58,11 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
         return self.metadata.version
 
 
-def get_packages(
+def getBundledPip() -> str:
+    return os.path.join(os.path.dirname(rez_pip.data.__file__), "pip.pyz")
+
+
+def getPackages(
     packageNames: typing.List[str],
     pip: str,
     pythonVersion: str,
