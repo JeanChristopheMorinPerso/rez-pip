@@ -10,9 +10,9 @@ Modern rez-pip implementation. Very WIP.
 * [ ] Better logs and CLI experience
     * [x] Use logging
     * [x] Progress bars for download?
-* [ ] Confirm that Python 2 is supported
-* [ ] Confirm that the theory works as expected
-* [ ] Windows support
+* [x] Confirm that Python 2 is supported
+* [x] Confirm that the theory works as expected
+* [x] Windows support
 * [ ] Hook into rez
     * [x] Install each package in a different `--target`
     * [x] Create rez package
