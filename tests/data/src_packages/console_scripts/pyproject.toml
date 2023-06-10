@@ -1,0 +1,10 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "console_scripts"
+version = "0.1.0"
+
+[project.scripts]
+console_scripts_cmd = "console_scripts:run"

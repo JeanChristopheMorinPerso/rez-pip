@@ -3,3 +3,4 @@ pytest-cov>=4.0.0
 pytest-print
 # Needed because of the use of async mocks which were fully added in 3.8
 mock; python_version < "3.8"
+build

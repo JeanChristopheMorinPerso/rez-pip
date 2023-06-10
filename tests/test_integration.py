@@ -15,7 +15,7 @@ import rez.vendor.version.version
 )
 @pytest.mark.integration
 def test_python_packages(pythonRezPackage: str, rezRepo: str):
-    """Test that the python rez packages created by createPythonRezPackages are functional"""
+    """Test that the python rez packages created by the pythonRezPackage fixture are functional"""
 
     package = rez.packages.get_package("python", pythonRezPackage, paths=[rezRepo])
     assert package
