@@ -144,6 +144,17 @@ def pythonRezPackage(
         with openArchive(archivePath) as archive:
             archive.extractall(path=os.path.join(path, "python"))
 
+        versionLessExec = os.path.join(path, "python", "bin", f"python")
+        if not os.path.exists(versionLessExec):
+            if (
+                int(variant.version.as_tuple()[0]) >= 3
+                and platform.system() != "Windows"
+            ):
+                os.symlink(
+                    f"{versionLessExec}{variant.version.major}",
+                    versionLessExec,
+                )
+
     with rez.package_maker.make_package(
         "python",
         rezRepo,
