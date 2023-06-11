@@ -70,7 +70,7 @@ def test_download(packages: typing.Dict[str, str], tmp_path: pathlib.Path):
     )
 
     for wheel in wheels:
-        with open(wheel, "r") as fd:
+        with open(wheel) as fd:
             content = fd.read()
         assert packages[os.path.basename(wheel).split(".")[0]] == content
 
@@ -143,7 +143,7 @@ def test_download_multiple_packages_with_failure(tmp_path: pathlib.Path):
             )
 
         # Check that package-a was downloaded even if even if package-b failed.
-        with open(tmp_path / "package-a", "r") as fd:
+        with open(tmp_path / "package-a") as fd:
             assert fd.read() == "package-a data"
 
         assert mocked.call_args_list == [
@@ -170,7 +170,7 @@ def test_download_reuse_if_same_hash(tmp_path: pathlib.Path):
     packages = []
 
     for package in ["package-a", "package-b"]:
-        content = f"{package} data".encode("utf-8")
+        content = f"{package} data".encode()
 
         hash = hashlib.new("sha256")
         hash.update(content)
@@ -233,7 +233,7 @@ def test_download_reuse_if_same_hash(tmp_path: pathlib.Path):
     packages = []
     # package-b will be re-used
     for package in ["package-c", "package-b"]:
-        content = f"{package} data".encode("utf-8")
+        content = f"{package} data".encode()
 
         hash = hashlib.new("sha256")
         hash.update(content)
@@ -297,7 +297,7 @@ def test_download_redownload_if_hash_changes(tmp_path: pathlib.Path):
     packages = []
 
     for package in ["package-a", "package-b"]:
-        content = f"{package} data".encode("utf-8")
+        content = f"{package} data".encode()
 
         hash = hashlib.new("sha256")
         hash.update(content)
@@ -360,7 +360,7 @@ def test_download_redownload_if_hash_changes(tmp_path: pathlib.Path):
     packages = []
     # package-b will be re-used
     for package in ["package-a", "package-b"]:
-        content = f"{package} data".encode("utf-8")
+        content = f"{package} data".encode()
 
         packages.append(
             rez_pip.pip.PackageInfo(

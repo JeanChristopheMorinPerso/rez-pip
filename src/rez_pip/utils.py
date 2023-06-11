@@ -349,7 +349,7 @@ def normalizeRequirement(
 
         # conditional extra, equivalent to: 'foo ; extra = "doc"'
         if extra:
-            conditional_extras1 = set([extra])
+            conditional_extras1 = {extra}
         else:
             conditional_extras1 = None
 
@@ -509,7 +509,7 @@ def getRezRequirements(
     result_variant_requires: typing.List[str] = []
 
     # create cased names lookup
-    name_mapping = dict((x.lower(), x) for x in (nameCasings or []))
+    name_mapping = {x.lower(): x for x in (nameCasings or [])}
 
     # requirements such as platform, arch, os, and python
     sys_requires: typing.Set[str] = set()

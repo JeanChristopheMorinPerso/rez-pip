@@ -64,3 +64,15 @@ jobs:
 
     - name: format
       run: pipx run nox -s format
+
+  pyupgrade:
+    name: pyupgrade
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: pyupgrade
+      run: pipx run nox -s pyupgrade

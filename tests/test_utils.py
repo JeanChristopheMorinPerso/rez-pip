@@ -147,7 +147,7 @@ def test_convertMarker(marker: str, expected: typing.List[str]):
         [
             "mypkg ; extra == 'dev'",
             [packaging.requirements.Requirement("mypkg")],
-            [set(["dev"])],
+            [{"dev"}],
         ],
         [
             'win-inet-pton ; (sys_platform == "win32" and python_version == "2.7") and extra == \'socks\'',
@@ -156,19 +156,19 @@ def test_convertMarker(marker: str, expected: typing.List[str]):
                     'win-inet-pton; (sys_platform == "win32" and python_version == "2.7")'
                 )
             ],
-            [set(["socks"])],
+            [{"socks"}],
         ],
         # PySocks (!=1.5.7,<2.0,>=1.5.6) ; extra == 'socks'
         [
             "PySocks (!=1.5.7,<2.0,>=1.5.6) ; extra == 'socks'",
             [packaging.requirements.Requirement("PySocks!=1.5.7,<2.0,>=1.5.6")],
-            [set(["socks"])],
+            [{"socks"}],
         ],
         # certifi ; extra == 'secure'
         [
             "certifi ; extra == 'secure'",
             [packaging.requirements.Requirement("certifi")],
-            [set(["secure"])],
+            [{"secure"}],
         ],
         # coverage (>=4.4)
         [
@@ -210,22 +210,22 @@ def test_convertMarker(marker: str, expected: typing.List[str]):
         [
             {"requires": ["packageA"], "extra": "doc"},
             [packaging.requirements.Requirement("packageA")],
-            [set(["doc"])],
+            [{"doc"}],
         ],
         [
             "mypkg ; extra == 'dev' or extra == 'doc'",
             [packaging.requirements.Requirement("mypkg")],
-            [set(["dev", "doc"])],
+            [{"dev", "doc"}],
         ],
         [
             'mypkg ; extra == "dev" and sys_platform == "win32"',
             [packaging.requirements.Requirement('mypkg; sys_platform == "win32"')],
-            [set(["dev"])],
+            [{"dev"}],
         ],
         [
             'mypkg ; sys_platform == "win32" and extra == "test"',
             [packaging.requirements.Requirement('mypkg; sys_platform == "win32"')],
-            [set(["test"])],
+            [{"test"}],
         ],
     ],
 )
