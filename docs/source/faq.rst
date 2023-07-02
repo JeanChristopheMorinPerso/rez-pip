@@ -59,3 +59,36 @@ In this case, the ``rez-pip`` command was run with ``--python-version 3.10`` and
 it created a rez package with a ``python-3.10`` variant.
 
 This is because the package contains compiled code and so is only compatible with this version of python.
+
+Why can't it install Python 2 packages?
+=======================================
+
+This is due to the way ``rez-pip`` is implemented. The current implementation looks like this:
+
+1. Call ``python pip.pyz <package> -q --dry-run --report`` to get the list of wheels to install.
+2. ``rez-pip`` downloads the wheels found in step one in parallel.
+3. Downloaded wheels are installed into a temporary directory.
+4. ``rez-pip`` creates rez packages for each package and copies the files from the temporary
+   directories into the rez packages.
+
+As you can see, ``rez-pip`` does not rely on ``pip`` to install the packages. We only use pip to resolve
+which package we need to download and then "manually" install the wheels. This allows to fix the notorious
+`shebang <https://en.wikipedia.org/wiki/Shebang_(Unix)>`_ problem with pip. Pip always bakes the full Python
+interpreter path into the `console scripts`_ shebang. The problem is that baking the full path goes against
+the idea of rez. In rez, we want the use the resolve python package to executable console scripts,
+not the Python interpreter that was used to install the package.
+
+.. _console scripts: https://packaging.python.org/en/latest/specifications/entry-points/#use-for-scripts
+
+So why can't we install Python 2 packages?
+
+The first reason is that the ``--report`` command line argument is too recent and doesn't exist on the
+last version fo pip that support Python 2. Secondly, we can't run pip with a Python version X to resolve
+packages to install for a Python of version Y because it simply doesn't support that. This is well
+documented in https://github.com/pypa/pip/issues/11664.
+
+For example, let's say we have two packages; ``a`` and ``b`` where ``a`` depends on ``b`` if the python
+version is 2. In our example the package ``a`` is compatible with both Python 2 and 3.
+
+If we run ``python3 -m pip install "a" --dry-run --report --python-version 2.7``, pip will
+happily resolve the packages and will return ``a`` but **not** ``b``!

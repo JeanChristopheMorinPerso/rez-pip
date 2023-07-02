@@ -18,9 +18,17 @@ Features
 
 * Simpler to use thanks to the vendoring of pip.
 * Does **not** support installing packages for Python 2.
+* Only creates per python version variants when absolutely necessary. For example, it won't
+  create per python version variants when installing a package that has console scripts.
 * Better output logs.
 * Implemented as an out-of-tree plugin, which means faster development cycle and more frequent releases.
 * Maintained by the rez maintainers.
+
+Prerequisites
+=============
+
+* A rez package named ``python`` that contains a CPython installation. PyPy and other interpreters are not yet supported.
+* A working Python 3 based rez install.
 
 Installation
 ============
