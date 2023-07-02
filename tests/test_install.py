@@ -26,24 +26,13 @@ def test_installer_schemes():
     )
 
 
-# @pytest.fixture(scope="module")
-def buildPackage(name: str, outputDir: str):
-    sourcePath = os.path.join(os.path.dirname(__file__), "data", "src_packages", name)
-
-    subprocess.run(
-        [sys.executable, "-m", "build", "-w", ".", "--outdir", outputDir],
-        cwd=sourcePath,
-        check=True,
-    )
-
-    return glob.glob(os.path.join(outputDir, "*.whl"))[0]
-
-
 @pytest.mark.integration
-def test_console_scripts(pythonRezPackage: str, rezRepo: str, tmp_path: pathlib.Path):
+def test_console_scripts(
+    pythonRezPackage: str, rezRepo: str, tmp_path: pathlib.Path, index: utils.PyPIIndex
+):
     executable, ctx = utils.getPythonRezPackageExecutablePath(pythonRezPackage, rezRepo)
 
-    wheel = buildPackage("console_scripts", str(tmp_path / "wheels"))
+    assert executable is not None
 
     installPath = tmp_path / "install"
     rez_pip.install.installWheel(
@@ -61,7 +50,7 @@ def test_console_scripts(pythonRezPackage: str, rezRepo: str, tmp_path: pathlib.
             True,
             rez_pip.pip.Metadata("0.1.0", "console_scripts"),
         ),
-        wheel,
+        index.getWheel("console_scripts"),
         os.fspath(installPath),
     )
 
@@ -76,7 +65,10 @@ def test_console_scripts(pythonRezPackage: str, rezRepo: str, tmp_path: pathlib.
         block=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        parent_environ={"PYTHONPATH": os.fspath(installPath / "python")},
+        parent_environ={
+            "PYTHONPATH": os.fspath(installPath / "python"),
+            "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
+        },
         text=True,
     )
 

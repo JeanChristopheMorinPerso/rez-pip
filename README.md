@@ -11,6 +11,7 @@ Modern rez-pip implementation. Very WIP.
     * [x] Use logging
     * [x] Progress bars for download?
 * [x] Confirm that Python 2 is supported
+    * It is not...
 * [x] Confirm that the theory works as expected
 * [x] Windows support
 * [ ] Hook into rez

@@ -73,8 +73,16 @@ def getPackages(
 ) -> typing.List[PackageInfo]:
     # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
 
-    with tempfile.NamedTemporaryFile(prefix="pip-install-output") as fd:
+    _fd, tmpFile = tempfile.mkstemp(prefix="pip-install-output", text=True)
+    os.close(_fd)
+    # We can't with "with" (context manager) because it will fail on Windows.
+    # Windows doesn't allow two different processes to write if the file is
+    # already opened.
+    try:
         command = [
+            # We need to use the real interpreter because pip can't resolve
+            # markers correctly even if --python-version is provided.
+            # See https://github.com/pypa/pip/issues/11664.
             pythonExecutable,
             pip,
             "install",
@@ -90,7 +98,7 @@ def getPackages(
             "--target=/tmp/asd",
             "--disable-pip-version-check",
             "--report",  # This is the "magic". Pip will generate a JSON with all the resolved URLs.
-            fd.name,
+            tmpFile,
             *extraArgs,
         ]
 
@@ -119,13 +127,17 @@ def getPackages(
                 f"{output}",
             )
 
-        rawData = json.load(fd)
-        rawPackages = rawData["install"]
+        with open(tmpFile, "r") as fd:
+            rawData = json.load(fd)
+    finally:
+        os.remove(tmpFile)
 
-        packages: typing.List[PackageInfo] = []
+    rawPackages = rawData["install"]
 
-        for rawPackage in rawPackages:
-            packageInfo = PackageInfo.from_dict(rawPackage)
-            packages.append(packageInfo)
+    packages: typing.List[PackageInfo] = []
 
-        return packages
+    for rawPackage in rawPackages:
+        packageInfo = PackageInfo.from_dict(rawPackage)
+        packages.append(packageInfo)
+
+    return packages

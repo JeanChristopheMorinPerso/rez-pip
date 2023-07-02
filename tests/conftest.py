@@ -1,19 +1,114 @@
 import os
-import re
-import json
+import time
 import typing
-import tarfile
+import pathlib
 import zipfile
 import platform
-import functools
+import textwrap
+import subprocess
+import http.client
 import urllib.request
-import xml.etree.ElementTree
 
 import pytest
 import rez.packages
 import rez.package_maker
 
+from . import utils
+
 DOWNLOAD_DIR = os.path.abspath(os.path.join("tests", "data", "_tmp_download"))
+
+
+phaseReportKey = pytest.StashKey[typing.Dict[str, pytest.CollectReport]]()
+
+
+# Token from https://docs.pytest.org/en/latest/example/simple.html#making-test-result-information-available-in-fixtures
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item: pytest.Item, call):
+    # execute all other hooks to obtain the report object
+    outcome = yield
+    rep = outcome.get_result()
+
+    # store test results for each phase of a call, which can
+    # be "setup", "call", "teardown"
+    item.stash.setdefault(phaseReportKey, {})[rep.when] = rep
+
+
+@pytest.fixture(scope="session")
+def index(tmpdir_factory: pytest.TempdirFactory) -> utils.PyPIIndex:
+    """Build PyPI Index and return the path"""
+
+    srcPackages = os.path.join(os.path.dirname(__file__), "data", "src_packages")
+
+    indexPath = tmpdir_factory.mktemp("pypi_index").dirpath()
+
+    for pkg in os.listdir(srcPackages):
+        dest = indexPath.mkdir(pkg)
+        utils.buildPackage(pkg, os.fspath(dest))
+
+    return utils.PyPIIndex(pathlib.Path(indexPath.strpath))
+
+
+@pytest.fixture(scope="function")
+def pypi(
+    printer_session: typing.Callable[[str], None],
+    index: utils.PyPIIndex,
+    request: pytest.FixtureRequest,
+) -> typing.Generator[str, None, None]:
+    """Start a PyPI instance and return the URL to talk to it."""
+    port = 45678
+    host = "localhost"
+
+    proc = subprocess.Popen(
+        [
+            "pypi-server",
+            "run",
+            os.fspath(index.path),
+            f"--port={port}",
+            f"--host={host}",
+            "--disable-fallback",
+            "--log-stream=stdout",
+            "--hash-algo=sha256",  # Defaults to md5
+            "-v",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
+    url = f"http://{host}:{port}"
+
+    retries = 50
+    while retries > 0:
+        conn = http.client.HTTPConnection(f"{host}:{port}")
+        try:
+            conn.request("HEAD", "/health")
+            response = conn.getresponse()
+            if response is not None:
+                print(response.read())
+                yield url
+                break
+        except ConnectionRefusedError:
+            time.sleep(0.1)
+            retries -= 1
+
+    proc.terminate()
+    proc.wait()
+
+    output = textwrap.indent(proc.stdout.read(), "\t\t")
+
+    if proc.returncode and proc.returncode != -15 and platform.system() != "Windows":
+        pytest.fail(
+            f"pypi-server returned a non zero error code ({proc.returncode}):\n\n{proc.stdout.read()}"
+        )
+
+    if (
+        request.node.stash[phaseReportKey].get("call")
+        and request.node.stash[phaseReportKey]["call"].failed
+    ):
+        printer_session(f"pypi-server output:\n{output}")
+
+    if not retries:
+        raise RuntimeError("Failed to start pypi-server")
 
 
 @pytest.fixture(scope="session")
@@ -36,61 +131,11 @@ def downloadPythonVersion(
     except FileExistsError:
         pass
 
-    url = ""
+    url = f"https://globalcdn.nuget.org/packages/python.{version}.nupkg"
 
-    if platform.system() == "Windows":
-        url = f"https://globalcdn.nuget.org/packages/python{'2' if version[0] == '2' else ''}.{version}.nupkg"
-
-    elif platform.system() == "Darwin":
-        # Use conda packages artifacts since they are portable and don't need to
-        # be installed. That's quite dirty and I'm not sure if it goes against
-        # their terms of use.
-        arch = "64" if platform.machine() == "x86_64" else "arm64"
-        with urllib.request.urlopen(
-            f"https://repo.anaconda.com/pkgs/main/osx-{arch}/"
-        ) as fd:
-            repodata = fd.read()
-
-        tree = xml.etree.ElementTree.fromstring(repodata)
-
-        versionFlter = version.replace(".", "\\.")
-        regex = re.compile(rf"python-(?P<version>{versionFlter}).*\.tar\.bz2")
-        for row in tree.iter("td"):
-            name = next(row.itertext(), "")
-            if not name:
-                continue
-
-            match = regex.match(name)
-            if match:
-                url = f"https://repo.anaconda.com/pkgs/main/osx-{arch}/{name}"
-                break
-
-    else:
-        with urllib.request.urlopen(
-            "https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json"
-        ) as fd:
-            versionsManifest = json.load(fd)
-
-        for manifest in versionsManifest:
-            if manifest["version"] == version:
-                for artifact in manifest["files"]:
-                    if (
-                        artifact["arch"] == "x64"
-                        and artifact["platform"] == platform.system().lower()
-                    ):
-                        url = artifact["download_url"]
-                        break
-                else:
-                    pytest.fail(f"Failed to find URL for Python {manifest['version']}")
-                break
-
-    if not url:
-        pytest.fail("URL to download Python {version} not found")
-
-    ext = re.findall(r"\.([a-z]\w+(?:\.?[a-z0-9]+))", url.split("/")[-1])[0]
-    filename = f"python-{version}-{platform.system().lower()}.{ext}"
-
-    path = os.path.join(DOWNLOAD_DIR, filename)
+    path = os.path.join(
+        DOWNLOAD_DIR, f"python-{version}-{platform.system().lower()}.nupkg"
+    )
 
     if os.path.exists(path):
         printer_session(f"Skipping {url} because {path!r} already exists")
@@ -107,7 +152,16 @@ def downloadPythonVersion(
 @pytest.fixture(
     scope="session",
     params=[
-        pytest.param("2.7.18", marks=pytest.mark.py27),
+        pytest.param(
+            # Nuget doesn't have 3.7.16
+            "3.7.9" if platform.system() == "Windows" else "3.7.16",
+            marks=pytest.mark.py37,
+        ),
+        pytest.param(
+            # Nuget doesn't have 3.9.16
+            "3.9.13" if platform.system() == "Windows" else "3.9.16",
+            marks=pytest.mark.py39,
+        ),
         pytest.param("3.11.3", marks=pytest.mark.py311),
     ],
 )
@@ -120,40 +174,34 @@ def pythonRezPackage(
     Create a Python rez package and return Python version number.
     """
     version = typing.cast(str, request.param)
-    archivePath = downloadPythonVersion(version, printer_session)
-
-    # for version, archivePath in downloadPythonVersions:
-    if not os.path.exists(archivePath):
-        pytest.fail(f"Cannot install {archivePath!r} because it does not exist")
-
-    if archivePath.endswith(".tar.gz"):
-        openArchive = tarfile.open
-    elif archivePath.endswith(".tar.bz2"):
-        openArchive = functools.partial(tarfile.open, mode="r:bz2")
-    elif archivePath.endswith(".nupkg"):
-        openArchive = zipfile.ZipFile
-    else:
-        raise RuntimeError(f"{archivePath} is of unknown type")
 
     def make_root(variant: rez.packages.Variant, path: str) -> None:
         """Using distlib to iterate over all installed files of the current
         distribution to copy files to the target directory of the rez package
         variant
         """
-        printer_session(f"Creating rez package for {archivePath} in {rezRepo!r}")
-        with openArchive(archivePath) as archive:
-            archive.extractall(path=os.path.join(path, "python"))
+        printer_session(f"Creating rez package for Python {version} in {rezRepo!r}")
 
-        versionLessExec = os.path.join(path, "python", "bin", f"python")
-        if not os.path.exists(versionLessExec):
-            if (
-                int(variant.version.as_tuple()[0]) >= 3
-                and platform.system() != "Windows"
-            ):
-                os.symlink(
-                    f"{versionLessExec}{variant.version.major}",
-                    versionLessExec,
-                )
+        dest = os.path.join(path, "python")
+
+        if platform.system() == "Windows":
+            archivePath = downloadPythonVersion(version, printer_session)
+            with zipfile.ZipFile(archivePath) as archive:
+                printer_session(f"Extracting {archivePath!r} to {dest!r}")
+                archive.extractall(path=dest)
+        else:
+            import conda.cli.python_api
+
+            printer_session(
+                f"Installing Python {version} by creating a conda environment at {dest!r}"
+            )
+            conda.cli.python_api.run_command(
+                conda.cli.python_api.Commands.CREATE,
+                "--prefix",
+                dest,
+                f"conda-forge:python={version}",
+                "pip",
+            )
 
     with rez.package_maker.make_package(
         "python",
@@ -166,16 +214,11 @@ def pythonRezPackage(
 
         commands = [
             "env.PATH.prepend('{root}/python/bin')",
-            "env.LD_LIBRARY_PATH.prepend('{root}/python/lib')",
         ]
         if platform.system() == "Windows":
             commands = [
                 "env.PATH.prepend('{root}/python/tools')",
                 "env.PATH.prepend('{root}/python/tools/DLLs')",
-            ]
-        elif platform.system() == "Darwin":
-            commands = [
-                "env.PATH.prepend('{root}/python/bin')",
             ]
 
         pkg.commands = "\n".join(commands)

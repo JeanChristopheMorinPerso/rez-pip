@@ -17,7 +17,7 @@ Features
 ========
 
 * Simpler to use thanks to the vendoring of pip.
-* Supports installing Python 2 and 3 packages.
+* Does **not** support installing packages for Python 2.
 * Better output logs.
 * Implemented as an out-of-tree plugin, which means faster development cycle and more frequent releases.
 * Maintained by the rez maintainers.
