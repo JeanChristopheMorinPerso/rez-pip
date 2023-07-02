@@ -11,18 +11,18 @@ This page documents the differences between the old and the new rez-pip.
 Python 3.7+ only
 ================
 
-The new rez-pip can only be installed in a Python 3 rez install. But you should still
-be able to install packages for Python 2.
+The new rez-pip can only be installed in a Python 3 rez install. You will be able to
+install packages for Python 3.6+, but not anything older than that.
 
-Arguments differences
-=====================
+Argument differences
+====================
 
 ==================== =========================== =======
 Old rez-pip          New rez-pip                 Notes
 ==================== =========================== =======
 package (positional) package(**s**) (positional) Now accepts multiple packages. Also accepts paths to wheels but local directory isn't allowed.
-``--python-version`` ``--python-version``        Similar but now accepts any valid version range (`2.7\|3.7+`) which allows to install for multiple Python versions.
-``--pip-version``    ``--pip``                   Pip is now bundled with rez-pip, but `--pip` can be used to specify a different pip zipapp.
+``--python-version`` ``--python-version``        Similar but now accepts any valid version range (``2.7\|3.7+``) which allows to install for multiple Python versions.
+``--pip-version``    ``--pip``                   Pip is now bundled with rez-pip, but ``--pip`` can be used to specify a different pip zipapp.
 ``-i``/``--install`` Removed
 ``-r``/``--release`` Identical
 ``-p``/``--prefix``  ``--prefix``                Defaults to `local_packages_path`_.
@@ -54,10 +54,10 @@ in general.
 Pip is now bundled/vendored
 ===========================
 
-The previous ``rez-pip`` had a complex logic to find both Python and pip. It was error prone
+The previous ``rez-pip`` had a complex logic to find both Python and pip. It was error prone,
 confusing and also annoying to setup.
 
-The new rez-pip bundles pip, which means it's ready to be used as is without any extra work/steps.
+The new ``rez-pip`` bundles pip, which means it's ready to be used as is without any extra work/steps.
 We bundle the `standalone zip application`_ which is extremely convenient because it's a single file.
 
 Bundling has multiple advantages:
