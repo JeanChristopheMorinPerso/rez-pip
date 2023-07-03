@@ -192,7 +192,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
         distNames = [dist.name for dist in dists.keys()]
 
         with rich.get_console().status("[bold]Creating rez packages..."):
-            for dist in dists:
+            for dist, package in zip(dists, packages):
                 isPure = dists[dist]
                 rez_pip.rez.createPackage(
                     dist,
@@ -200,8 +200,9 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
                     rez.vendor.version.version.Version(pythonVersion),
                     distNames,
                     installedWheelsDir,
-                    args.prefix,
-                    args.release,
+                    wheelURL=package.download_info.url,
+                    prefix=args.prefix,
+                    release=args.release,
                 )
 
 

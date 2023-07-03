@@ -1,8 +1,10 @@
 import os
 import sys
-import typing
+import copy
 import shutil
+import typing
 import logging
+import pathlib
 
 if sys.version_info >= (3, 10):
     import importlib.metadata as importlib_metadata
@@ -27,6 +29,7 @@ def createPackage(
     pythonVersion: rez.vendor.version.version.Version,
     nameCasings: typing.List[str],
     installedWheelsDir: str,
+    wheelURL: str,
     prefix: typing.Optional[str] = None,
     release: bool = False,
 ) -> None:
@@ -80,11 +83,7 @@ def createPackage(
     with rez.package_maker.make_package(
         name, packagesPath, make_root=make_root, skip_existing=True, warn_on_skip=False
     ) as pkg:
-        # basics (version etc)
         pkg.version = version
-
-        if dist.metadata["summary"]:
-            pkg.description = dist.metadata["summary"]
 
         # requirements and variants
         if requires:
@@ -94,8 +93,6 @@ def createPackage(
             pkg.variants = [variant_requires]
 
         # commands
-        # TODO: Don't hardcode python in here.
-        # TODO: WHat about "python less" packages, like cmake, etc?
         commands = ["env.PYTHONPATH.append('{root}/python')"]
 
         console_scripts = [
@@ -111,39 +108,120 @@ def createPackage(
         # Make the package use hashed variants. This is required because we
         # can't control what ends up in its variants, and that can easily
         # include problematic chars (>, +, ! etc).
-        # TODO: #672
-        #
+        # TODO: #672 (shortlinks for variants)
         pkg.hashed_variants = True
 
-        # add some custom attributes to retain pip-related info
-        pkg.pip_name = f"{dist.name}-{dist.version}"
-        pkg.from_pip = True
-        pkg.is_pure_python = metadata["is_pure_python"]
+        pkg.pip = {
+            "name": dist.name,
+            "version": dist.version,
+            "is_pure_python": metadata["is_pure_python"],
+            "wheel_url": wheelURL,
+        }
 
-        # distribution_metadata = dist.metadata.json
+        # Take all the metadata that can be converted and put it
+        # in the rez package definition.
+        convertedMetadata, remainingMetadata = _convertMetadata(dist)
+        for key, values in convertedMetadata.items():
+            setattr(pkg, key, values)
 
-        # help_ = []
-
-        # if "home_page" in distribution_metadata:
-        #     help_.append(["Documentation", distribution_metadata["home_page"]])
-
-        # if "download_url" in distribution_metadata:
-        #     help_.append(["Source Code", distribution_metadata["download_url"]])
-
-        # if help_:
-        #     pkg.help = help_
-
-        if dist.metadata["Author"]:
-            author = dist.metadata["Author"]
-
-            if dist.metadata["Author-email"]:
-                author += f" <{dist.metadata['Author-email']}>"
-
-            pkg.authors = [author]
+        pkg.pip["metadata"] = remainingMetadata
 
     _LOG.info(
-        f"[bold]Installed {len(pkg.installed_variants)} variants and skipped {len(pkg.skipped_variants)}"
+        f"[bold]Created {len(pkg.installed_variants)} variants and skipped {len(pkg.skipped_variants)}"
     )
+
+
+def _convertMetadata(
+    dist: importlib_metadata.Distribution,
+) -> typing.Tuple[typing.Dict[str, typing.Any], typing.Dict[str, typing.Any]]:
+    metadata = {}
+    originalMetadata = copy.deepcopy(dist.metadata.json)
+    del originalMetadata["metadata_version"]
+    del originalMetadata["name"]
+    del originalMetadata["version"]
+
+    # https://packaging.python.org/en/latest/specifications/core-metadata/#summary
+    if dist.metadata["Summary"]:
+        metadata["summary"] = dist.metadata["Summary"]
+        del originalMetadata["summary"]
+
+    # https://packaging.python.org/en/latest/specifications/core-metadata/#description
+    if dist.metadata["Description"]:
+        metadata["description"] = dist.metadata["Description"]
+        del originalMetadata["description"]
+
+    authors = []
+
+    # https://packaging.python.org/en/latest/specifications/core-metadata/#author
+    author = dist.metadata["Author"]
+    if author:
+        authors.append(author)
+        del originalMetadata["author"]
+
+    # https://packaging.python.org/en/latest/specifications/core-metadata/#author-email
+    authorEmail = dist.metadata["Author-email"]
+    if authorEmail:
+        authors.extend([email.strip() for email in authorEmail.split(",")])
+        del originalMetadata["author_email"]
+
+    # https://packaging.python.org/en/latest/specifications/core-metadata/#maintainer
+    maintainer = dist.metadata["Maintainer"]
+    if maintainer:
+        authors.append(maintainer)
+        del originalMetadata["maintainer"]
+
+    # https://packaging.python.org/en/latest/specifications/core-metadata/#maintainer-email
+    maintainerEmail = dist.metadata["Maintainer-email"]
+    if maintainerEmail:
+        authors.extend([email.strip() for email in maintainerEmail.split(",")])
+        del originalMetadata["maintainer_email"]
+
+    if authors:
+        metadata["authors"] = authors
+
+    # https://packaging.python.org/en/latest/specifications/core-metadata/#license
+    # Prefer the License field and fallback to classifiers if one is present.
+    if dist.metadata["License"]:
+        metadata["license"] = dist.metadata["License"]
+        del originalMetadata["license"]
+    else:
+        licenseClassifiers = [
+            item.split("::")[-1].strip()
+            for item in dist.metadata.get_all("classifier", [])
+            if item.startswith("License ::")
+        ]
+
+        # I don't know what to do in this case, so just skip license if more than one
+        # classifier is found.
+        if len(licenseClassifiers) == 1:
+            metadata["license"] = licenseClassifiers[0]
+
+    helpLinks = []
+
+    # https://packaging.python.org/en/latest/specifications/core-metadata/#home-page
+    if dist.metadata["Home-page"]:
+        helpLinks.append(["Home-page", dist.metadata["Home-page"]])
+        del originalMetadata["home_page"]
+
+    # https://packaging.python.org/en/latest/specifications/core-metadata/#project-url-multiple-use
+    if dist.metadata["Project-URL"]:
+        urls = [
+            url.strip()
+            for value in dist.metadata.get_all("Project-URL")
+            for url in value.split(",")
+        ]
+        helpLinks.extend([list(entry) for entry in zip(urls[::2], urls[1::2])])
+        del originalMetadata["project_url"]
+
+    # https://packaging.python.org/en/latest/specifications/core-metadata/#download-url
+    if dist.metadata["Download-URL"]:
+        helpLinks.append(["Download-URL", dist.metadata["Download-URL"]])
+        del originalMetadata["download_url"]
+
+    if helpLinks:
+        metadata["help"] = helpLinks
+
+    return metadata, originalMetadata
 
 
 def getPythonExecutables(
