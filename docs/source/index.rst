@@ -67,4 +67,5 @@ automatically created by the `install.py <https://github.com/AcademySoftwareFoun
 
    user_guide
    transition
+   metadata
    faq.rst

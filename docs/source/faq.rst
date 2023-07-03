@@ -92,3 +92,8 @@ version is 2. In our example the package ``a`` is compatible with both Python 2 
 
 If we run ``python3 -m pip install "a" --dry-run --report --python-version 2.7``, pip will
 happily resolve the packages and will return ``a`` but **not** ``b``!
+
+How can I know which wheel was used to create a package?
+========================================================
+
+See the :ref:`metadata documentation <metadata:metadata>` on how to find this information.
