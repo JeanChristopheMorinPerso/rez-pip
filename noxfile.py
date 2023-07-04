@@ -13,7 +13,7 @@ def lint(session: nox.Session):
 @nox.session()
 def mypy(session: nox.Session):
     session.install("mypy")
-    session.install(".")
+    session.install(".", "-c", "tests/constraints.txt")
 
     session.run("mypy")
 
