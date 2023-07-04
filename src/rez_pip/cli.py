@@ -219,7 +219,9 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
                 )
 
 
-def _debug(args: argparse.Namespace, console=rich.get_console()) -> None:
+def _debug(
+    args: argparse.Namespace, console: rich.console.Console = rich.get_console()
+) -> None:
     """Print debug information"""
     prefix = "  "
     console.print(

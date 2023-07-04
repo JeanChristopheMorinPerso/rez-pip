@@ -1,0 +1,3 @@
+# markdown-it-py 3.0.0 dropped support for Python 3.7
+# Mypy complains about that. So constraints to less than 3.
+markdown-it-py<3

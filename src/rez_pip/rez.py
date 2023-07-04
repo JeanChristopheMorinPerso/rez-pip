@@ -238,7 +238,7 @@ def getPythonExecutables(
         rez.packages.iter_packages(
             packageFamily, range_=range_ if range_ != "latest" else None
         ),
-        key=lambda x: x.version,  # type: ignore
+        key=lambda x: x.version,
     )
 
     if range_ == "latest":
