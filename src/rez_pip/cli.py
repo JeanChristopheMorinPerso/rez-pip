@@ -43,6 +43,7 @@ def _parseArgs(
 ) -> typing.Tuple[argparse.Namespace, typing.List[str]]:
     parser = argparse.ArgumentParser(
         description="Ingest and convert python packages to rez packages.",
+        prog=__package__.replace("_", "-"),
         add_help=False,
     )
     parser.add_argument("packages", nargs="*", help="Packages to install.")
