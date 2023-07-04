@@ -1,3 +1,5 @@
+# Next (Unreleased)
+
 # 0.2.0 (2023-07-04)
 
 This release fixes a lot of bugs and gets us closer to a more official release.
