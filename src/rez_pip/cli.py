@@ -76,8 +76,10 @@ def _parseArgs(
 
     generalGroup.add_argument(
         "--python-version",
+        # 3.7+ because that's what pip supports
+        default="3.7+",
         metavar="<version>",
-        help="Range of python versions. It can also be a single version or 'latest'",
+        help="Range of python versions. It can also be a single version, any valid rez version specifier or range or 'latest' (default: 3.7+)",
     )
     generalGroup.add_argument(
         "--pip",

@@ -29,7 +29,7 @@ def test_parseArgs_empty():
         "packages": [],
         "pip": rez_pip.pip.getBundledPip(),
         "prefix": None,
-        "python_version": None,
+        "python_version": "3.7+",
         "release": False,
         "requirement": None,
         "debug_info": False,
@@ -48,7 +48,7 @@ def test_parseArgs_packages(packages):
         "packages": packages,
         "pip": rez_pip.pip.getBundledPip(),
         "prefix": None,
-        "python_version": None,
+        "python_version": "3.7+",
         "release": False,
         "requirement": None,
         "debug_info": False,
@@ -67,7 +67,7 @@ def test_parseArgs_no_package_with_requirements(files):
         "packages": [],
         "pip": rez_pip.pip.getBundledPip(),
         "prefix": None,
-        "python_version": None,
+        "python_version": "3.7+",
         "release": False,
         "requirement": [req.split("=")[-1] for req in files],
         "debug_info": False,
@@ -85,7 +85,7 @@ def test_parseArgs_constraints():
         "packages": [],
         "pip": rez_pip.pip.getBundledPip(),
         "prefix": None,
-        "python_version": None,
+        "python_version": "3.7+",
         "release": False,
         "requirement": None,
         "debug_info": False,
@@ -105,7 +105,7 @@ def test_parseArgs_pipArgs():
         "packages": [],
         "pip": rez_pip.pip.getBundledPip(),
         "prefix": None,
-        "python_version": None,
+        "python_version": "3.7+",
         "release": False,
         "requirement": None,
         "debug_info": False,
@@ -153,7 +153,7 @@ def test_validateArgs_no_packages_or_requirement(tmp_path: pathlib.Path):
 
     with pytest.raises(
         rez_pip.exceptions.RezPipError,
-        match="no packages were passed and --requirements was not used. At least one of the must be passed.",
+        match="no packages were passed and --requirements was not used. At least one of them must be passed.",
     ) as exc:
         rez_pip.cli._validateArgs(
             argparse.Namespace(pip=os.fspath(path), packages=None, requirement=None)

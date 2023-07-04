@@ -12,7 +12,7 @@ Python 3.7+ only
 ================
 
 The new rez-pip can only be installed in a Python 3 rez install. You will be able to
-install packages for Python 3.6+, but not anything older than that.
+install packages for Python 3.7+, but not anything older than that.
 
 Argument differences
 ====================
