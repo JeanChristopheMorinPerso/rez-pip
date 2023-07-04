@@ -151,7 +151,7 @@ def test_convertMetadata_nothing_to_convert(monkeypatch: pytest.MonkeyPatch):
         ],
     ],
 )
-def test_convertMetadata_summary(
+def test_convertMetadata(
     metadataText: str,
     expectedConverted,
     expectedRemaining,

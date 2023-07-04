@@ -103,7 +103,7 @@ def _parseArgs(
     debugGroup.add_argument(
         "--keep-tmp-dirs",
         action="store_true",
-        help="Keep some temporary directory at the end of the process for further inspection.",
+        help="Keep some temporary directories at the end of the process for further inspection.",
     )
 
     debugGroup.add_argument(
@@ -145,7 +145,7 @@ def _validateArgs(args: argparse.Namespace) -> None:
 
     if not args.packages and not args.requirement:
         raise rez_pip.exceptions.RezPipError(
-            "no packages were passed and --requirements was not used. At least one of the must be passed."
+            "no packages were passed and --requirements was not used. At least one of them must be passed."
         )
 
 

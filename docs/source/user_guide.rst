@@ -29,7 +29,7 @@ Selecting the python version
 rez configuration. By default, it will use all available versions.
 
 By using ``--python-version``, you can select which version of python
-to use for the requested packages. You can use the same version selecton syntax
+to use for the requested packages. You can use the same version specifier syntax
 that rez supports (``>=3``, ``3.7|3.9``, etc) or you can also use ``latest``.
 
 .. note::
