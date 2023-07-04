@@ -10,7 +10,7 @@ class RezPipError(Exception):
         self, console: rich.console.Console, options: rich.console.ConsoleOptions
     ) -> rich.console.RenderResult:
         yield console.render_str(
-            f"{self.__class__.__module__}.{self.__class__.__name__}: {self.message}"
+            f"[bold]{self.__class__.__module__}.{self.__class__.__name__}[/]: {self.message}"
         )
 
 
