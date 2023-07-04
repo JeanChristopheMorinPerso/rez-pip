@@ -1,11 +1,14 @@
 import os
 import sys
+import json
 import shutil
 import typing
 import logging
 import argparse
+import textwrap
 import pathlib
 import tempfile
+import subprocess
 
 if sys.version_info >= (3, 10):
     import importlib.metadata as importlib_metadata
@@ -13,6 +16,8 @@ else:
     import importlib_metadata
 
 import rich
+import rich.text
+import rich.panel
 import rich.markup
 import rich.logging
 import rez.vendor.version.version
@@ -99,6 +104,12 @@ def _parseArgs(
         "--keep-tmp-dirs",
         action="store_true",
         help="Keep some temporary directory at the end of the process for further inspection.",
+    )
+
+    debugGroup.add_argument(
+        "--debug-info",
+        action="store_true",
+        help="Print debug information that you can use when reporting an issue on GitHub.",
     )
 
     parser.usage = f"""
@@ -206,24 +217,104 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
                 )
 
 
-def run() -> None:
-    args, pipArgs = _parseArgs(sys.argv[1:])
-    _validateArgs(args)
+def _debug(args: argparse.Namespace, console=rich.get_console()) -> None:
+    """Print debug information"""
+    prefix = "  "
+    console.print(
+        f"[bold]rez-pip version[/]: {importlib_metadata.version(__package__)}"
+    )
 
-    handler = rich.logging.RichHandler(show_time=False, markup=True, show_path=False)
-    handler.setFormatter(logging.Formatter(fmt="%(message)s"))
+    console.print(f"[bold]rez version[/]: {importlib_metadata.version('rez')}")
 
-    rootLogger = logging.getLogger("rez_pip")
-    rootLogger.addHandler(handler)
-    rootLogger.setLevel(args.log_level.upper())
+    console.print(f"[bold]python version[/]: {sys.version}", highlight=False)
+    console.print(f"[bold]python executable[/]: {sys.executable}", highlight=False)
 
+    pip = args.pip or rez_pip.pip.getBundledPip()
+
+    console.print(f"[bold]pip[/]: {pip}", highlight=False)
+
+    completedProcess = subprocess.run(
+        [sys.executable, pip, "--version"],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+
+    console.print(
+        f"[bold]pip version[/]: {completedProcess.stdout.strip()}", highlight=False
+    )
+
+    completedProcess = subprocess.run(
+        [sys.executable, pip, "config", "debug"],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+
+    console.print("[bold]rez-pip provided arguments[/]:")
+    print(textwrap.indent(json.dumps(vars(args), indent=4), prefix))
+
+    console.print(f"[bold]pip config debug[/]:", highlight=False)
+    print(textwrap.indent(completedProcess.stdout.strip(), "  "))
+
+    completedProcess = subprocess.run(
+        [sys.executable, pip, "config", "list"],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+
+    console.print(f"[bold]pip config list[/]:", highlight=False)
+    print(
+        textwrap.indent(completedProcess.stdout.strip(), prefix)
+        or f"{prefix}Returned nothing"
+    )
+
+    console.print(f"[bold]rez python packages[/]:", highlight=False)
+    for pythonVersion, pythonExecutable in rez_pip.rez.getPythonExecutables(
+        args.python_version
+    ).items():
+        print(textwrap.indent(f"{pythonExecutable} ({pythonVersion})", prefix))
+
+    print()
+
+    rich.print(
+        rich.panel.Panel(
+            rich.text.Text(
+                "Please redact any sensitive information before giving this output to someone else!\n\n"
+                "Don't remove things, only redact/replace. Look for IP addresses, domain names, passwords, etc.",
+                justify="center",
+            ),
+            title="[bold red]WARNING!",
+            expand=False,
+            border_style="yellow",
+        ),
+        file=sys.stderr,
+    )
+
+
+def run() -> int:
     pipWorkArea = tempfile.mkdtemp(prefix="rez-pip-target")
+    args, pipArgs = _parseArgs(sys.argv[1:])
 
     try:
+        _validateArgs(args)
+
+        handler = rich.logging.RichHandler(
+            show_time=False, markup=True, show_path=False
+        )
+        handler.setFormatter(logging.Formatter(fmt="%(message)s"))
+
+        rootLogger = logging.getLogger("rez_pip")
+        rootLogger.addHandler(handler)
+        rootLogger.setLevel(args.log_level.upper())
+
+        if args.debug_info:
+            _debug(args)
+            return 0
+
         _run(args, pipArgs, pipWorkArea)
+        return 0
     except rez_pip.exceptions.RezPipError as exc:
         rich.get_console().print(exc, soft_wrap=True)
-        sys.exit(1)
+        return 1
     finally:
         if not args.keep_tmp_dirs:
             _LOG.debug(f"Removing {pipWorkArea}")

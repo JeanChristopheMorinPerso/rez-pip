@@ -10,7 +10,9 @@ import http.client
 import urllib.request
 
 import pytest
+import rez.config
 import rez.packages
+import rez.package_bind
 import rez.package_maker
 
 from . import utils
@@ -111,9 +113,43 @@ def pypi(
         raise RuntimeError("Failed to start pypi-server")
 
 
+# Use function scope to make sure each test starts with a fresh default config
+@pytest.fixture(scope="function", autouse=True)
+def hardenRezConfig(tmp_path_factory: pytest.TempPathFactory):
+    """Make sure that rez doesn't use any of the user configs"""
+
+    # We can't just put None, so override with a dummy directory to make sure
+    # that we don't pick up packages from anywhere else.
+    tmpRepoPath = tmp_path_factory.mktemp("tmp_fake_rez_repo_do_not_use")
+
+    # Do not load user configs
+    defaultConfig = rez.config._create_locked_config(
+        {
+            "packages_path": [os.fspath(tmpRepoPath)],
+            "release_packages_path": os.fspath(tmpRepoPath),
+            "local_packages_path": os.fspath(tmpRepoPath),
+        }
+    )
+    with rez.config._replace_config(defaultConfig):
+        yield
+
+
 @pytest.fixture(scope="session")
-def rezRepo() -> str:
-    return os.path.join(os.path.dirname(__file__), "data", "rez_repo")
+def rezRepo() -> typing.Generator[str, None, None]:
+    path = os.path.join(os.path.dirname(__file__), "data", "rez_repo")
+
+    rez.package_bind.bind_package("platform", path=path, no_deps=True, quiet=True)
+    rez.package_bind.bind_package("arch", path=path, no_deps=True, quiet=True)
+    rez.package_bind.bind_package("os", path=path, no_deps=True, quiet=True)
+
+    originalConfig = rez.config.config.copy()
+
+    rez.config.config.packages_path = [path]
+    rez.config.config.release_packages_path = path
+    yield path
+
+    rez.config.config.packages_path = originalConfig.packages_path
+    rez.config.config.release_packages_path = originalConfig.release_packages_path
 
 
 def downloadPythonVersion(
