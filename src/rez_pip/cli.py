@@ -177,7 +177,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
                 args.packages,
                 args.pip,
                 pythonVersion,
-                pythonExecutable,
+                os.fspath(pythonExecutable),
                 args.requirement or [],
                 args.constraint or [],
                 pipArgs,
