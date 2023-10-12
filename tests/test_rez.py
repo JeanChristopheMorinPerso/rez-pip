@@ -1,5 +1,9 @@
+import os
 import sys
+import stat
 import typing
+import pathlib
+import platform
 import unittest.mock
 
 import pytest
@@ -179,28 +183,28 @@ def test_convertMetadata(
             ["1.0.0"],
             "latest",
             ["python1.0"],
-            {"1.0.0": "/path/python1.0"},
+            {"1.0.0": pathlib.Path("/path/python1.0")},
             id="latest",
         ),
         pytest.param(
             ["1.0.0"],
             None,
             ["python1.0"],
-            {"1.0.0": "/path/python1.0"},
+            {"1.0.0": pathlib.Path("/path/python1.0")},
             id="all-single-version",
         ),
         pytest.param(
             ["1.0.0"],
             None,
             ["", "python1"],
-            {"1.0.0": "/path/python1"},
+            {"1.0.0": pathlib.Path("/path/python1")},
             id="all-single-version-python1",
         ),
         pytest.param(
             ["1.0.0"],
             None,
             ["", "", "python"],
-            {"1.0.0": "/path/python"},
+            {"1.0.0": pathlib.Path("/path/python")},
             id="all-single-version-python-no-version",
         ),
         pytest.param(
@@ -214,28 +218,31 @@ def test_convertMetadata(
             ["1.0.0", "2.0.0"],
             None,
             ["python1.0", "python2.0"],
-            {"1.0.0": "/path/python1.0", "2.0.0": "/path/python2.0"},
+            {
+                "1.0.0": pathlib.Path("/path/python1.0"),
+                "2.0.0": pathlib.Path("/path/python2.0"),
+            },
             id="all-multi-version",
         ),
         pytest.param(
             ["1.0.0", "2.0.0"],
             None,
             ["", "", "", "python2.0"],
-            {"2.0.0": "/path/python2.0"},
+            {"2.0.0": pathlib.Path("/path/python2.0")},
             id="all-multi-version-no-exe-1.0.0",
         ),
         pytest.param(
             ["1.0.0", "2.0.0"],
             "2+",
             ["python2.0"],
-            {"2.0.0": "/path/python2.0"},
+            {"2.0.0": pathlib.Path("/path/python2.0")},
             id="with-range-2plus",
         ),
         pytest.param(
             ["1.0.0", "2.0.0"],
             "<2",
             ["python1.0"],
-            {"1.0.0": "/path/python1.0"},
+            {"1.0.0": pathlib.Path("/path/python1.0")},
             id="with-range-less-than-2",
         ),
     ],
@@ -275,3 +282,78 @@ def test_getPythonExecutables(
                 rez_pip.rez.getPythonExecutables(range_, "python")
                 == expectedExecutables
             )
+
+
+def test_getPythonExecutables_isolation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+) -> None:
+    """
+    Test that getPythonExecutables is properly isolated. In other words, that
+    system wide PATH does not affect ResolvedContext.which calls.
+
+    If ResolvedContext.append_sys_path is not False, this test should fail.
+    """
+    packagePath = tmp_path / "package"
+    fakePath = tmp_path / "fake"
+
+    escapedPath = os.fspath(packagePath).replace("\\", "\\\\")
+    # Create a fake python-1.0.0 package
+    repoData: typing.Dict[str, typing.Dict[str, typing.Dict[str, str]]] = {
+        "python": {
+            "1.0.0": {
+                "version": "1.0.0",
+                "commands": f"env.PATH.prepend('{escapedPath}')",
+            },
+        }
+    }
+
+    repo = typing.cast(
+        rez.package_repository.PackageRepository,
+        rez.package_repository.create_memory_package_repository(repoData),
+    )
+
+    with monkeypatch.context() as context:
+        context.setitem(
+            rez.package_repository.package_repository_manager.repositories,
+            f"memory@{repo.location}",
+            repo,
+        )
+
+        context.setattr(rez.config.config, "packages_path", [f"memory@{repo.location}"])
+
+        ext = ".bat" if platform.system() == "Windows" else ""
+        packagePath.mkdir()
+
+        # Create the python executable in the python package.
+        # Note that we use python1 here and we will use python1.0
+        # in the fake python install so that the fake would have hiher priority
+        # based on the algorithm in getPythonExecutables.
+        with open(packagePath / f"python1{ext}", "w") as f:
+            f.write("#FAKE EXECUTABLE")
+
+        if platform.system() != "Windows":
+            os.chmod(packagePath / f"python1{ext}", stat.S_IRUSR | stat.S_IXUSR)
+
+        fakePath.mkdir()
+
+        # Now create the fake executable.
+        with open(fakePath / f"python1.0{ext}", "w") as f:
+            f.write("#FAKE EXECUTABLE")
+
+        if platform.system() != "Windows":
+            os.chmod(fakePath / f"python1.0{ext}", stat.S_IRUSR | stat.S_IXUSR)
+
+        def mockedFunc(self, *args, **kwargs):
+            self.env.PATH.append(fakePath)
+
+        # Mock append_system_paths to force our fake path into the
+        # injected sys paths. If we don't do this, the fake path will not
+        # be set in the ResolvedContext when append_system_paths is True.
+        with unittest.mock.patch(
+            "rez.rex.RexExecutor.append_system_paths",
+            new=mockedFunc,
+        ):
+            assert rez_pip.rez.getPythonExecutables("1.0.0", "python") == {
+                "1.0.0": packagePath / f"python1{ext}"
+            }
