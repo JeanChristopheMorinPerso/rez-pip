@@ -70,9 +70,7 @@ def createPackage(
         wheelsDirAbsolute = pathlib.Path(installedWheelsDir).resolve()
         for src in dist.files:
             srcAbsolute = src.locate().resolve()
-            dest = os.path.join(
-                path, srcAbsolute.relative_to(wheelsDirAbsolute)
-            )
+            dest = os.path.join(path, srcAbsolute.relative_to(wheelsDirAbsolute))
             if not os.path.exists(os.path.dirname(dest)):
                 os.makedirs(os.path.dirname(dest))
 
