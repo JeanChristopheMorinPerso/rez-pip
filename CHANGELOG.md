@@ -1,5 +1,13 @@
 # Next (Unreleased)
 
+# 0.3.0 (2023-10-12)
+
+Most notable changes:
+* Don't append system PATH to context when finding the python executables (#47)
+* Update pip from 23.1.2 to 23.2 (#44)
+* Ensure Windows short paths are resolved to long paths (#50)
+* Read rez-pip version from distribution metadata (#53)
+
 # 0.2.0 (2023-07-04)
 
 This release fixes a lot of bugs and gets us closer to a more official release.
