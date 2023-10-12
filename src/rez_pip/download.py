@@ -1,4 +1,5 @@
 import os
+import sys
 import typing
 import asyncio
 import hashlib
@@ -7,6 +8,11 @@ import logging
 import rich
 import aiohttp
 import rich.progress
+
+if sys.version_info >= (3, 10):
+    import importlib.metadata as importlib_metadata
+else:
+    import importlib_metadata
 
 import rez_pip.pip
 
@@ -105,7 +111,7 @@ async def _download(
             package.download_info.url,
             headers={
                 "Content-Type": "application/octet-stream",
-                "User-Agent": "rez-pip/0.1.0",
+                "User-Agent": f"rez-pip/{importlib_metadata.version('rez-pip')}",
             },
         ) as response:
             size = int(response.headers.get("content-length", 0))

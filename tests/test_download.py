@@ -9,11 +9,22 @@ if sys.version_info[:2] < (3, 8):
 else:
     from unittest import mock
 
+if sys.version_info >= (3, 10):
+    import importlib.metadata as importlib_metadata
+else:
+    import importlib_metadata
+
 import pytest
 import aiohttp
 
 import rez_pip.pip
 import rez_pip.download
+
+
+@pytest.fixture(scope="module", autouse=True)
+def rezPipVersion():
+    with mock.patch.object(importlib_metadata, "version", return_value="1.2.3.4.5"):
+        yield
 
 
 @pytest.mark.parametrize(
@@ -79,7 +90,7 @@ def test_download(packages: typing.Dict[str, str], tmp_path: pathlib.Path):
             f"https://example.com/{package}.whl",
             headers={
                 "Content-Type": "application/octet-stream",
-                "User-Agent": "rez-pip/0.1.0",
+                "User-Agent": "rez-pip/1.2.3.4.5",
             },
         )
         for package in packages
@@ -151,14 +162,14 @@ def test_download_multiple_packages_with_failure(tmp_path: pathlib.Path):
                 "https://example.com/package-a",
                 headers={
                     "Content-Type": "application/octet-stream",
-                    "User-Agent": "rez-pip/0.1.0",
+                    "User-Agent": "rez-pip/1.2.3.4.5",
                 },
             ),
             mock.call(
                 "https://example.com/package-b",
                 headers={
                     "Content-Type": "application/octet-stream",
-                    "User-Agent": "rez-pip/0.1.0",
+                    "User-Agent": "rez-pip/1.2.3.4.5",
                 },
             ),
         ]
@@ -218,14 +229,14 @@ def test_download_reuse_if_same_hash(tmp_path: pathlib.Path):
                 "https://example.com/package-a.whl",
                 headers={
                     "Content-Type": "application/octet-stream",
-                    "User-Agent": "rez-pip/0.1.0",
+                    "User-Agent": "rez-pip/1.2.3.4.5",
                 },
             ),
             mock.call(
                 "https://example.com/package-b.whl",
                 headers={
                     "Content-Type": "application/octet-stream",
-                    "User-Agent": "rez-pip/0.1.0",
+                    "User-Agent": "rez-pip/1.2.3.4.5",
                 },
             ),
         ]
@@ -281,7 +292,7 @@ def test_download_reuse_if_same_hash(tmp_path: pathlib.Path):
                 "https://example.com/package-c.whl",
                 headers={
                     "Content-Type": "application/octet-stream",
-                    "User-Agent": "rez-pip/0.1.0",
+                    "User-Agent": "rez-pip/1.2.3.4.5",
                 },
             ),
         ]
@@ -345,14 +356,14 @@ def test_download_redownload_if_hash_changes(tmp_path: pathlib.Path):
                 "https://example.com/package-a.whl",
                 headers={
                     "Content-Type": "application/octet-stream",
-                    "User-Agent": "rez-pip/0.1.0",
+                    "User-Agent": "rez-pip/1.2.3.4.5",
                 },
             ),
             mock.call(
                 "https://example.com/package-b.whl",
                 headers={
                     "Content-Type": "application/octet-stream",
-                    "User-Agent": "rez-pip/0.1.0",
+                    "User-Agent": "rez-pip/1.2.3.4.5",
                 },
             ),
         ]
@@ -409,14 +420,14 @@ def test_download_redownload_if_hash_changes(tmp_path: pathlib.Path):
                 "https://example.com/package-a.whl",
                 headers={
                     "Content-Type": "application/octet-stream",
-                    "User-Agent": "rez-pip/0.1.0",
+                    "User-Agent": "rez-pip/1.2.3.4.5",
                 },
             ),
             mock.call(
                 "https://example.com/package-b.whl",
                 headers={
                     "Content-Type": "application/octet-stream",
-                    "User-Agent": "rez-pip/0.1.0",
+                    "User-Agent": "rez-pip/1.2.3.4.5",
                 },
             ),
         ]
