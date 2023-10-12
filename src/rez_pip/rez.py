@@ -226,7 +226,7 @@ def _convertMetadata(
 
 def getPythonExecutables(
     range_: typing.Optional[str], packageFamily: str = "python"
-) -> typing.Dict[str, str]:
+) -> typing.Dict[str, pathlib.Path]:
     """
     Get the available python executable from rez packages.
 
@@ -244,16 +244,19 @@ def getPythonExecutables(
     if range_ == "latest":
         packages = [packages[-1]]
 
-    pythons: typing.Dict[str, str] = {}
+    pythons: typing.Dict[str, pathlib.Path] = {}
     for package in packages:
         resolvedContext = rez.resolved_context.ResolvedContext(
             [f"{package.name}=={package.version}"]
         )
 
+        # Make sure that system PATH doens't interfere with the "which" method.
+        resolvedContext.append_sys_path = False
+
         for trimmedVersion in map(package.version.trim, [2, 1, 0]):
-            path = resolvedContext.which(f"python{trimmedVersion}")
+            path = resolvedContext.which(f"python{trimmedVersion}", parent_environ={})
             if path:
-                pythons[str(package.version)] = path
+                pythons[str(package.version)] = pathlib.Path(path)
                 break
         else:
             _LOG.warning(
