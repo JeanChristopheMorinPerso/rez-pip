@@ -16,10 +16,17 @@ import rez_pip.utils
 #     cls.dist_path = cls.data_path("pip", "installed_distributions")
 
 
-def test_pythontDistributionNameToRez():
+@pytest.mark.parametrize(
+    "name,expected",
+    [
+        ("asd", "asd"),
+        ("package-name", "package_name"),
+        ("PaCkAgE.sOmetin", "package_sometin"),
+    ],
+)
+def test_pythontDistributionNameToRez(name: str, expected: str):
     """ """
-    assert rez_pip.utils.pythontDistributionNameToRez("asd") == "asd"
-    assert rez_pip.utils.pythontDistributionNameToRez("package-name") == "package_name"
+    assert rez_pip.utils.pythontDistributionNameToRez(name) == expected
 
 
 @pytest.mark.parametrize(
