@@ -29,7 +29,12 @@ Link: https://packaging.python.org/en/latest/specifications/core-metadata/#name
 Stored in ``name``.
 
 .. warning::
-   ``-`` will be converted to ``_``
+   ``-`` and ``.`` will be converted to ``_`` and the name will be lowercased.
+   We replace ``-`` because it is the separator that rez uses to differentiate
+   a package name from a version. We replace ``.`` because ``ruamel.yaml`` and
+   ``ruamel_yaml`` are considered the same in the Python ecosystem (this is just
+   an example). And we lowercase the name because again, the Python ecosystem
+   is case insensitive when it comes to package names.
 
 Version
 =======
