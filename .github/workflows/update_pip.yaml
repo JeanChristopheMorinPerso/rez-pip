@@ -77,7 +77,7 @@ jobs:
         number=$(gh pr list --app rez-pip-update-bot --limit 1 --head __update_pip__ --json number --jq '.[].number')
         echo "number=${number}" >> $GITHUB_OUTPUT
 
-    - uses: actions/setup-node@v3
+    - uses: actions/setup-node@v4
       if: steps.download_pip.outputs.downloaded-pip-path != 'none'
       with:
         node-version: 16
