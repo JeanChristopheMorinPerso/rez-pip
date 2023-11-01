@@ -127,7 +127,7 @@ def getPackages(
                 f"{output}",
             )
 
-        with open(tmpFile, "r") as fd:
+        with open(tmpFile, "r", encoding="utf-8") as fd:
             rawData = json.load(fd)
     finally:
         os.remove(tmpFile)
