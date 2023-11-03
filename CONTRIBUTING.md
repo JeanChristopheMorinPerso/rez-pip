@@ -1,6 +1,6 @@
-# Welcome to GitHub docs contributing guide
+# Welcome to rez-pip docs contributing guide
 
-Thank you for investing your time in contributing to our project! Any contribution you make will be reflected on [docs.github.com](https://docs.github.com/en) :sparkles:.
+Thank you for investing your time in contributing to our project!
 
 Read our [Code of Conduct](./CODE_OF_CONDUCT.md) to keep our community approachable and respectable.
 
@@ -83,7 +83,7 @@ Commit the changes and tests once you are happy with them.
 
 When you're finished with the changes, create a pull request, also known as a PR.
 
-Tyy to write a more than one sentence in the description field. Explain why you are
+Try to write a more than one sentence in the description field. Explain why you are
 doing the changes, why you did the changeds the way you did, tradeoffs. If there
 is compatibility concerns, please mention them too. The description should be
 as detailed as possible to help us better review your PR.
