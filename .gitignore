@@ -56,3 +56,4 @@ dmypy.json
 tests/data/rez_repo/
 tests/data/_tmp_download/
 docs/bin/
+.idea/
