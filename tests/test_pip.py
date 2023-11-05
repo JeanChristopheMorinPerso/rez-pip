@@ -191,3 +191,10 @@ Looking in links: {os.fspath(tmp_path)}
 ERROR: Could not find a version that satisfies the requirement {packageName} (from versions: none)
 ERROR: No matching distribution found for {packageName}""".lower()
     )
+
+
+def test__convertPipReport(data_root_dir: str):
+    reportRezPipPath = os.path.join(
+        data_root_dir, "pip", "pip-install.report.rez-pip"
+    )
+    packages = rez_pip.pip._convertPipReport(reportPath=reportRezPipPath)
