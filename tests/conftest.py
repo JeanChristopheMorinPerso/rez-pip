@@ -35,14 +35,6 @@ def pytest_runtest_makereport(item: pytest.Item, call):
     item.stash.setdefault(phaseReportKey, {})[rep.when] = rep
 
 
-@pytest.fixture
-def data_root_dir() -> str:
-    """
-    Return absolute path to the data directory used for tests.
-    """
-    return DATA_ROOT_DIR
-
-
 @pytest.fixture(scope="session")
 def index(tmpdir_factory: pytest.TempdirFactory) -> utils.PyPIIndex:
     """Build PyPI Index and return the path"""
