@@ -194,7 +194,7 @@ ERROR: No matching distribution found for {packageName}""".lower()
 
 
 def test__convertPipReport(data_root_dir: str):
-    reportRezPipPath = os.path.join(
-        data_root_dir, "pip", "pip-install.report.rez-pip"
-    )
+    # this file contains special characters that might lead to UnicodeDecodeError
+    reportRezPipPath = os.path.join(data_root_dir, "pip", "pip-install.report.rez-pip")
     packages = rez_pip.pip._convertPipReport(reportPath=reportRezPipPath)
+    assert len(packages) == 24
