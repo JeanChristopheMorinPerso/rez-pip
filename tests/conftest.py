@@ -17,8 +17,8 @@ import rez.package_maker
 
 from . import utils
 
-DOWNLOAD_DIR = os.path.abspath(os.path.join("tests", "data", "_tmp_download"))
 DATA_ROOT_DIR = os.path.join(os.path.dirname(__file__), "data")
+DOWNLOAD_DIR = os.path.join(DATA_ROOT_DIR, "_tmp_download")
 
 phaseReportKey = pytest.StashKey[typing.Dict[str, pytest.CollectReport]]()
 
