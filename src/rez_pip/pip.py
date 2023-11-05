@@ -72,7 +72,6 @@ def getPackages(
     extraArgs: typing.List[str],
 ) -> typing.List[PackageInfo]:
     # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
-    print(packageNames)
     _fd, tmpFile = tempfile.mkstemp(prefix="pip-install-output", text=True)
     os.close(_fd)
     # We can't with "with" (context manager) because it will fail on Windows.
