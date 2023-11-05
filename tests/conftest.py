@@ -17,8 +17,8 @@ import rez.package_maker
 
 from . import utils
 
-DOWNLOAD_DIR = os.path.abspath(os.path.join("tests", "data", "_tmp_download"))
-
+DATA_ROOT_DIR = os.path.join(os.path.dirname(__file__), "data")
+DOWNLOAD_DIR = os.path.join(DATA_ROOT_DIR, "_tmp_download")
 
 phaseReportKey = pytest.StashKey[typing.Dict[str, pytest.CollectReport]]()
 
@@ -39,7 +39,7 @@ def pytest_runtest_makereport(item: pytest.Item, call):
 def index(tmpdir_factory: pytest.TempdirFactory) -> utils.PyPIIndex:
     """Build PyPI Index and return the path"""
 
-    srcPackages = os.path.join(os.path.dirname(__file__), "data", "src_packages")
+    srcPackages = os.path.join(DATA_ROOT_DIR, "src_packages")
 
     indexPath = tmpdir_factory.mktemp("pypi_index").dirpath()
 
@@ -136,7 +136,7 @@ def hardenRezConfig(tmp_path_factory: pytest.TempPathFactory):
 
 @pytest.fixture(scope="session")
 def rezRepo() -> typing.Generator[str, None, None]:
-    path = os.path.join(os.path.dirname(__file__), "data", "rez_repo")
+    path = os.path.join(DATA_ROOT_DIR, "rez_repo")
 
     rez.package_bind.bind_package("platform", path=path, no_deps=True, quiet=True)
     rez.package_bind.bind_package("arch", path=path, no_deps=True, quiet=True)

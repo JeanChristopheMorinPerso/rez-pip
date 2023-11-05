@@ -191,3 +191,28 @@ Looking in links: {os.fspath(tmp_path)}
 ERROR: Could not find a version that satisfies the requirement {packageName} (from versions: none)
 ERROR: No matching distribution found for {packageName}""".lower()
     )
+
+
+def test__readPipReport(tmp_path: pathlib.Path):
+    # check for unicode encoding errors
+    reportSrcContent = '{\n"description": "'
+    reportSrcContent += "[English readme]"
+    reportSrcContent += "•[简体中文 readme]"
+    reportSrcContent += "•[正體中文 readme]"
+    reportSrcContent += "•[Lengua española readme]"
+    reportSrcContent += "•[Läs på svenska]"
+    reportSrcContent += "•[日本語 readme]"
+    reportSrcContent += "•[한국어 readme]"
+    reportSrcContent += "•[Français readme]"
+    reportSrcContent += "•[Schwizerdütsch readme"
+    reportSrcContent += "•[हिन्दी readme]"
+    reportSrcContent += "•[Русский readme]"
+    reportSrcContent += "•[فارسی readme]•"
+    reportSrcContent += "•[Türkçe readme]"
+    reportSrcContent += '"\n}'
+
+    reportPath = tmp_path / "report"
+    reportPath.write_text(reportSrcContent, encoding="utf-8")
+
+    reportContent = rez_pip.pip._readPipReport(reportPath=str(reportPath))
+    assert reportContent
