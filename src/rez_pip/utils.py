@@ -36,7 +36,7 @@ def pythontDistributionNameToRez(name: str) -> str:
     :param name: Distribution name to convert.
     :returns: Rez-compatible package name.
     """
-    return name.replace("-", "_")
+    return name.replace("-", "_").replace(".", "_").lower()
 
 
 def pythonDistributionVersionToRez(version: str) -> str:
