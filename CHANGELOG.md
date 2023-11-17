@@ -1,4 +1,7 @@
-# Next (Unreleased)
+# 0.3.1 (2023-11-17)
+
+* Fix decoding error when reading pip dependency report. See [PR #63](https://github.com/JeanChristopheMorinPerso/rez-pip/pull/63).
+* Update vendored pip from 23.2.1 to 23.3.1
 
 # 0.3.0 (2023-10-12)
 

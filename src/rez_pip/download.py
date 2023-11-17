@@ -65,7 +65,7 @@ async def _downloadPackages(
     if not all(wheels):
         raise RuntimeError("Some wheels failed to be downloaded")
 
-    return wheels
+    return typing.cast(typing.List[str], wheels)
 
 
 def getSHA256(path: str) -> str:
