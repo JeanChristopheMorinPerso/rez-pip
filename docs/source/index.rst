@@ -66,6 +66,7 @@ automatically created by the `install.py <https://github.com/AcademySoftwareFoun
    :hidden:
 
    user_guide
+   command
    transition
    metadata
    faq

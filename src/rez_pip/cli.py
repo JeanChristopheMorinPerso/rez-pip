@@ -38,9 +38,7 @@ def __dir__() -> typing.List[str]:
     return __all__
 
 
-def _parseArgs(
-    args: typing.List[str],
-) -> typing.Tuple[argparse.Namespace, typing.List[str]]:
+def _createParser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Ingest and convert python packages to rez packages.",
         prog=__package__.replace("_", "-"),
@@ -72,7 +70,7 @@ def _parseArgs(
     generalGroup.add_argument(
         "--release",
         action="store_true",
-        help="Release the converted packages (Default: configured release_packages_path)",
+        help="Release the converted packages (default: configured release_packages_path)",
     )
 
     generalGroup.add_argument(
@@ -120,6 +118,14 @@ def _parseArgs(
   %(prog)s [options] <package(s)>
   %(prog)s <package(s)> [-- [pip options]]
 """
+    return parser
+
+
+def _parseArgs(
+    args: typing.List[str],
+) -> typing.Tuple[argparse.Namespace, typing.List[str]]:
+    parser = _createParser()
+
     knownArgs = []
     pipArgs = []
     if "--" in args:
