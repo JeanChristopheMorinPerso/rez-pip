@@ -7,11 +7,13 @@ on:
     - .github/workflows/update_pip.yaml
     - docs/**
     - .readthedocs.yaml
+    - '**/*.md'
   pull_request:
     paths-ignore:
     - .github/workflows/update_pip.yaml
     - docs/**
     - .readthedocs.yaml
+    - '**/*.md'
 
 concurrency:
   cancel-in-progress: true
