@@ -15,12 +15,9 @@ so you can use it multiple times to install from multiple requriement files.
 The ``-c``/``--constraint`` argument is also available and can also be used multiple times.
 
 .. note::
-   By default, rez-pip will install packages in your configured `local_packages_path`_.
-   To install in your `release_packages_path`_,
+   By default, rez-pip will install packages in your configured :external:data:`local_packages_path`.
+   To install in your :external:data:`release_packages_path`,
    use the ``--release`` command line argument.
-
-.. _local_packages_path: https://github.com/AcademySoftwareFoundation/rez/wiki/Configuring-Rez#local_packages_path
-.. _release_packages_path: https://github.com/AcademySoftwareFoundation/rez/wiki/Configuring-Rez#release_packages_path
 
 Selecting the python version
 ============================

@@ -35,7 +35,7 @@ Installation
 
 ``rez-pip`` can be installed by using pip. We highly recommend that you install
 it into your rez's virtual environment (the virtualenv that is
-automatically created by the `install.py <https://github.com/AcademySoftwareFoundation/rez/blob/master/install.py>`_ script).
+automatically created by the `install.py <https://github.com/AcademySoftwareFoundation/rez/blob/main/install.py>`_ script).
 
 .. tab:: Linux/macOS
 
@@ -68,4 +68,5 @@ automatically created by the `install.py <https://github.com/AcademySoftwareFoun
    user_guide
    transition
    metadata
-   faq.rst
+   faq
+   changelog

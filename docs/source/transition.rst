@@ -25,11 +25,9 @@ package (positional) package(**s**) (positional) Now accepts multiple packages. 
 ``--pip-version``    ``--pip``                   Pip is now bundled with rez-pip, but ``--pip`` can be used to specify a different pip zipapp.
 ``-i``/``--install`` Removed
 ``-r``/``--release`` Identical
-``-p``/``--prefix``  ``--prefix``                Defaults to `local_packages_path`_.
+``-p``/``--prefix``  ``--prefix``                Defaults to :external:data:`local_packages_path`.
 ``-e``/``--extra``   ``--``                      ``--extra`` was replaced with trailing ``--``. For example ``rez-pip ... -- --index-url https://example.com``
 ==================== =========================== =======
-
-.. _local_packages_path: https://github.com/AcademySoftwareFoundation/rez/wiki/Configuring-Rez#local_packages_path
 
 Local and editable installs
 ===========================
@@ -43,7 +41,7 @@ I believe these functionalities would be better implemented and would better ser
 users if implemented as a `build_system`_ plugin. It would allow for better integration
 with rez and the user experience would be significantly better than it could with ``rez-pip``.
 
-.. _build_system: https://github.com/AcademySoftwareFoundation/rez/tree/master/src/rezplugins/build_system
+.. _build_system: https://github.com/AcademySoftwareFoundation/rez/tree/main/src/rezplugins/build_system
 
 I also believe that python packaging/rez hybrids are bad and just causes more issues than
 they solve. The python packaging ecosystem and tools have different objectives and goals
