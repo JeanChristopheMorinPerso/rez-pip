@@ -1,0 +1,5 @@
+=======
+Command
+=======
+
+.. rez-autoargparse::
