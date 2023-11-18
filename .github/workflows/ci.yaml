@@ -5,13 +5,13 @@ on:
   push:
     paths-ignore:
     - .github/workflows/update_pip.yaml
-    - docs/**
-    - .readthedocs.yaml
+    - 'docs/**'
+    - '.readthedocs.yaml'
     - '**/*.md'
   pull_request:
     paths-ignore:
     - .github/workflows/update_pip.yaml
-    - docs/**
+    - 'docs/**'
     - .readthedocs.yaml
     - '**/*.md'
 
