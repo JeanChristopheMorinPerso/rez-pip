@@ -191,9 +191,14 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
 
         _LOG.info(f"Resolved {len(packages)} dependencies for python {pythonVersion}")
 
+        localWheels = [package for package in packages if package.isLocal()]
+        remoteWheels = [package for package in packages if not package.isLocal()]
+
         # TODO: Should we postpone downloading to the last minute if we can?
         _LOG.info("[bold]Downloading...")
-        wheels = rez_pip.download.downloadPackages(packages, wheelsDir)
+        wheels = rez_pip.download.downloadPackages(remoteWheels, wheelsDir)
+        wheels += [wheel.path for wheel in localWheels]
+
         _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
 
         dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
