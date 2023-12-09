@@ -2,7 +2,7 @@
 
 <!-- start-here-sphinx-start-after -->
 
-# 0.3.2 (2023-12-09)
+## 0.3.2 (2023-12-09)
 
 * Add changelog to docs (#68)
 * Add GH Action workflow to do sanity checks on docs (#69)
