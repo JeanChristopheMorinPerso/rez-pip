@@ -10,6 +10,7 @@ import pytest
 import rez.config
 import rez.packages
 import rez.package_repository
+import rez.vendor.version.version
 
 if sys.version_info >= (3, 10):
     import importlib.metadata as importlib_metadata
@@ -17,6 +18,76 @@ else:
     import importlib_metadata
 
 import rez_pip.rez
+import rez_pip.utils
+
+
+def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
+    source = tmp_path / "source"
+    repo = os.fspath(tmp_path / "repo")
+
+    class MyDistribution(importlib_metadata.PathDistribution):
+        name = "package-a"
+        version = "1.0.0.post0"
+
+        @property
+        def files(self):
+            def make_file(path: str) -> importlib_metadata.PackagePath:
+                obj = importlib_metadata.PackagePath(path)
+                obj.dist = self
+                return obj
+
+            return [
+                make_file("../scripts/package-a-cli"),
+                make_file("package_a/__init__.py"),
+                make_file("package_a/folder_here/abgt.py"),
+            ]
+
+    # Mirror the folder structure we use (python is important here)
+    dist = MyDistribution(source / "python" / "package_a")
+
+    for file_ in dist.files:
+        path = pathlib.Path(file_.locate().resolve())
+        os.makedirs(path.parent)
+        path.touch()
+
+    monkeypatch.setattr(
+        dist,
+        "read_text",
+        lambda x: "Metadata-Version: 2.0\nName: package-a\nVersion: 1.0.0.post0",
+    )
+
+    expectedRequirements = rez_pip.utils.RequirementsDict(
+        requires=["requests"],
+        variant_requires=["python-2"],
+        metadata={"is_pure_python": False},
+    )
+
+    with unittest.mock.patch.object(
+        rez_pip.utils, "getRezRequirements", return_value=expectedRequirements
+    ):
+        rez_pip.rez.createPackage(
+            dist,
+            False,
+            rez.vendor.version.version.Version("3.7.0"),
+            [],
+            source,
+            "http://localhost/asd",
+            prefix=repo,
+        )
+
+    package = rez.packages.get_package("package_a", "1.0.0.post0", paths=[repo])
+    assert package is not None
+
+    assert package.get_variant(0) is not None
+    assert package.data.get("pip")
+    assert package.data["pip"] == {
+        "name": dist.name,
+        "version": dist.version,
+        "is_pure_python": False,
+        "wheel_url": "http://localhost/asd",
+        "rez_pip_version": importlib_metadata.version("rez-pip"),
+        "metadata": {},
+    }
 
 
 def test_convertMetadata_nothing_to_convert(monkeypatch: pytest.MonkeyPatch):

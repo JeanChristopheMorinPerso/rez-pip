@@ -114,6 +114,7 @@ def createPackage(
             "version": dist.version,
             "is_pure_python": metadata["is_pure_python"],
             "wheel_url": wheelURL,
+            "rez_pip_version": importlib_metadata.version("rez-pip"),
         }
 
         # Take all the metadata that can be converted and put it
