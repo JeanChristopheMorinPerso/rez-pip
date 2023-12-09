@@ -2,6 +2,14 @@
 
 <!-- start-here-sphinx-start-after -->
 
+## 0.3.2 (2023-12-09)
+
+* Add changelog to docs (#68)
+* Add GH Action workflow to do sanity checks on docs (#69)
+* Fix mypy check failing due to recent aiohttp 3.9.0 release that dropped support for Python 3.7
+* Add CLI reference to docs (#70)
+* Fix missing `rez_pip_version` in rez package metadata (in the `pip` attribute) (#77)
+
 ## 0.3.1 (2023-11-17)
 
 * Fix decoding error when reading pip dependency report (#63).
