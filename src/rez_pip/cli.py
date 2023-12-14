@@ -163,6 +163,11 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
         args.python_version, packageFamily="python"
     )
 
+    if not pythonVersions:
+        raise RuntimeError(
+            f"No python package found on system for python-{args.python_version}"
+        )
+
     for pythonVersion, pythonExecutable in pythonVersions.items():
         _LOG.info(
             f"[bold underline]Installing requested packages for Python {pythonVersion}"
