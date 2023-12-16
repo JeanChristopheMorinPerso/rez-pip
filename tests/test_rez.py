@@ -8,9 +8,9 @@ import unittest.mock
 
 import pytest
 import rez.config
+import rez.version
 import rez.packages
 import rez.package_repository
-import rez.vendor.version.version
 
 if sys.version_info >= (3, 10):
     import importlib.metadata as importlib_metadata
@@ -68,7 +68,7 @@ def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
         rez_pip.rez.createPackage(
             dist,
             False,
-            rez.vendor.version.version.Version("3.7.0"),
+            rez.version.Version("3.7.0"),
             [],
             source,
             "http://localhost/asd",

@@ -16,7 +16,8 @@ dependencies = [
     "installer>=0.7.0",
     "aiohttp",
     "packaging>=23.1",
-    "rez",
+    # 2.114.0 adds rez.version.
+    "rez>=2.114.1",
     "dataclasses-json",
     "rich",
     "importlib_metadata>=4.6 ; python_version < '3.10'",

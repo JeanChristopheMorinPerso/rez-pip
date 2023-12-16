@@ -13,10 +13,10 @@ else:
     import importlib_metadata
 
 import rez.config
+import rez.version
 import rez.packages
 import rez.package_maker
 import rez.resolved_context
-import rez.vendor.version.version
 
 import rez_pip.pip
 import rez_pip.utils
@@ -27,7 +27,7 @@ _LOG = logging.getLogger(__name__)
 def createPackage(
     dist: importlib_metadata.Distribution,
     isPure: bool,
-    pythonVersion: rez.vendor.version.version.Version,
+    pythonVersion: rez.version.Version,
     nameCasings: typing.List[str],
     installedWheelsDir: str,
     wheelURL: str,
