@@ -316,6 +316,23 @@ def test_convertMetadata(
             {"1.0.0": pathlib.Path("/path/python1.0")},
             id="with-range-less-than-2",
         ),
+        pytest.param(
+            ["3.9.0", "3.7.1", "3.7.6", "3.7.5", "2.7.4", "2.7.9"],
+            None,
+            [
+                # Due to how the test is structured, these have to be in the same
+                # order as the output.
+                "python2.7",
+                "python3.7",
+                "python3.9",
+            ],
+            {
+                "2.7.9": pathlib.Path("/path/python2.7"),
+                "3.7.6": pathlib.Path("/path/python3.7"),
+                "3.9.0": pathlib.Path("/path/python3.9"),
+            },
+            id="select-latest-major+minor",
+        ),
     ],
 )
 def test_getPythonExecutables(

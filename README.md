@@ -19,7 +19,7 @@ Modern rez-pip implementation. Very WIP.
     * [x] Create rez package
     * [x] Copy distribution files to rez package.
     * [ ] Make it available as a rez plugin/sub-command
-    * [ ] Discover Python package using rez and use that when available. I think it's still fine to support non-rezified Python interpreters though.
+    * [x] Discover Python package using rez and use that when available. I think it's still fine to support non-rezified Python interpreters though.
     * [ ] Only download+convert package if it's not already in the rez repositories.
     * etc
 * [x] Accept multiple package names as input

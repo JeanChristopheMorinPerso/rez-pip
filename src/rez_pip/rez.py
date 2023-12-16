@@ -5,6 +5,7 @@ import shutil
 import typing
 import logging
 import pathlib
+import itertools
 
 if sys.version_info >= (3, 10):
     import importlib.metadata as importlib_metadata
@@ -233,15 +234,28 @@ def getPythonExecutables(
     :param packageFamily: Name of the rez package family for the python package. This allows ot support PyPy, etc.
     :returns: Dict where the keys are the python versions and values are abolute paths to executables.
     """
-    packages = sorted(
+    all_packages = sorted(
         rez.packages.iter_packages(
             packageFamily, range_=range_ if range_ != "latest" else None
         ),
         key=lambda x: x.version,
     )
 
+    packages: typing.List[rez.packages.Package]
     if range_ == "latest":
-        packages = [packages[-1]]
+        packages = [list(all_packages)[-1]]
+    else:
+        # Get the latest x.x (major+minor) and ignore anything else.
+        # We don't want to return 3.7.8 AND 3.7.9 for example. It doesn't
+        # make sense. We only need 3.7.x.
+        groups = [
+            list(group)
+            for _, group in itertools.groupby(
+                all_packages, key=lambda x: x.version.as_tuple()[:2]
+            )
+        ]
+        # Note that "pkgs" is already in the right order since all_packages is sorted.
+        packages = [pkgs[-1] for pkgs in groups]
 
     pythons: typing.Dict[str, pathlib.Path] = {}
     for package in packages:
