@@ -18,9 +18,9 @@ else:
 import rich
 import rich.text
 import rich.panel
+import rez.version
 import rich.markup
 import rich.logging
-import rez.vendor.version.version
 
 import rez_pip.pip
 import rez_pip.rez
@@ -222,7 +222,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
                 rez_pip.rez.createPackage(
                     dist,
                     isPure,
-                    rez.vendor.version.version.Version(pythonVersion),
+                    rez.version.Version(pythonVersion),
                     distNames,
                     installedWheelsDir,
                     wheelURL=package.download_info.url,

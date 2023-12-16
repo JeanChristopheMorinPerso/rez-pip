@@ -1,11 +1,10 @@
 import typing
 
 import pytest
+import rez.version
 import packaging.version
 import packaging.specifiers
 import packaging.requirements
-import rez.vendor.version.version
-import rez.vendor.version.requirement
 
 import rez_pip.utils
 
@@ -66,7 +65,7 @@ def test_pythonSpecifierToRezRequirement(pythonSpec: str, rezReq: str):
     pythonSpecObj = packaging.specifiers.SpecifierSet(pythonSpec)
     assert rez_pip.utils.pythonSpecifierToRezRequirement(
         pythonSpecObj
-    ) == rez.vendor.version.version.VersionRange(rezReq)
+    ) == rez.version.VersionRange(rezReq)
 
 
 def test_pythonSpecifierToRezRequirement_raises():
@@ -87,7 +86,7 @@ def test_pythonSpecifierToRezRequirement_raises():
 def test_packaging_req_to_rez_req(pythonReq: str, rezReq: str):
     assert rez_pip.utils.pythonReqToRezReq(
         packaging.requirements.Requirement(pythonReq)
-    ) == rez.vendor.version.requirement.Requirement(rezReq)
+    ) == rez.version.Requirement(rezReq)
 
 
 # def test_is_pure_python_package(self):

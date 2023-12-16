@@ -9,11 +9,10 @@ else:
     import importlib_metadata
 
 import rez.system
+import rez.version
 import packaging.version
 import packaging.specifiers
 import packaging.requirements
-import rez.vendor.version.version
-import rez.vendor.version.requirement
 
 _LOG = logging.getLogger(__name__)
 
@@ -115,7 +114,7 @@ def pythonDistributionVersionToRez(version: str) -> str:
 
 def pythonSpecifierToRezRequirement(
     specifier: packaging.specifiers.SpecifierSet,
-) -> rez.vendor.version.version.VersionRange:
+) -> rez.version.VersionRange:
     """Convert PEP440 version specifier to rez equivalent.
 
     See https://www.python.org/dev/peps/pep-0440/#version-specifiers
@@ -220,7 +219,7 @@ def pythonSpecifierToRezRequirement(
 
         # ~=1.2 --> 1.2+<2; ~=1.2.3 --> 1.2.3+<1.3
         if spec.operator == "~=":
-            v = rez.vendor.version.version.Version(parsed_rez_ver())
+            v = rez.version.Version(parsed_rez_ver())
             v = v.trim(len(v) - 1)
             v_next = next_ver(str(v))
             return fmt("{V}+<" + v_next)
@@ -242,10 +241,10 @@ def pythonSpecifierToRezRequirement(
     ranges = list(map(convert_spec, specifier))
 
     # AND together ranges
-    total_range = rez.vendor.version.version.VersionRange(ranges[0])
+    total_range = rez.version.VersionRange(ranges[0])
 
     for range_ in ranges[1:]:
-        range_ = rez.vendor.version.version.VersionRange(range_)
+        range_ = rez.version.VersionRange(range_)
         total_range = total_range.intersection(range_)
 
         if total_range is None:
@@ -259,7 +258,7 @@ def pythonSpecifierToRezRequirement(
 
 def pythonReqToRezReq(
     pythonReq: packaging.requirements.Requirement,
-) -> rez.vendor.version.requirement.Requirement:
+) -> rez.version.Requirement:
     """Convert packaging requirement object to equivalent rez requirement.
 
     Note that environment markers are ignored.
@@ -278,7 +277,7 @@ def pythonReqToRezReq(
         range_ = pythonSpecifierToRezRequirement(pythonReq.specifier)
         req += "-" + str(range_)
 
-    return rez.vendor.version.requirement.Requirement(req)
+    return rez.version.Requirement(req)
 
 
 class CustomPyPackagingRequirement(packaging.requirements.Requirement):
@@ -466,7 +465,7 @@ def convertMarker(marker: str) -> typing.List[str]:
 
 def getRezRequirements(
     installedDist: importlib_metadata.Distribution,
-    pythonVersion: rez.vendor.version.version.Version,
+    pythonVersion: rez.version.Version,
     isPure: bool,
     nameCasings: typing.Optional[typing.List[str]] = None,
 ) -> RequirementsDict:
