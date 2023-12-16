@@ -7,9 +7,9 @@ import platform
 import subprocess
 import collections
 
+import rez.version
 import rez.packages
 import rez.resolved_context
-import rez.vendor.version.version
 
 
 def getPythonRezPackageExecutablePath(version: str, repo: str):
