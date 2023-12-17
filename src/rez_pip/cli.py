@@ -164,8 +164,8 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
     )
 
     if not pythonVersions:
-        raise RuntimeError(
-            f"No python package found on system for python-{args.python_version}"
+        raise rez_pip.exceptions.RezPipError(
+            f'No "python" package found within the range {args.python_version!r}.'
         )
 
     for pythonVersion, pythonExecutable in pythonVersions.items():
