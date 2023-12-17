@@ -163,6 +163,11 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
         args.python_version, packageFamily="python"
     )
 
+    if not pythonVersions:
+        raise rez_pip.exceptions.RezPipError(
+            f'No "python" package found within the range {args.python_version!r}.'
+        )
+
     for pythonVersion, pythonExecutable in pythonVersions.items():
         _LOG.info(
             f"[bold underline]Installing requested packages for Python {pythonVersion}"
