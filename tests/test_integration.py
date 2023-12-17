@@ -4,9 +4,9 @@ import platform
 import subprocess
 
 import pytest
+import rez.version
 import rez.packages
 import rez.resolved_context
-import rez.vendor.version.version
 
 
 @pytest.mark.skipif(
