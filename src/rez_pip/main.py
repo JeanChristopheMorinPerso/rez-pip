@@ -22,6 +22,71 @@ import rez_pip.exceptions
 _LOG = logging.getLogger(__name__)
 
 
+def pip_install_packages(
+    pipPackages: list[str],
+    pythonVersion: str,
+    pythonExecutable: pathlib.Path,
+    pipPath: str,
+    wheelsDir: str,
+    installedWheelsDir: str,
+    pipArgs: typing.Optional[typing.List[str]] = None,
+    requirementPath: typing.Optional[list[str]] = None,
+    constraintPath: typing.Optional[list[str]] = None,
+) -> typing.Dict[importlib_metadata.Distribution, bool]:
+    """
+    Install the given pip packages for the given python version using their wheels.
+
+    :param pipPackages: list of packages name to install, in the syntax understood by pip.
+    :param pythonVersion: exact python rez package version (absolute version).
+    :param pythonExecutable:
+        filesystem path to the python executable corresponding to the given version
+    :param pipPath: filesystem path to the pip executable. If not provided use the bundled pip.
+    :param wheelsDir: filesystem path to an existing directory to use for downloading wheels
+    :param installedWheelsDir: filesystem path to an existing directory to use for installing wheels
+    :param pipArgs: additional argument passed directly to pip
+    :param requirementPath: optional filesystem path to an existing python requirement file.
+    :param constraintPath: optional filesystem path to an existing python constraint file.
+    :return:
+        dict of an importlib Distribution instance for each pip package installed,
+        with the information if it's a pure python package:
+        ``dict[Distribution(), isPurePythonPackage]``
+    """
+    with rich.get_console().status(
+        f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(pipPackages))} (python-{pythonVersion})"
+    ):
+        pipPackages = rez_pip.pip.getPackages(
+            pipPackages,
+            pipPath,
+            pythonVersion,
+            os.fspath(pythonExecutable),
+            requirementPath or [],
+            constraintPath or [],
+            pipArgs,
+        )
+
+    _LOG.info(f"Resolved {len(pipPackages)} dependencies for python {pythonVersion}")
+
+    # TODO: Should we postpone downloading to the last minute if we can?
+    _LOG.info("[bold]Downloading...")
+    wheels = rez_pip.download.downloadPackages(pipPackages, wheelsDir)
+    _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
+
+    dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
+
+    with rich.get_console().status(
+        f"[bold]Installing wheels into {installedWheelsDir!r}"
+    ):
+        for package, wheel in zip(pipPackages, wheels):
+            _LOG.info(f"[bold]Installing {package.name}-{package.version} wheel")
+            dist, isPure = rez_pip.install.installWheel(
+                package, pathlib.Path(wheel), installedWheelsDir
+            )
+
+            dists[dist] = isPure
+
+    return dists
+
+
 def rez_install_pip_packages(
     pipPackages: list[str],
     pythonVersionRange: typing.Optional[str],
@@ -72,40 +137,17 @@ def rez_install_pip_packages(
         installedWheelsDir = os.path.join(pipWorkArea, "installed", pythonVersion)
         os.makedirs(installedWheelsDir, exist_ok=True)
 
-        with rich.get_console().status(
-            f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(pipPackages))} (python-{pythonVersion})"
-        ):
-            pipPackages = rez_pip.pip.getPackages(
-                pipPackages,
-                pipPath,
-                pythonVersion,
-                os.fspath(pythonExecutable),
-                requirementPath or [],
-                constraintPath or [],
-                pipArgs,
-            )
-
-        _LOG.info(
-            f"Resolved {len(pipPackages)} dependencies for python {pythonVersion}"
+        dists = pip_install_packages(
+            pipPackages=pipPackages,
+            pythonVersion=pythonVersion,
+            pythonExecutable=pythonExecutable,
+            pipPath=pipPath,
+            wheelsDir=wheelsDir,
+            installedWheelsDir=installedWheelsDir,
+            pipArgs=pipArgs,
+            requirementPath=requirementPath,
+            constraintPath=constraintPath,
         )
-
-        # TODO: Should we postpone downloading to the last minute if we can?
-        _LOG.info("[bold]Downloading...")
-        wheels = rez_pip.download.downloadPackages(pipPackages, wheelsDir)
-        _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
-
-        dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
-
-        with rich.get_console().status(
-            f"[bold]Installing wheels into {installedWheelsDir!r}"
-        ):
-            for package, wheel in zip(pipPackages, wheels):
-                _LOG.info(f"[bold]Installing {package.name}-{package.version} wheel")
-                dist, isPure = rez_pip.install.installWheel(
-                    package, pathlib.Path(wheel), installedWheelsDir
-                )
-
-                dists[dist] = isPure
 
         distNames = [dist.name for dist in dists.keys()]
 
