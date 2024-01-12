@@ -33,7 +33,7 @@ def createPackage(
     wheelURL: str,
     prefix: typing.Optional[str] = None,
     release: bool = False,
-) -> None:
+) -> rez.package_maker.PackageMaker:
     _LOG.info(f"Creating rez package for {dist.name}")
     name = rez_pip.utils.pythontDistributionNameToRez(dist.name)
     version = rez_pip.utils.pythonDistributionVersionToRez(dist.version)
@@ -129,6 +129,7 @@ def createPackage(
     _LOG.info(
         f"[bold]Created {len(pkg.installed_variants)} variants and skipped {len(pkg.skipped_variants)}"
     )
+    return pkg
 
 
 def _convertMetadata(
