@@ -62,7 +62,7 @@ def pip_install_packages(
             os.fspath(pythonExecutable),
             requirementPath or [],
             constraintPath or [],
-            pipArgs,
+            pipArgs or [],
         )
 
     _LOG.info(f"Resolved {len(pipPackages)} dependencies for python {pythonVersion}")
