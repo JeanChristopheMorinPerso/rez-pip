@@ -26,9 +26,9 @@ def pip_install_packages(
     pipPackages: list[str],
     pythonVersion: str,
     pythonExecutable: pathlib.Path,
-    pipPath: str,
-    wheelsDir: str,
-    installedWheelsDir: str,
+    pipPath: pathlib.Path,
+    wheelsDir: pathlib.Path,
+    installedWheelsDir: pathlib.Path,
     pipArgs: typing.Optional[typing.List[str]] = None,
     requirementPath: typing.Optional[list[str]] = None,
     constraintPath: typing.Optional[list[str]] = None,
@@ -56,7 +56,7 @@ def pip_install_packages(
     ):
         pipPackages = rez_pip.pip.getPackages(
             pipPackages,
-            pipPath,
+            str(pipPath),
             pythonVersion,
             os.fspath(pythonExecutable),
             requirementPath or [],
@@ -68,7 +68,7 @@ def pip_install_packages(
 
     # TODO: Should we postpone downloading to the last minute if we can?
     _LOG.info("[bold]Downloading...")
-    wheels = rez_pip.download.downloadPackages(pipPackages, wheelsDir)
+    wheels = rez_pip.download.downloadPackages(pipPackages, str(wheelsDir))
     _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
 
     dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
@@ -79,7 +79,7 @@ def pip_install_packages(
         for package, wheel in zip(pipPackages, wheels):
             _LOG.info(f"[bold]Installing {package.name}-{package.version} wheel")
             dist, isPure = rez_pip.install.installWheel(
-                package, pathlib.Path(wheel), installedWheelsDir
+                package, pathlib.Path(wheel), str(installedWheelsDir)
             )
 
             dists[dist] = isPure
@@ -90,8 +90,8 @@ def pip_install_packages(
 def rez_install_pip_packages(
     pipPackages: list[str],
     pythonVersionRange: typing.Optional[str],
-    pipPath: str,
-    pipWorkArea: str,
+    pipPath: pathlib.Path,
+    pipWorkArea: pathlib.Path,
     pipArgs: typing.Optional[typing.List[str]] = None,
     requirementPath: typing.Optional[list[str]] = None,
     constraintPath: typing.Optional[list[str]] = None,
@@ -129,12 +129,12 @@ def rez_install_pip_packages(
             f"[bold underline]Installing requested packages for Python {pythonVersion}"
         )
 
-        wheelsDir = os.path.join(pipWorkArea, "wheels")
+        wheelsDir = pipWorkArea / "wheels"
         os.makedirs(wheelsDir, exist_ok=True)
 
         # Suffix with the python version because we loop over multiple versions,
         # and package versions, content, etc can differ for each Python version.
-        installedWheelsDir = os.path.join(pipWorkArea, "installed", pythonVersion)
+        installedWheelsDir = pipWorkArea / "installed" / pythonVersion
         os.makedirs(installedWheelsDir, exist_ok=True)
 
         dists = pip_install_packages(
@@ -159,7 +159,7 @@ def rez_install_pip_packages(
                     isPure,
                     rez.version.Version(pythonVersion),
                     distNames,
-                    installedWheelsDir,
+                    str(installedWheelsDir),
                     wheelURL=package.download_info.url,
                     prefix=rezInstallPath,
                     release=rezRelease,

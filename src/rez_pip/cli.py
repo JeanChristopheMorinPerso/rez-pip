@@ -1,4 +1,5 @@
 import os
+import pathlib
 import sys
 import json
 import shutil
@@ -234,7 +235,7 @@ def _debug(
 
 
 def run() -> int:
-    pipWorkArea = tempfile.mkdtemp(prefix="rez-pip-target")
+    pipWorkArea = pathlib.Path(tempfile.mkdtemp(prefix="rez-pip-target"))
     args, pipArgs = _parseArgs(sys.argv[1:])
 
     try:
