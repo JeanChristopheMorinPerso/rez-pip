@@ -193,7 +193,7 @@ def test_run(monkeypatch: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathF
     def mkdtemp(*args, **kwargs) -> str:
         return os.fspath(tmppath)
 
-    with unittest.mock.patch("rez_pip.main.rez_install_pip_packages") as mocked:
+    with unittest.mock.patch("rez_pip.main.run_full_installation") as mocked:
         with unittest.mock.patch(
             "rez_pip.cli.tempfile.mkdtemp", side_effect=mkdtemp
         ) as mockedMkdtemp:
@@ -217,7 +217,7 @@ def test_run_removes_tmp_dirs_even_with_exceptions(
         return os.fspath(tmppath)
 
     with unittest.mock.patch(
-        "rez_pip.main.rez_install_pip_packages", side_effect=RuntimeError
+        "rez_pip.main.run_full_installation", side_effect=RuntimeError
     ) as mocked:
         with unittest.mock.patch(
             "rez_pip.cli.tempfile.mkdtemp", side_effect=mkdtemp
@@ -243,7 +243,7 @@ def test_run_keep_tmp_dirs_even_with_exceptions(
         return os.fspath(tmppath)
 
     with unittest.mock.patch(
-        "rez_pip.main.rez_install_pip_packages", side_effect=RuntimeError
+        "rez_pip.main.run_full_installation", side_effect=RuntimeError
     ) as mocked:
         with unittest.mock.patch(
             "rez_pip.cli.tempfile.mkdtemp", side_effect=mkdtemp
@@ -268,7 +268,7 @@ def test_run_keep_tmp_dirs(
     def mkdtemp(*args, **kwargs) -> str:
         return os.fspath(tmppath)
 
-    with unittest.mock.patch("rez_pip.main.rez_install_pip_packages") as mocked:
+    with unittest.mock.patch("rez_pip.main.run_full_installation") as mocked:
         with unittest.mock.patch(
             "rez_pip.cli.tempfile.mkdtemp", side_effect=mkdtemp
         ) as mockedMkdtemp:
@@ -283,7 +283,7 @@ def test_run_keep_tmp_dirs(
 @pytest.mark.usefixtures("resetLogger")
 def test_run_with_debug_info(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(sys, "argv", ["rez-pip", "example", "--debug-info"])
-    with unittest.mock.patch("rez_pip.main.rez_install_pip_packages") as mockedRun:
+    with unittest.mock.patch("rez_pip.main.run_full_installation") as mockedRun:
         with unittest.mock.patch("rez_pip.cli._debug") as mockedDebug:
             assert rez_pip.cli.run() == 0
 

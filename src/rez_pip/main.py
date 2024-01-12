@@ -88,7 +88,7 @@ def pip_install_packages(
     return dists
 
 
-def rez_install_pip_packages(
+def run_full_installation(
     pipPackages: typing.List[str],
     pythonVersionRange: typing.Optional[str],
     pipPath: pathlib.Path,
