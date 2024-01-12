@@ -35,10 +35,10 @@ def run_full_installation(
     rezRelease: bool = False,
 ) -> typing.Dict[str, typing.List[rez.package_maker.PackageMaker]]:
     """
-    Convert the given pip packages to rez packages compatibe with the given python versions.
+    Convert and install the given pip packages to rez packages compatible with the given python versions.
 
     :param pipPackageNames: list of packages to install, in the syntax understood by pip.
-    :param pythonVersionRange: a single or range of python versions in the rez syntax
+    :param pythonVersionRange: a single or range of python versions in the rez syntax.
     :param pipPath: filesystem path to the pip executable. If not provided use the bundled pip.
     :param requirementPath: optional filesystem path to an existing python requirement file.
     :param constraintPath: optional filesystem path to an existing python constraint file.
