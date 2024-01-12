@@ -26,12 +26,12 @@ def rez_install_pip_packages(
     pipPackages: list[str],
     pythonVersionRange: typing.Optional[str],
     pipPath: str,
-    requirementPath: typing.Optional[list[str]],
-    constraintPath: typing.Optional[list[str]],
-    rezInstallPath: typing.Optional[str],
-    rezRelease: bool,
-    pipArgs: typing.Optional[typing.List[str]],
     pipWorkArea: str,
+    pipArgs: typing.Optional[typing.List[str]] = None,
+    requirementPath: typing.Optional[list[str]] = None,
+    constraintPath: typing.Optional[list[str]] = None,
+    rezInstallPath: typing.Optional[str] = None,
+    rezRelease: bool = False,
 ) -> None:
     """
     Convert the given pip packages to rez packages compatibe with the given python versions.
