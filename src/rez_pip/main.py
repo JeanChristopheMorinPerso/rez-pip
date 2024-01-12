@@ -121,7 +121,7 @@ def run_full_installation(
                 pipPackageNames,
                 str(pipPath),
                 pythonVersion,
-                os.fspath(pythonExecutable),
+                str(pythonExecutable),
                 requirementPath or [],
                 constraintPath or [],
                 pipArgs or [],
