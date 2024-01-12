@@ -23,43 +23,6 @@ import rez_pip.exceptions
 _LOG = logging.getLogger(__name__)
 
 
-def pip_install_packages(
-    pipPackages: typing.List[rez_pip.pip.PackageInfo],
-    wheelsDir: pathlib.Path,
-    installedWheelsDir: pathlib.Path,
-) -> typing.Dict[importlib_metadata.Distribution, bool]:
-    """
-    Install the given pip packages for the given python version using their wheels.
-
-    :param pipPackages: list of packages install.
-    :param wheelsDir: filesystem path to an existing directory to use for downloading wheels
-    :param installedWheelsDir: filesystem path to an existing directory to use for installing wheels
-    :return:
-        dict of an importlib Distribution instance for each pip package installed,
-        with the information if it's a pure python package:
-        ``dict[Distribution(), isPurePythonPackage]``
-    """
-    # TODO: Should we postpone downloading to the last minute if we can?
-    _LOG.info("[bold]Downloading...")
-    wheels = rez_pip.download.downloadPackages(pipPackages, str(wheelsDir))
-    _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
-
-    dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
-
-    with rich.get_console().status(
-        f"[bold]Installing wheels into {installedWheelsDir!r}"
-    ):
-        for package, wheel in zip(pipPackages, wheels):
-            _LOG.info(f"[bold]Installing {package.name}-{package.version} wheel")
-            dist, isPure = rez_pip.install.installWheel(
-                package, pathlib.Path(wheel), str(installedWheelsDir)
-            )
-
-            dists[dist] = isPure
-
-    return dists
-
-
 def run_full_installation(
     pipPackageNames: typing.List[str],
     pythonVersionRange: typing.Optional[str],
@@ -131,11 +94,23 @@ def run_full_installation(
             f"Resolved {len(pipPackages)} dependencies for python {pythonVersion}"
         )
 
-        dists = pip_install_packages(
-            pipPackages=pipPackages,
-            wheelsDir=wheelsDir,
-            installedWheelsDir=installedWheelsDir,
-        )
+        # TODO: Should we postpone downloading to the last minute if we can?
+        _LOG.info("[bold]Downloading...")
+        wheels = rez_pip.download.downloadPackages(pipPackages, str(wheelsDir))
+        _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
+
+        dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
+
+        with rich.get_console().status(
+            f"[bold]Installing wheels into {installedWheelsDir!r}"
+        ):
+            for package, wheel in zip(pipPackages, wheels):
+                _LOG.info(f"[bold]Installing {package.name}-{package.version} wheel")
+                dist, isPure = rez_pip.install.installWheel(
+                    package, pathlib.Path(wheel), str(installedWheelsDir)
+                )
+
+                dists[dist] = isPure
 
         distNames = [dist.name for dist in dists.keys()]
 
