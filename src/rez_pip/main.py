@@ -24,15 +24,15 @@ _LOG = logging.getLogger(__name__)
 
 
 def pip_install_packages(
-    pipPackages: list[str],
+    pipPackages: typing.List[str],
     pythonVersion: str,
     pythonExecutable: pathlib.Path,
     pipPath: pathlib.Path,
     wheelsDir: pathlib.Path,
     installedWheelsDir: pathlib.Path,
     pipArgs: typing.Optional[typing.List[str]] = None,
-    requirementPath: typing.Optional[list[str]] = None,
-    constraintPath: typing.Optional[list[str]] = None,
+    requirementPath: typing.Optional[typing.List[str]] = None,
+    constraintPath: typing.Optional[typing.List[str]] = None,
 ) -> typing.Dict[importlib_metadata.Distribution, bool]:
     """
     Install the given pip packages for the given python version using their wheels.
@@ -89,13 +89,13 @@ def pip_install_packages(
 
 
 def rez_install_pip_packages(
-    pipPackages: list[str],
+    pipPackages: typing.List[str],
     pythonVersionRange: typing.Optional[str],
     pipPath: pathlib.Path,
     pipWorkArea: pathlib.Path,
     pipArgs: typing.Optional[typing.List[str]] = None,
-    requirementPath: typing.Optional[list[str]] = None,
-    constraintPath: typing.Optional[list[str]] = None,
+    requirementPath: typing.Optional[typing.List[str]] = None,
+    constraintPath: typing.Optional[typing.List[str]] = None,
     rezInstallPath: typing.Optional[str] = None,
     rezRelease: bool = False,
 ) -> typing.Dict[str, rez.package_maker.PackageMaker]:
