@@ -33,6 +33,17 @@ def run_full_installation(
     constraintPath: typing.Optional[typing.List[str]] = None,
     rezInstallPath: typing.Optional[str] = None,
     rezRelease: bool = False,
+    rezPackageCreationCallback: typing.Optional[
+        typing.Callable[
+            [
+                rez.package_maker.PackageMaker,
+                importlib_metadata.Distribution,
+                rez.version.Version,
+                bool,
+            ],
+            None,
+        ]
+    ] = None,
 ) -> typing.Dict[str, typing.List[rez.package_maker.PackageMaker]]:
     """
     Convert and install the given pip packages to rez packages compatible with the given python versions.
@@ -49,6 +60,10 @@ def run_full_installation(
     :param pipArgs: additional argument passed directly to pip
     :param pipWorkArea:
         filesystem path to an existing directory that can be used for pip to install packages.
+    :param rezPackageCreationCallback:
+        a function that is called for each rez package created, signature is as follows:
+        ``callable("package being created", "pip distribution", "python version", "being released")``.
+        It is being called after the package has been configured by rez_pip.
     :return:
         dict of rez packages created per python version: ``{"pythonVersion": PackageMaker()}``
         Note the PackageMaker object are already "close" and written to disk.
@@ -126,6 +141,7 @@ def run_full_installation(
                     wheelURL=package.download_info.url,
                     prefix=rezInstallPath,
                     release=rezRelease,
+                    creationCallback=rezPackageCreationCallback,
                 )
                 rezPackages.setdefault(pythonVersion, []).append(rezPackage)
 

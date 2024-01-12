@@ -33,6 +33,17 @@ def createPackage(
     wheelURL: str,
     prefix: typing.Optional[str] = None,
     release: bool = False,
+    creationCallback: typing.Optional[
+        typing.Callable[
+            [
+                rez.package_maker.PackageMaker,
+                importlib_metadata.Distribution,
+                rez.version.Version,
+                bool,
+            ],
+            None,
+        ]
+    ] = None,
 ) -> rez.package_maker.PackageMaker:
     _LOG.info(f"Creating rez package for {dist.name}")
     name = rez_pip.utils.pythontDistributionNameToRez(dist.name)
@@ -125,6 +136,9 @@ def createPackage(
             setattr(pkg, key, values)
 
         pkg.pip["metadata"] = remainingMetadata
+
+        if creationCallback is not None:
+            creationCallback(pkg, dist, pythonVersion, release)
 
     _LOG.info(
         f"[bold]Created {len(pkg.installed_variants)} variants and skipped {len(pkg.skipped_variants)}"
