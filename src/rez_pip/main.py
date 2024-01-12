@@ -70,7 +70,7 @@ def run_full_installation(
     constraintPath: typing.Optional[typing.List[str]] = None,
     rezInstallPath: typing.Optional[str] = None,
     rezRelease: bool = False,
-) -> typing.Dict[str, rez.package_maker.PackageMaker]:
+) -> typing.Dict[str, typing.List[rez.package_maker.PackageMaker]]:
     """
     Convert the given pip packages to rez packages compatibe with the given python versions.
 
@@ -99,7 +99,7 @@ def run_full_installation(
             f'No "python" package found within the range {pythonVersionRange!r}.'
         )
 
-    rezPackages: typing.Dict[str, rez.package_maker.PackageMaker] = {}
+    rezPackages: typing.Dict[str, typing.List[rez.package_maker.PackageMaker]] = {}
 
     for pythonVersion, pythonExecutable in pythonVersions.items():
         _LOG.info(
