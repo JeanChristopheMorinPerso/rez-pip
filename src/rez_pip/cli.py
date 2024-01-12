@@ -6,7 +6,6 @@ import typing
 import logging
 import argparse
 import textwrap
-import pathlib
 import tempfile
 import subprocess
 
@@ -28,6 +27,7 @@ import rez_pip.data
 import rez_pip.install
 import rez_pip.download
 import rez_pip.exceptions
+import rez_pip.main
 
 _LOG = logging.getLogger("rez_pip.cli")
 
@@ -158,79 +158,6 @@ def _validateArgs(args: argparse.Namespace) -> None:
         )
 
 
-def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) -> None:
-    pythonVersions = rez_pip.rez.getPythonExecutables(
-        args.python_version, packageFamily="python"
-    )
-
-    if not pythonVersions:
-        raise rez_pip.exceptions.RezPipError(
-            f'No "python" package found within the range {args.python_version!r}.'
-        )
-
-    for pythonVersion, pythonExecutable in pythonVersions.items():
-        _LOG.info(
-            f"[bold underline]Installing requested packages for Python {pythonVersion}"
-        )
-
-        wheelsDir = os.path.join(pipWorkArea, "wheels")
-        os.makedirs(wheelsDir, exist_ok=True)
-
-        # Suffix with the python version because we loop over multiple versions,
-        # and package versions, content, etc can differ for each Python version.
-        installedWheelsDir = os.path.join(pipWorkArea, "installed", pythonVersion)
-        os.makedirs(installedWheelsDir, exist_ok=True)
-
-        with rich.get_console().status(
-            f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(args.packages))} (python-{pythonVersion})"
-        ):
-            packages = rez_pip.pip.getPackages(
-                args.packages,
-                args.pip,
-                pythonVersion,
-                os.fspath(pythonExecutable),
-                args.requirement or [],
-                args.constraint or [],
-                pipArgs,
-            )
-
-        _LOG.info(f"Resolved {len(packages)} dependencies for python {pythonVersion}")
-
-        # TODO: Should we postpone downloading to the last minute if we can?
-        _LOG.info("[bold]Downloading...")
-        wheels = rez_pip.download.downloadPackages(packages, wheelsDir)
-        _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
-
-        dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
-
-        with rich.get_console().status(
-            f"[bold]Installing wheels into {installedWheelsDir!r}"
-        ):
-            for package, wheel in zip(packages, wheels):
-                _LOG.info(f"[bold]Installing {package.name}-{package.version} wheel")
-                dist, isPure = rez_pip.install.installWheel(
-                    package, pathlib.Path(wheel), installedWheelsDir
-                )
-
-                dists[dist] = isPure
-
-        distNames = [dist.name for dist in dists.keys()]
-
-        with rich.get_console().status("[bold]Creating rez packages..."):
-            for dist, package in zip(dists, packages):
-                isPure = dists[dist]
-                rez_pip.rez.createPackage(
-                    dist,
-                    isPure,
-                    rez.version.Version(pythonVersion),
-                    distNames,
-                    installedWheelsDir,
-                    wheelURL=package.download_info.url,
-                    prefix=args.prefix,
-                    release=args.release,
-                )
-
-
 def _debug(
     args: argparse.Namespace, console: rich.console.Console = rich.get_console()
 ) -> None:
@@ -326,7 +253,17 @@ def run() -> int:
             _debug(args)
             return 0
 
-        _run(args, pipArgs, pipWorkArea)
+        rez_pip.main.rez_install_pip_packages(
+            pipPackages=args.packages,
+            pythonVersionRange=args.python_version,
+            pipPath=args.pip,
+            requirementPath=args.requirement,
+            constraintPath=args.constraint,
+            rezInstallPath=args.prefix,
+            rezRelease=args.release,
+            pipArgs=pipArgs,
+            pipWorkArea=pipWorkArea,
+        )
         return 0
     except rez_pip.exceptions.RezPipError as exc:
         rich.get_console().print(exc, soft_wrap=True)
