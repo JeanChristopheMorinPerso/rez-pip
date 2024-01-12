@@ -10,6 +10,7 @@ else:
     import importlib_metadata
 
 import rich
+import rez.package_maker
 import rez.version
 import rich.markup
 
@@ -97,7 +98,7 @@ def rez_install_pip_packages(
     constraintPath: typing.Optional[list[str]] = None,
     rezInstallPath: typing.Optional[str] = None,
     rezRelease: bool = False,
-) -> None:
+) -> typing.Dict[str, rez.package_maker.PackageMaker]:
     """
     Convert the given pip packages to rez packages compatibe with the given python versions.
 
@@ -113,7 +114,9 @@ def rez_install_pip_packages(
     :param pipArgs: additional argument passed directly to pip
     :param pipWorkArea:
         filesystem path to an existing directory that can be used for pip to install packages.
-    :return: None.
+    :return:
+        dict of rez packages created per python version: ``{"pythonVersion": PackageMaker()}``
+        Note the PackageMaker object are already "close" and written to disk.
     """
     pythonVersions = rez_pip.rez.getPythonExecutables(
         pythonVersionRange, packageFamily="python"
@@ -123,6 +126,8 @@ def rez_install_pip_packages(
         raise rez_pip.exceptions.RezPipError(
             f'No "python" package found within the range {pythonVersionRange!r}.'
         )
+
+    rezPackages = {}
 
     for pythonVersion, pythonExecutable in pythonVersions.items():
         _LOG.info(
@@ -154,7 +159,7 @@ def rez_install_pip_packages(
         with rich.get_console().status("[bold]Creating rez packages..."):
             for dist, package in zip(dists, pipPackages):
                 isPure = dists[dist]
-                rez_pip.rez.createPackage(
+                rezPackage = rez_pip.rez.createPackage(
                     dist,
                     isPure,
                     rez.version.Version(pythonVersion),
@@ -164,3 +169,6 @@ def rez_install_pip_packages(
                     prefix=rezInstallPath,
                     release=rezRelease,
                 )
+                rezPackages.setdefault(pythonVersion, []).append(rezPackage)
+
+    return rezPackages
