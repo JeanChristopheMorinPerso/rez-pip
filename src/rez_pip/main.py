@@ -40,7 +40,6 @@ def run_installation_for_python(
                 rez.package_maker.PackageMaker,
                 importlib_metadata.Distribution,
                 rez.version.Version,
-                bool,
             ],
             None,
         ]
@@ -64,7 +63,7 @@ def run_installation_for_python(
         filesystem path to an existing directory that can be used for pip to install packages.
     :param rezPackageCreationCallback:
         a function that is called for each rez package created, signature is as follows:
-        ``callable("package being created", "pip distribution", "python version", "being released")``.
+        ``callable("package being created", "pip distribution", "python version")``.
         It is being called after the package has been configured by rez_pip.
     :return:
         dict of rez packages created per python version: ``{"pythonVersion": PackageMaker()}``
@@ -150,7 +149,6 @@ def run_full_installation(
                 rez.package_maker.PackageMaker,
                 importlib_metadata.Distribution,
                 rez.version.Version,
-                bool,
             ],
             None,
         ]
@@ -173,7 +171,7 @@ def run_full_installation(
         filesystem path to an existing directory that can be used for pip to install packages.
     :param rezPackageCreationCallback:
         a function that is called for each rez package created, signature is as follows:
-        ``callable("package being created", "pip distribution", "python version", "being released")``.
+        ``callable("package being created", "pip distribution", "python version")``.
         It is being called after the package has been configured by rez_pip.
     :return:
         dict of rez packages created per python version: ``{"pythonVersion": PackageMaker()}``

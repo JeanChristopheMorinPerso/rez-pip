@@ -39,7 +39,6 @@ def createPackage(
                 rez.package_maker.PackageMaker,
                 importlib_metadata.Distribution,
                 rez.version.Version,
-                bool,
             ],
             None,
         ]
@@ -138,7 +137,7 @@ def createPackage(
         pkg.pip["metadata"] = remainingMetadata
 
         if creationCallback is not None:
-            creationCallback(pkg, dist, pythonVersion, release)
+            creationCallback(pkg, dist, pythonVersion)
 
     _LOG.info(
         f"[bold]Created {len(pkg.installed_variants)} variants and skipped {len(pkg.skipped_variants)}"
