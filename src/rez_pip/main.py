@@ -24,7 +24,7 @@ _LOG = logging.getLogger(__name__)
 
 
 def pip_install_packages(
-    pipPackages: typing.List[str],
+    pipPackageNames: typing.List[str],
     pythonVersion: str,
     pythonExecutable: pathlib.Path,
     pipPath: pathlib.Path,
@@ -37,7 +37,7 @@ def pip_install_packages(
     """
     Install the given pip packages for the given python version using their wheels.
 
-    :param pipPackages: list of packages name to install, in the syntax understood by pip.
+    :param pipPackageNames: list of packages name to install, in the syntax understood by pip.
     :param pythonVersion: exact python rez package version (absolute version).
     :param pythonExecutable:
         filesystem path to the python executable corresponding to the given version
@@ -53,10 +53,10 @@ def pip_install_packages(
         ``dict[Distribution(), isPurePythonPackage]``
     """
     with rich.get_console().status(
-        f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(pipPackages))} (python-{pythonVersion})"
+        f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(pipPackageNames))} (python-{pythonVersion})"
     ):
         pipPackages = rez_pip.pip.getPackages(
-            pipPackages,
+            pipPackageNames,
             str(pipPath),
             pythonVersion,
             os.fspath(pythonExecutable),
@@ -89,7 +89,7 @@ def pip_install_packages(
 
 
 def run_full_installation(
-    pipPackages: typing.List[str],
+    pipPackageNames: typing.List[str],
     pythonVersionRange: typing.Optional[str],
     pipPath: pathlib.Path,
     pipWorkArea: pathlib.Path,
@@ -102,7 +102,7 @@ def run_full_installation(
     """
     Convert the given pip packages to rez packages compatibe with the given python versions.
 
-    :param pipPackages: list of packages name to install, in the syntax understood by pip.
+    :param pipPackageNames: list of packages name to install, in the syntax understood by pip.
     :param pythonVersionRange: a single or range of python versions in the rez syntax
     :param pipPath: filesystem path to the pip executable. If not provided use the bundled pip.
     :param requirementPath: optional filesystem path to an existing python requirement file.
@@ -143,7 +143,7 @@ def run_full_installation(
         os.makedirs(installedWheelsDir, exist_ok=True)
 
         dists = pip_install_packages(
-            pipPackages=pipPackages,
+            pipPackageNames=pipPackageNames,
             pythonVersion=pythonVersion,
             pythonExecutable=pythonExecutable,
             pipPath=pipPath,
@@ -157,7 +157,7 @@ def run_full_installation(
         distNames = [dist.name for dist in dists.keys()]
 
         with rich.get_console().status("[bold]Creating rez packages..."):
-            for dist, package in zip(dists, pipPackages):
+            for dist, package in zip(dists, pipPackageNames):
                 isPure = dists[dist]
                 rezPackage = rez_pip.rez.createPackage(
                     dist,

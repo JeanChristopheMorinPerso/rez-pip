@@ -255,7 +255,7 @@ def run() -> int:
             return 0
 
         rez_pip.main.run_full_installation(
-            pipPackages=args.packages,
+            pipPackageNames=args.packages,
             pythonVersionRange=args.python_version,
             pipPath=args.pip,
             requirementPath=args.requirement,
