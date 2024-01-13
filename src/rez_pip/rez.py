@@ -238,6 +238,33 @@ def _convertMetadata(
     return metadata, originalMetadata
 
 
+def getPythonExecutable(package: rez.packages.Package) -> typing.Optional[pathlib.Path]:
+    """
+    Get the path of the python executable for the given package.
+
+    The package expect to resolve an env with the ``python`` alias available.
+
+    :param package: a rez package, usually named just ``python``.
+    :return: filesystem path to an existing python interpreter or None if not found.
+    """
+    resolvedContext = rez.resolved_context.ResolvedContext(
+        [f"{package.name}=={package.version}"]
+    )
+
+    # Make sure that system PATH doens't interfere with the "which" method.
+    resolvedContext.append_sys_path = False
+
+    executablePath: typing.Optional[pathlib.Path] = None
+
+    for trimmedVersion in map(package.version.trim, [2, 1, 0]):
+        path: str = resolvedContext.which(f"python{trimmedVersion}", parent_environ={})
+        if path:
+            executablePath = pathlib.Path(path)
+            break
+
+    return executablePath
+
+
 def getPythonExecutables(
     range_: typing.Optional[str], packageFamily: str = "python"
 ) -> typing.Dict[str, pathlib.Path]:
@@ -273,18 +300,9 @@ def getPythonExecutables(
 
     pythons: typing.Dict[str, pathlib.Path] = {}
     for package in packages:
-        resolvedContext = rez.resolved_context.ResolvedContext(
-            [f"{package.name}=={package.version}"]
-        )
-
-        # Make sure that system PATH doens't interfere with the "which" method.
-        resolvedContext.append_sys_path = False
-
-        for trimmedVersion in map(package.version.trim, [2, 1, 0]):
-            path = resolvedContext.which(f"python{trimmedVersion}", parent_environ={})
-            if path:
-                pythons[str(package.version)] = pathlib.Path(path)
-                break
+        executablePath = getPythonExecutable(package)
+        if executablePath:
+            pythons[str(package.version)] = executablePath
         else:
             _LOG.warning(
                 f"Failed to find a Python executable in the {package.qualified_name!r} rez package"
