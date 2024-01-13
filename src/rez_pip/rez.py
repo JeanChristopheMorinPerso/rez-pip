@@ -265,25 +265,32 @@ def getPythonExecutable(package: rez.packages.Package) -> typing.Optional[pathli
     return executablePath
 
 
-def getPythonExecutables(
-    range_: typing.Optional[str], packageFamily: str = "python"
-) -> typing.Dict[str, pathlib.Path]:
+def findPythonPackages(
+    versionRange: typing.Optional[str],
+    packageName: str = "python",
+) -> typing.List[rez.packages.Package]:
     """
-    Get the available python executable from rez packages.
+    Return a list of python packages on the system matching the given arguments.
 
-    :param range_: version specifier
-    :param packageFamily: Name of the rez package family for the python package. This allows ot support PyPy, etc.
-    :returns: Dict where the keys are the python versions and values are abolute paths to executables.
+    :param versionRange:
+        version range in rez syntax for the packages to retrieve.
+        Use ``"latest"`` to only retrieve the latest version.
+        Use ``None`` to retrieve all the latest major+minor versions.
+    :param packageName: name of the python packages. Usually just "python".
+    :return: list of python rez packages found on the system
     """
+    latestRange: bool = versionRange == "latest"
+
     all_packages = sorted(
         rez.packages.iter_packages(
-            packageFamily, range_=range_ if range_ != "latest" else None
+            packageName, range_=None if latestRange else versionRange
         ),
         key=lambda x: x.version,
     )
 
     packages: typing.List[rez.packages.Package]
-    if range_ == "latest":
+
+    if latestRange:
         packages = [list(all_packages)[-1]]
     else:
         # Get the latest x.x (major+minor) and ignore anything else.
@@ -297,6 +304,21 @@ def getPythonExecutables(
         ]
         # Note that "pkgs" is already in the right order since all_packages is sorted.
         packages = [pkgs[-1] for pkgs in groups]
+
+    return packages
+
+
+def getPythonExecutables(
+    range_: typing.Optional[str], packageFamily: str = "python"
+) -> typing.Dict[str, pathlib.Path]:
+    """
+    Get the available python executable from rez packages.
+
+    :param range_: version specifier
+    :param packageFamily: Name of the rez package family for the python package. This allows ot support PyPy, etc.
+    :returns: Dict where the keys are the python versions and values are abolute paths to executables.
+    """
+    packages = findPythonPackages(versionRange=range_, packageName=packageFamily)
 
     pythons: typing.Dict[str, pathlib.Path] = {}
     for package in packages:
