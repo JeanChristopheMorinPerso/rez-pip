@@ -54,6 +54,6 @@ dmypy.json
 .vscode
 /docs/build/
 tests/data/rez_repo/
-tests/data/_tmp_download/
+tests/data/_conda/
 docs/bin/
 .idea/
