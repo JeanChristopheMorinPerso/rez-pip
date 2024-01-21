@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import time
 import typing
+import asyncio
 import pathlib
 import zipfile
 import platform
@@ -12,6 +13,7 @@ import http.client
 import urllib.request
 
 import pytest
+import rattler
 import rez.config
 import rez.system
 import rez.packages
@@ -23,7 +25,7 @@ import rez_pip.utils
 from . import utils
 
 DATA_ROOT_DIR = os.path.join(os.path.dirname(__file__), "data")
-DOWNLOAD_DIR = os.path.join(DATA_ROOT_DIR, "_tmp_download")
+CONDA_DIR = os.path.join(DATA_ROOT_DIR, "_conda")
 
 phaseReportKey = pytest.StashKey[typing.Dict[str, pytest.CollectReport]]()
 
@@ -174,59 +176,18 @@ def rezRepo() -> typing.Generator[str, None, None]:
     rez.config.config.release_packages_path = originalConfig.release_packages_path
 
 
-def downloadPythonVersion(
-    version: str, printer_session: typing.Callable[[str], None]
-) -> str:
-    """
-    Download a Python interpreter for a given version
-
-    :param version: Python version to download.
-    :param printer_session: Pytest session printer.
-    :returns: Path to downloaded artifact.
-    """
-    try:
-        os.makedirs(DOWNLOAD_DIR)
-    except FileExistsError:
-        pass
-
-    url = f"https://globalcdn.nuget.org/packages/python.{version}.nupkg"
-
-    path = os.path.join(
-        DOWNLOAD_DIR, f"python-{version}-{platform.system().lower()}.nupkg"
-    )
-
-    if os.path.exists(path):
-        printer_session(f"Skipping {url} because {path!r} already exists")
-        return path
-
-    printer_session(f"Downloading {url} to {path!r}")
-    with urllib.request.urlopen(url) as archive:
-        with open(path, "wb") as targetFile:
-            targetFile.write(archive.read())
-
-    return path
-
-
 @pytest.fixture(
     scope="session",
     params=[
         pytest.param(
-            # Nuget doesn't have 3.7.16
-            "3.7.9" if platform.system() == "Windows" else "3.7.16",
-            marks=[
-                pytest.mark.py3,
-                pytest.mark.skipif(
-                    platform.processor() == "arm" and platform.system() == "Darwin",
-                    reason="Python 3.7 is not compatible with Apple Silicon",
-                ),
-            ],
+            "3.7.16",
+            marks=pytest.mark.py37,
         ),
         pytest.param(
-            # Nuget doesn't have 3.9.16
-            "3.9.13" if platform.system() == "Windows" else "3.9.16",
+            "3.9.16",
             marks=pytest.mark.py39,
         ),
-        pytest.param("3.11.3", marks=pytest.mark.py311),
+        pytest.param("3.11.5", marks=pytest.mark.py311),
     ],
 )
 def pythonRezPackage(
@@ -248,24 +209,11 @@ def pythonRezPackage(
 
         dest = os.path.join(path, "python")
 
-        if platform.system() == "Windows":
-            archivePath = downloadPythonVersion(version, printer_session)
-            with zipfile.ZipFile(archivePath) as archive:
-                printer_session(f"Extracting {archivePath!r} to {dest!r}")
-                archive.extractall(path=dest)
-        else:
-            import conda.cli.python_api
+        printer_session(
+            f"Installing Python {version} by creating a conda environment at {dest!r}"
+        )
 
-            printer_session(
-                f"Installing Python {version} by creating a conda environment at {dest!r}"
-            )
-            conda.cli.python_api.run_command(
-                conda.cli.python_api.Commands.CREATE,
-                "--prefix",
-                dest,
-                f"conda-forge:python={version}",
-                "pip",
-            )
+        asyncio.run(createCondaEnvironment(version, dest))
 
     with rez.package_maker.make_package(
         "python",
@@ -281,8 +229,8 @@ def pythonRezPackage(
         ]
         if platform.system() == "Windows":
             commands = [
-                "env.PATH.prepend('{root}/python/tools')",
-                "env.PATH.prepend('{root}/python/tools/DLLs')",
+                "env.PATH.prepend('{root}/python/Library/bin')",
+                "env.PATH.prepend('{root}/python/Library/lib')",
             ]
 
         pkg.commands = "\n".join(commands)
@@ -293,3 +241,30 @@ def pythonRezPackage(
         )
 
     return version
+
+
+async def createCondaEnvironment(pythonVersion: str, prefixPath: str):
+    # print("Started fetching repo_data")
+    repodata = await rattler.fetch_repo_data(
+        channels=[rattler.Channel("main")],
+        platforms=[rattler.Platform.current(), rattler.Platform("noarch")],
+        cache_path=os.path.join(CONDA_DIR, "cache"),
+        callback=None,
+    )
+    # print("Finished fetching repo_data")
+
+    # print("Solving dependencies")
+    solved_dependencies = rattler.solve(
+        specs=[rattler.MatchSpec(f"python={pythonVersion}")],
+        available_packages=repodata,
+        virtual_packages=[p.into_generic() for p in rattler.VirtualPackage.current()],
+    )
+    # print("Solved required dependencies")
+
+    # print("Creating environment")
+    await rattler.link(
+        dependencies=solved_dependencies,
+        target_prefix=prefixPath,
+        cache_dir=os.path.join(CONDA_DIR, "pkgs"),
+    )
+    # print(f"Created environment")

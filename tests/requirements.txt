@@ -4,6 +4,4 @@ pytest-print
 pypiserver
 build
 hatchling
-git+https://github.com/conda/conda-package-handling@2.1.0; platform_system != "Windows"
-# 23.1.0 is the last version to support Python 3.7
-git+https://github.com/conda/conda@23.1.0; platform_system != "Windows"
+py-rattler
