@@ -37,9 +37,12 @@ if typing.TYPE_CHECKING:
     ScriptSection = Literal["console", "gui"]
 
 
-def isWheelPure(source: installer.sources.WheelSource) -> bool:
-    stream = source.read_dist_info("WHEEL")
-    metadata = installer.utils.parse_metadata_file(stream)
+def isWheelPure(dist: importlib_metadata.Distribution) -> bool:
+    path = next(
+        f for f in dist.files if os.fspath(f.locate()).endswith(".dist-info/WHEEL")
+    )
+    with open(path.locate()) as fd:
+        metadata = installer.utils.parse_metadata_file(fd.read())
     return typing.cast(str, metadata["Root-Is-Purelib"]) == "true"
 
 
@@ -70,7 +73,7 @@ def installWheel(
     package: rez_pip.pip.PackageInfo,
     wheelPath: pathlib.Path,
     targetPath: str,
-) -> typing.Tuple[importlib_metadata.Distribution, bool]:
+) -> importlib_metadata.Distribution:
     # TODO: Technically, target should be optional. We will always want to install in "pip install --target"
     #       mode. So right now it's a CLI option for debugging purposes.
 
@@ -81,11 +84,8 @@ def installWheel(
         script_kind=installer.utils.get_launcher_kind(),
     )
 
-    isPure = True
     _LOG.debug(f"Installing {wheelPath} into {targetPath!r}")
     with installer.sources.WheelFile.open(wheelPath) as source:
-        isPure = isWheelPure(source)
-
         installer.install(
             source=source,
             destination=destination,
@@ -118,7 +118,7 @@ def installWheel(
         if not dist.files:
             raise RuntimeError(f"{path!r} does not exist!")
 
-    return dist, isPure
+    return dist
 
 
 # TODO: Document where this code comes from.
