@@ -14,6 +14,8 @@ import packaging.version
 import packaging.specifiers
 import packaging.requirements
 
+import rez_pip.install
+
 _LOG = logging.getLogger(__name__)
 
 
@@ -466,7 +468,6 @@ def convertMarker(marker: str) -> typing.List[str]:
 def getRezRequirements(
     installedDist: importlib_metadata.Distribution,
     pythonVersion: rez.version.Version,
-    isPure: bool,
     nameCasings: typing.Optional[typing.List[str]] = None,
 ) -> RequirementsDict:
     """Get requirements of the given dist, in rez-compatible format.
@@ -517,6 +518,7 @@ def getRezRequirements(
     # python build frontends during install
     has_entry_points_scripts = bool(installedDist.entry_points)
 
+    isPure = rez_pip.install.isWheelPure(installedDist)
     # assume package is platform- and arch- specific if it isn't pure python
     if not isPure or has_entry_points_scripts:
         sys_requires.update(["platform", "arch"])

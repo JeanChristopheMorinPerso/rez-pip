@@ -8,6 +8,7 @@ import argparse
 import textwrap
 import pathlib
 import tempfile
+import itertools
 import subprocess
 
 if sys.version_info >= (3, 10):
@@ -18,6 +19,7 @@ else:
 import rich
 import rich.text
 import rich.panel
+import rich.table
 import rez.version
 import rich.markup
 import rich.logging
@@ -25,6 +27,7 @@ import rich.logging
 import rez_pip.pip
 import rez_pip.rez
 import rez_pip.data
+import rez_pip.plugins
 import rez_pip.install
 import rez_pip.download
 import rez_pip.exceptions
@@ -120,6 +123,10 @@ def _createParser() -> argparse.ArgumentParser:
         help="Print debug information that you can use when reporting an issue on GitHub.",
     )
 
+    debugGroup.add_argument(
+        "--list-plugins", action="store_true", help="List all registered plugins"
+    )
+
     parser.usage = f"""
 
   %(prog)s [options] <package(s)>
@@ -202,37 +209,55 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
             )
 
         _LOG.info(f"Resolved {len(packages)} dependencies for python {pythonVersion}")
+        packageGroups: typing.List[rez_pip.pip.PackageGroup] = list(
+            itertools.chain(*rez_pip.plugins.getHook().groupPackages(packages=packages))  # type: ignore[arg-type]
+        )
+        packageGroups += [rez_pip.pip.PackageGroup([package]) for package in packages]
 
         # TODO: Should we postpone downloading to the last minute if we can?
         _LOG.info("[bold]Downloading...")
-        wheels = rez_pip.download.downloadPackages(packages, wheelsDir)
-        _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
 
-        dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
+        wheelsToDownload = []
+        localWheels = []
+        for group in packageGroups:
+            for url in group.downloadUrls:
+                print(url)
+                if url.startswith("file://"):
+                    localWheels.append(url[7:])
+                else:
+                    wheelsToDownload.extend(group.packages)
 
+        downloadedWheels = rez_pip.download.downloadPackages(
+            wheelsToDownload, wheelsDir
+        )
+        _LOG.info(f"[bold]Downloaded {len(downloadedWheels)} wheels")
+
+        localWheels += downloadedWheels
+
+        # Here, we could have a mapping of <merged package>: <dists> and pass that to installWheel
         with rich.get_console().status(
             f"[bold]Installing wheels into {installedWheelsDir!r}"
         ):
-            for package, wheel in zip(packages, wheels):
-                _LOG.info(f"[bold]Installing {package.name}-{package.version} wheel")
-                dist, isPure = rez_pip.install.installWheel(
-                    package, pathlib.Path(wheel), installedWheelsDir
-                )
-
-                dists[dist] = isPure
-
-        distNames = [dist.name for dist in dists.keys()]
+            for group in packageGroups:
+                for package, wheel in zip(group.packages, group.downloadUrls):
+                    _LOG.info(f"[bold]Installing {wheel}")
+                    dist = rez_pip.install.installWheel(
+                        package,
+                        pathlib.Path(
+                            wheel[7:] if wheel.startswith("file://") else wheel
+                        ),
+                        os.path.join(installedWheelsDir, package.name),
+                    )
+                    group.dists.append(dist)
 
         with rich.get_console().status("[bold]Creating rez packages..."):
-            for dist, package in zip(dists, packages):
-                isPure = dists[dist]
+            for group in packageGroups:
+                print(list(package.name for package in group.packages))
                 rez_pip.rez.createPackage(
-                    dist,
-                    isPure,
+                    group.dists,
                     rez.version.Version(pythonVersion),
-                    distNames,
                     installedWheelsDir,
-                    wheelURL=package.download_info.url,
+                    group.downloadUrls,
                     prefix=args.prefix,
                     release=args.release,
                 )
@@ -313,9 +338,23 @@ def _debug(
     )
 
 
+def _printPlugins() -> None:
+    table = rich.table.Table("Name", "Hooks", box=None)
+    for plugin, hooks in rez_pip.plugins._getHookImplementations().items():
+        table.add_row(plugin, ", ".join(hooks))
+    rich.get_console().print(table)
+
+
 def run() -> int:
     pipWorkArea = tempfile.mkdtemp(prefix="rez-pip-target")
     args, pipArgs = _parseArgs(sys.argv[1:])
+
+    # Initialize the plugin system
+    rez_pip.plugins.getManager()
+
+    if args.list_plugins:
+        _printPlugins()
+        return 0
 
     try:
         _validateArgs(args)
