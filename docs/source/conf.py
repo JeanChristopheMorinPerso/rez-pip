@@ -63,11 +63,12 @@ linkcheck_allowed_redirects = {
 # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
 
 intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
     "rez": ("https://rez.readthedocs.io/en/stable/", None),
 }
 
 # Force usage of :external:
-intersphinx_disabled_reftypes = ["*"]
+# intersphinx_disabled_reftypes = ["*"]
 
 
 # -- Custom ------------------------------------------------------------------

@@ -8,9 +8,15 @@ import itertools
 import subprocess
 import dataclasses
 
+if sys.version_info >= (3, 10):
+    import importlib.metadata as importlib_metadata
+else:
+    import importlib_metadata
+
 import dataclasses_json
 
 import rez_pip.data
+import rez_pip.plugins
 import rez_pip.exceptions
 
 _LOG = logging.getLogger(__name__)
@@ -58,6 +64,21 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
         return self.metadata.version
 
 
+class PackageGroup:
+    """A group of package"""
+
+    packages: typing.List[PackageInfo]
+    dists: typing.List[importlib_metadata.Distribution]
+
+    def __init__(self, packages: typing.List[PackageInfo]) -> None:
+        self.packages = packages
+        self.dists = []
+
+    @property
+    def downloadUrls(self) -> typing.List[str]:
+        return [p.download_info.url for p in self.packages]
+
+
 def getBundledPip() -> str:
     return os.path.join(os.path.dirname(rez_pip.data.__file__), "pip.pyz")
 
@@ -71,7 +92,9 @@ def getPackages(
     constraints: typing.List[str],
     extraArgs: typing.List[str],
 ) -> typing.List[PackageInfo]:
-    # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
+    rez_pip.plugins.getHook().prePipResolve(
+        packages=packageNames, requirements=requirements
+    )
 
     _fd, tmpFile = tempfile.mkstemp(prefix="pip-install-output", text=True)
     os.close(_fd)
@@ -137,6 +160,8 @@ def getPackages(
     for rawPackage in rawPackages:
         packageInfo = PackageInfo.from_dict(rawPackage)
         packages.append(packageInfo)
+
+    rez_pip.plugins.getHook().postPipResolve(packages=packages)
 
     return packages
 
