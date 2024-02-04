@@ -26,24 +26,33 @@ _LOG = logging.getLogger(__name__)
 
 
 def createPackage(
-    dists: typing.List[importlib_metadata.Distribution],
+    packageGroup: rez_pip.pip.PackageGroup,
     pythonVersion: rez.version.Version,
     installedWheelsDir: str,
-    urls: typing.List[str],
     prefix: typing.Optional[str] = None,
     release: bool = False,
 ) -> None:
     _LOG.info(
-        "Creating rez package for {0}".format(" + ".join(dist.name for dist in dists))
+        "Creating rez package for {0}".format(
+            " + ".join(dist.name for dist in packageGroup.dists)
+        )
     )
-    name = rez_pip.utils.pythontDistributionNameToRez(dists[0].name)
-    version = rez_pip.utils.pythonDistributionVersionToRez(dists[0].version)
+
+    rezNames = [
+        rez_pip.utils.pythontDistributionNameToRez(dist.name)
+        for dist in packageGroup.dists
+    ]
+
+    name = rezNames[0]
+    version = rez_pip.utils.pythonDistributionVersionToRez(
+        packageGroup.dists[0].version
+    )
 
     requires = []
     variant_requires = []
     metadata: typing.Dict[str, typing.Any] = {}
     isPure = True
-    for dist in dists:
+    for dist in packageGroup.dists:
         requirements = rez_pip.utils.getRezRequirements(dist, pythonVersion, [])
         if not metadata:
             # For now we only use the metadata from the first package. Far from ideal...
@@ -51,12 +60,20 @@ def createPackage(
 
         # TODO: Remove grouped packages (PySide-Addons, etc)
         requires += [
-            require for require in requirements.requires if require not in requires
+            require
+            for require in requirements.requires
+            if require not in requires
+            # Check that the rez requirement isn't in the group name since it would be
+            # an invalid requirement (because we merge them).
+            and rez.version.Requirement(require).name not in rezNames[1:]
         ]
         variant_requires += [
             require
             for require in requirements.variant_requires
             if require not in variant_requires
+            # Check that the rez requirement isn't in the group name since it would be
+            # an invalid requirement (because we merge them).
+            and rez.version.Requirement(require).name not in rezNames[1:]
         ]
         if isPure:
             isPure = metadata["is_pure_python"]
@@ -80,7 +97,7 @@ def createPackage(
         _LOG.info(
             rf"Installing {variant.qualified_package_name} \[{formattedRequirements}]"
         )
-        for dist in dists:
+        for dist in packageGroup.dists:
             if not dist.files:
                 raise RuntimeError(
                     f"{dist.name} package has no files registered! Something is wrong maybe?"
@@ -142,7 +159,7 @@ def createPackage(
             "name": dist.name,
             "version": dist.version,
             "is_pure_python": isPure,
-            "wheel_urls": urls,
+            "wheel_urls": packageGroup.downloadUrls,
             "rez_pip_version": importlib_metadata.version("rez-pip"),
         }
 

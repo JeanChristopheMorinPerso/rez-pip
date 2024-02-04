@@ -254,10 +254,9 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
             for group in packageGroups:
                 print(list(package.name for package in group.packages))
                 rez_pip.rez.createPackage(
-                    group.dists,
+                    group,
                     rez.version.Version(pythonVersion),
                     installedWheelsDir,
-                    group.downloadUrls,
                     prefix=args.prefix,
                     release=args.release,
                 )
