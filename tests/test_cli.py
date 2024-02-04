@@ -26,6 +26,7 @@ def test_parseArgs_empty():
     assert vars(args) == {
         "constraint": None,
         "keep_tmp_dirs": False,
+        "list_plugins": False,
         "log_level": "info",
         "packages": [],
         "pip": rez_pip.pip.getBundledPip(),
@@ -45,6 +46,7 @@ def test_parseArgs_packages(packages):
     assert vars(args) == {
         "constraint": None,
         "keep_tmp_dirs": False,
+        "list_plugins": False,
         "log_level": "info",
         "packages": packages,
         "pip": rez_pip.pip.getBundledPip(),
@@ -64,6 +66,7 @@ def test_parseArgs_no_package_with_requirements(files):
     assert vars(args) == {
         "constraint": None,
         "keep_tmp_dirs": False,
+        "list_plugins": False,
         "log_level": "info",
         "packages": [],
         "pip": rez_pip.pip.getBundledPip(),
@@ -82,6 +85,7 @@ def test_parseArgs_constraints():
     assert vars(args) == {
         "constraint": ["asd", "adasdasd"],
         "keep_tmp_dirs": False,
+        "list_plugins": False,
         "log_level": "info",
         "packages": [],
         "pip": rez_pip.pip.getBundledPip(),
@@ -102,6 +106,7 @@ def test_parseArgs_pipArgs():
     assert vars(args) == {
         "constraint": None,
         "keep_tmp_dirs": False,
+        "list_plugins": False,
         "log_level": "info",
         "packages": [],
         "pip": rez_pip.pip.getBundledPip(),

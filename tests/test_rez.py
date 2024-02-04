@@ -17,6 +17,7 @@ if sys.version_info >= (3, 10):
 else:
     import importlib_metadata
 
+import rez_pip.pip
 import rez_pip.rez
 import rez_pip.utils
 
@@ -62,16 +63,28 @@ def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
         metadata={"is_pure_python": False},
     )
 
+    packageGroup = rez_pip.pip.PackageGroup(
+        [
+            rez_pip.pip.PackageInfo(
+                metadata=rez_pip.pip.Metadata(name="package-a", version="1.0.0.post0"),
+                download_info=rez_pip.pip.DownloadInfo(
+                    url=f"http://localhost/asd",
+                    archive_info=rez_pip.pip.ArchiveInfo("hash", {}),
+                ),
+                is_direct=True,
+                requested=True,
+            )
+        ]
+    )
+    packageGroup.dists = [dist]
+
     with unittest.mock.patch.object(
         rez_pip.utils, "getRezRequirements", return_value=expectedRequirements
     ):
         rez_pip.rez.createPackage(
-            dist,
-            False,
+            packageGroup,
             rez.version.Version("3.7.0"),
-            [],
             source,
-            "http://localhost/asd",
             prefix=repo,
         )
 
@@ -84,7 +97,7 @@ def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
         "name": dist.name,
         "version": dist.version,
         "is_pure_python": False,
-        "wheel_url": "http://localhost/asd",
+        "wheel_urls": ["http://localhost/asd"],
         "rez_pip_version": importlib_metadata.version("rez-pip"),
         "metadata": {},
     }

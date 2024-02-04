@@ -88,7 +88,8 @@ def getManager() -> pluggy.PluginManager:
     # Register the builtin plugins
     for module in pkgutil.iter_modules(__path__):
         manager.register(
-            importlib.import_module(f"rez_pip.plugins.{module.name}"), name=module.name
+            importlib.import_module(f"rez_pip.plugins.{module.name}"),
+            name=f"rez_pip.{module.name}",
         )
 
     manager.load_setuptools_entrypoints("rez-pip")

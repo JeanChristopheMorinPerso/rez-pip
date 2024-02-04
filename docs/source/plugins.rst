@@ -47,3 +47,10 @@ Hooks
    "package" in place.
 
    :param package: An instanciate PackageMaker.
+
+.. py:function:: cleanup(dist: importlib.metadata.Distribution, path: str) -> None
+
+   Cleanup a package post-installation.
+
+   :param dist: Python distribution.
+   :param path: Root path of the rez variant.
