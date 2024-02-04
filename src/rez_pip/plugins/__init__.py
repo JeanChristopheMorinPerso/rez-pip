@@ -2,15 +2,16 @@
 import sys
 import typing
 import logging
+import pkgutil
 import functools
-
-import pluggy
+import importlib
 
 if sys.version_info >= (3, 10):
     import importlib.metadata as importlib_metadata
 else:
     import importlib_metadata
 
+import pluggy
 import rez.package_maker
 
 if typing.TYPE_CHECKING:
@@ -78,21 +79,20 @@ def getManager() -> pluggy.PluginManager:
     Returns the plugin manager. The return value will be cached on first call
     and the cached value will be return in subsequent calls.
     """
-    import rez_pip.plugins.PySide6
-    import rez_pip.plugins.shiboken6
-
     manager = pluggy.PluginManager("rez-pip")
     # manager.trace.root.setwriter(print)
     # manager.enable_tracing()
 
     manager.add_hookspecs(PluginSpec)
 
-    manager.register(rez_pip.plugins.PySide6)
-    manager.register(rez_pip.plugins.shiboken6)
+    # Register the builtin plugins
+    for module in pkgutil.iter_modules(__path__):
+        manager.register(
+            importlib.import_module(f"rez_pip.plugins.{module.name}"), name=module.name
+        )
 
     manager.load_setuptools_entrypoints("rez-pip")
 
-    # print(list(itertools.chain(*manager.hook.prePipResolve(packages=["asd"]))))
     return manager
 
 
