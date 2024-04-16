@@ -1,10 +1,18 @@
+import sys
 import typing
+import unittest.mock
 
 import pytest
 import rez.version
 import packaging.version
 import packaging.specifiers
 import packaging.requirements
+
+if sys.version_info >= (3, 10):
+    import importlib.metadata as importlib_metadata
+else:
+    import importlib_metadata
+
 
 import rez_pip.utils
 
@@ -237,3 +245,23 @@ def test_normalizeRequirement(
     assert [str(req) for req in result] == [str(req) for req in expected]
     for index, req in enumerate(result):
         assert req.conditional_extras == conditional_extras[index]
+
+
+def test_getRezRequirements():
+    with unittest.mock.patch.object(
+            importlib_metadata.Distribution,
+            "requires",
+            new_callable=unittest.mock.PropertyMock
+    ) as mock_property:
+        mock_property.return_value = [
+            'importlib-metadata ; python_version < "3.8"'
+        ]
+        dist = importlib_metadata.Distribution()
+        py_version = rez.version.Version("3.7.9")
+        expected_result = rez_pip.utils.RequirementsDict(
+            requires=[],
+            variant_requires=["importlib_metadata", "python-3.7"],
+            metadata={"is_pure_python": True},
+        )
+        result = rez_pip.utils.getRezRequirements(dist, py_version, True)
+        assert result == expected_result
