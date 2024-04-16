@@ -460,6 +460,8 @@ def convertMarker(marker: str) -> typing.List[str]:
         if varname in marker_parts:
             sys_requires.update(sys_reqs)
 
+    # TODO: This shouldn't return "python" when given a marker like
+    #  "python_version < '3.8'" right?
     return list(sys_requires)
 
 
@@ -574,6 +576,7 @@ def getRezRequirements(
                 marker_reqs = convertMarker(str(req.marker))
 
                 if marker_reqs:
+                    # TODO: Shouldn't this add to result_variant_requires instead?
                     sys_requires.update(marker_reqs)
                     to_variant = True
 
