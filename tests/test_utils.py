@@ -260,7 +260,7 @@ def test_getRezRequirements():
         py_version = rez.version.Version("3.7.9")
         expected_result = rez_pip.utils.RequirementsDict(
             requires=[],
-            variant_requires=["importlib_metadata", "python-3.7"],
+            variant_requires=["importlib_metadata", "python<3.8"],
             metadata={"is_pure_python": True},
         )
         result = rez_pip.utils.getRezRequirements(dist, py_version, True)
