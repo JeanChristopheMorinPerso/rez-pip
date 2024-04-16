@@ -264,4 +264,11 @@ def test_getRezRequirements():
             metadata={"is_pure_python": True},
         )
         result = rez_pip.utils.getRezRequirements(dist, py_version, True)
+        # Actual result right now is:
+        #
+        # rez_pip.utils.RequirementsDict(
+        #             requires=["python"],
+        #             variant_requires=["importlib_metadata"],
+        #             metadata={"is_pure_python": True},
+        #         )
         assert result == expected_result
