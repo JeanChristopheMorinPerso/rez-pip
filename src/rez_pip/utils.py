@@ -413,7 +413,7 @@ def convertMarker(marker: str) -> typing.List[str]:
 
     See:
     * vendor/packaging/markers.py:line=76
-    * https://www.python.org/dev/peps/pep-0508/#id23
+    * https://www.python.org/dev/peps/pep-0508
 
     :param marker: Environment marker string, eg 'python_version == "3"'.
     :returns: System requirements (unversioned).
