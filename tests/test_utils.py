@@ -89,6 +89,7 @@ def test_pythonSpecifierToRezRequirement_raises():
         ["package>1", "package-1.1+"],
         ["package", "package"],
         ["package[extra]", "package"],
+        ["package;python_version<'2.7'", "package"]
     ],
 )
 def test_packaging_req_to_rez_req(pythonReq: str, rezReq: str):
