@@ -261,6 +261,8 @@ def pythonReqToRezReq(
 ) -> rez.version.Requirement:
     """Convert packaging requirement object to equivalent rez requirement.
 
+    TODO: How are environment markers ignored here? There's no clear indication
+      in the code.
     Note that environment markers are ignored.
 
     :param pythonReq: Python requirement.
