@@ -247,24 +247,33 @@ def test_normalizeRequirement(
     for index, req in enumerate(result):
         assert req.conditional_extras == conditional_extras[index]
 
-
-def test_getRezRequirements():
+@pytest.mark.parametrize(
+    "pkg_requires,python_version,expected",
+    [
+        [
+            ['importlib-metadata ; python_version < "3.8"'],
+            rez.version.Version("3.7.9"),
+            rez_pip.utils.RequirementsDict(
+                requires=[],
+                variant_requires=["importlib_metadata", "python<3.8"],
+                metadata={"is_pure_python": True},
+            ),
+        ],
+    ]
+)
+def test_getRezRequirements(pkg_requires: typing.List[str],
+                            python_version: rez.version.Version,
+                            expected: rez_pip.utils.RequirementsDict):
+    dist = importlib_metadata.Distribution()
     with unittest.mock.patch.object(
             importlib_metadata.Distribution,
             "requires",
             new_callable=unittest.mock.PropertyMock
     ) as mock_property:
-        mock_property.return_value = [
-            'importlib-metadata ; python_version < "3.8"'
-        ]
-        dist = importlib_metadata.Distribution()
-        py_version = rez.version.Version("3.7.9")
-        expected_result = rez_pip.utils.RequirementsDict(
-            requires=[],
-            variant_requires=["importlib_metadata", "python<3.8"],
-            metadata={"is_pure_python": True},
-        )
-        result = rez_pip.utils.getRezRequirements(dist, py_version, True)
+        mock_property.return_value = pkg_requires
+        result = rez_pip.utils.getRezRequirements(dist,
+                                                  python_version,
+                                                  True)
         # Actual result right now is:
         #
         # rez_pip.utils.RequirementsDict(
@@ -272,4 +281,4 @@ def test_getRezRequirements():
         #             variant_requires=["importlib_metadata"],
         #             metadata={"is_pure_python": True},
         #         )
-        assert result == expected_result
+        assert result == expected
