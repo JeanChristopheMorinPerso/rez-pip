@@ -284,11 +284,34 @@ def test_getRezRequirements_simple(
     "pkg_requires,python_version,expected",
     [
         [
+            # Actual result right now is:
+            #
+            # rez_pip.utils.RequirementsDict(
+            #             requires=["python"],
+            #             variant_requires=["importlib_metadata"],
+            #             metadata={"is_pure_python": True},
+            #         )
             ['importlib-metadata ; python_version < "3.8"'],
             rez.version.Version("3.7.9"),
             rez_pip.utils.RequirementsDict(
                 requires=[],
                 variant_requires=["importlib_metadata", "python<3.8"],
+                metadata={"is_pure_python": True},
+            ),
+        ],
+        # Actual result right now is:
+        #
+        # rez_pip.utils.RequirementsDict(
+        #             requires=["python"],
+        #             variant_requires=[],
+        #             metadata={"is_pure_python": True},
+        #         )
+        [
+            ['importlib-metadata ; python_version < "3.8"'],
+            rez.version.Version("3.8.3"),
+            rez_pip.utils.RequirementsDict(
+                requires=[],
+                variant_requires=["python>3.8"],
                 metadata={"is_pure_python": True},
             ),
         ],
@@ -309,19 +332,20 @@ def test_getRezRequirements_environment_markers(
         result = rez_pip.utils.getRezRequirements(dist,
                                                   python_version,
                                                   True)
-        # Actual result right now is:
-        #
-        # rez_pip.utils.RequirementsDict(
-        #             requires=["python"],
-        #             variant_requires=["importlib_metadata"],
-        #             metadata={"is_pure_python": True},
-        #         )
+
         assert result == expected
 
 
 @pytest.mark.parametrize(
     "pkg_requires,python_version,expected",
     [
+        # Actual result right now is:
+        #
+        # rez_pip.utils.RequirementsDict(
+        #             requires=["python"],
+        #             variant_requires=["platform-windows", "click"],
+        #             metadata={"is_pure_python": True},
+        #         )
         [
             ['click; python_version > "3.6" or (python_version == "3.6" and os_name == "unix")'],
             rez.version.Version("3.6.15"),
@@ -347,11 +371,4 @@ def test_getRezRequirements_mocked_os(pkg_requires: typing.List[str],
             result = rez_pip.utils.getRezRequirements(dist,
                                                       python_version,
                                                       True)
-            # Actual result right now is:
-            #
-            # rez_pip.utils.RequirementsDict(
-            #             requires=["python"],
-            #             variant_requires=["platform-windows", "click"],
-            #             metadata={"is_pure_python": True},
-            #         )
             assert result == expected
