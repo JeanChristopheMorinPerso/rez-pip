@@ -315,6 +315,19 @@ def test_getRezRequirements_simple(
                 metadata={"is_pure_python": True},
             ),
         ],
+        # TODO: Define expected behavior here.
+        # [
+        #     [
+        #         'importlib-metadata ; python_version < "3.8"',
+        #         'click ; python_version > "3.6"'
+        #     ],
+        #     rez.version.Version("3.9.1"),
+        #     rez_pip.utils.RequirementsDict(
+        #         requires=["?"],
+        #         variant_requires=["?"],
+        #         metadata={"is_pure_python": True},
+        #     ),
+        # ],
     ],
 )
 def test_getRezRequirements_environment_markers(
