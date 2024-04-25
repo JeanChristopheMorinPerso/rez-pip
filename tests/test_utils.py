@@ -248,6 +248,38 @@ def test_normalizeRequirement(
     for index, req in enumerate(result):
         assert req.conditional_extras == conditional_extras[index]
 
+
+@pytest.mark.parametrize(
+    "pkg_requires,python_version,expected",
+    [
+        [
+            ["importlib-metadata", "click"],
+            rez.version.Version("3.7.9"),
+            rez_pip.utils.RequirementsDict(
+                requires=["importlib_metadata", "click", "python"],
+                variant_requires=[],
+                metadata={"is_pure_python": True},
+            ),
+        ],
+    ],
+)
+def test_getRezRequirements_simple(
+        pkg_requires: typing.List[str],
+        python_version: rez.version.Version,
+        expected: rez_pip.utils.RequirementsDict
+):
+    dist = importlib_metadata.Distribution()
+    with unittest.mock.patch.object(
+            importlib_metadata.Distribution,
+            "requires",
+            new_callable=unittest.mock.PropertyMock
+    ) as mock_property:
+        mock_property.return_value = pkg_requires
+        result = rez_pip.utils.getRezRequirements(dist,
+                                                  python_version,
+                                                  True)
+        assert result == expected
+
 @pytest.mark.parametrize(
     "pkg_requires,python_version,expected",
     [
@@ -262,9 +294,11 @@ def test_normalizeRequirement(
         ],
     ],
 )
-def test_getRezRequirements(pkg_requires: typing.List[str],
-                            python_version: rez.version.Version,
-                            expected: rez_pip.utils.RequirementsDict):
+def test_getRezRequirements_environment_markers(
+        pkg_requires: typing.List[str],
+        python_version: rez.version.Version,
+        expected: rez_pip.utils.RequirementsDict
+):
     dist = importlib_metadata.Distribution()
     with unittest.mock.patch.object(
             importlib_metadata.Distribution,
