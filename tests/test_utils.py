@@ -1,3 +1,4 @@
+import os
 import sys
 import typing
 import unittest.mock
@@ -259,7 +260,7 @@ def test_normalizeRequirement(
                 metadata={"is_pure_python": True},
             ),
         ],
-    ]
+    ],
 )
 def test_getRezRequirements(pkg_requires: typing.List[str],
                             python_version: rez.version.Version,
@@ -282,3 +283,41 @@ def test_getRezRequirements(pkg_requires: typing.List[str],
         #             metadata={"is_pure_python": True},
         #         )
         assert result == expected
+
+
+@pytest.mark.parametrize(
+    "pkg_requires,python_version,expected",
+    [
+        [
+            ['click; python_version > "3.6" or (python_version == "3.6" and os_name == "unix")'],
+            rez.version.Version("3.6.15"),
+            rez_pip.utils.RequirementsDict(
+                requires=[],
+                variant_requires=["click", "python>3.6"],
+                metadata={"is_pure_python": True},
+            ),
+        ],
+    ],
+)
+def test_getRezRequirements_mocked_os(pkg_requires: typing.List[str],
+                                      python_version: rez.version.Version,
+                                      expected: rez_pip.utils.RequirementsDict):
+    dist = importlib_metadata.Distribution()
+    with unittest.mock.patch.object(
+            importlib_metadata.Distribution,
+            "requires",
+            new_callable=unittest.mock.PropertyMock
+    ) as mock_property:
+        with unittest.mock.patch("os.name", new="unix"):
+            mock_property.return_value = pkg_requires
+            result = rez_pip.utils.getRezRequirements(dist,
+                                                      python_version,
+                                                      True)
+            # Actual result right now is:
+            #
+            # rez_pip.utils.RequirementsDict(
+            #             requires=["python"],
+            #             variant_requires=["platform-windows", "click"],
+            #             metadata={"is_pure_python": True},
+            #         )
+            assert result == expected
