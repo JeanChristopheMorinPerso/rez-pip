@@ -87,53 +87,12 @@ jobs:
       run: npm install @octokit/auth-app @actions/github @octokit/request
 
     - name: Get token
-      id: auth-token
+      id: app-token
       if: steps.download_pip.outputs.downloaded-pip-path != 'none'
-      uses: actions/github-script@v7
-      env:
-        GH_BOT_APP_ID: ${{ secrets.GH_BOT_APP_ID }}
-        GH_BOT_PRIVATE_KEY: ${{ secrets.GH_BOT_PRIVATE_KEY }}
+      uses: actions/create-github-app-token@v1
       with:
-        result-encoding: string
-        script: |
-          const authAppMod = require('@octokit/auth-app');
-          const githubMod = require('@actions/github');
-          const requestMod = require('@octokit/request');
-
-          const appId = process.env.GH_BOT_APP_ID;
-          core.setSecret(appId);
-          const privateKey = process.env.GH_BOT_PRIVATE_KEY;
-          core.setSecret(privateKey);
-
-          console.log('Creating app object');
-          const appAuth = authAppMod.createAppAuth({
-              appId,
-              privateKey,
-              request: requestMod.request.defaults({
-                  baseUrl: 'https://api/github.com',
-              }),
-          });
-
-          console.log('Creating auth app');
-          const accessToken = await appAuth({ type: 'app' });
-
-          console.log('Creating octokit client');
-          const octokit = githubMod.getOctokit(accessToken.token);
-
-          console.log('Fetching installation ID');
-          const { data: { id: installationId } } = await octokit.rest.apps.getRepoInstallation({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-          });
-
-          console.log('Creating installation access token');
-          const { data: installation } = await octokit.rest.apps.createInstallationAccessToken({
-              installation_id: installationId,
-          });
-
-          core.setSecret(installation.token);
-          core.info('Token generated successfully!');
-          return installation.token;
+        app-id: ${{ secrets.GH_BOT_APP_ID }}
+        private-key: ${{ secrets.GH_BOT_PRIVATE_KEY }}
 
     - name: Create commit
       if: steps.download_pip.outputs.downloaded-pip-path != 'none'
@@ -164,7 +123,7 @@ jobs:
     - name: PR
       if: steps.download_pip.outputs.downloaded-pip-path != 'none'
       env:
-        GH_TOKEN: ${{ steps.auth-token.outputs.result }}
+        GH_TOKEN: ${{ steps.app-token.outputs.token }}
       run: |
         set -e
         version=$(echo '${{ steps.download_pip.outputs.new-pip-version }}' | sed 's/\./-/g')
