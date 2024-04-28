@@ -11,11 +11,11 @@ So it's at least a 3 steps process:
 1. Merge PySide6, PySide6-Essentials and PySide6-Addons into the same install. Unvendor shiboken.
 2. Install shiboken + cleanup. The Cleanup could be its own hook here specific to shiboken.
 """
+
 import os
 import sys
 import shutil
 import typing
-import logging
 
 if sys.version_info >= (3, 10):
     import importlib.metadata as importlib_metadata
@@ -36,14 +36,10 @@ import rez_pip.exceptions
 # PySide6-Addons.
 
 
-_LOG = logging.getLogger(__name__)
-
-
 @rez_pip.plugins.hookimpl
 def prePipResolve(
     packages: typing.List[str],
 ) -> None:
-    _LOG.debug(f"prePipResolve start")
     pyside6Seen = False
     variantsSeens = []
 
@@ -116,5 +112,9 @@ def cleanup(dist: importlib_metadata.Distribution, path: str) -> None:
     ]:
         return
 
+    # Remove shiboken6 from PySide6 packages...
+    # PySide6 >=6.3, <6.6.2 were shipping some shiboken6 folders by mistake.
+    # Not removing these extra folders would stop python from being able to import
+    # the correct shiboken (that lives in a separate rez package).
     shutil.rmtree(os.path.join(path, "python", "shiboken6"))
     shutil.rmtree(os.path.join(path, "python", "shiboken6_generator"))

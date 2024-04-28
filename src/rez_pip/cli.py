@@ -6,7 +6,6 @@ import typing
 import logging
 import argparse
 import textwrap
-import pathlib
 import tempfile
 import itertools
 import subprocess
@@ -212,47 +211,43 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
         packageGroups: typing.List[rez_pip.pip.PackageGroup] = list(
             itertools.chain(*rez_pip.plugins.getHook().groupPackages(packages=packages))  # type: ignore[arg-type]
         )
+
+        # Remove empty groups
+        packageGroups = [group for group in packageGroups if group]
+
+        # Add packages that were not grouped.
         packageGroups += [rez_pip.pip.PackageGroup([package]) for package in packages]
 
         # TODO: Should we postpone downloading to the last minute if we can?
         _LOG.info("[bold]Downloading...")
 
-        wheelsToDownload = []
-        localWheels = []
-        for group in packageGroups:
-            for url in group.downloadUrls:
-                print(url)
-                if url.startswith("file://"):
-                    localWheels.append(url[7:])
-                else:
-                    wheelsToDownload.extend(group.packages)
+        downloadedWheels = rez_pip.download.downloadPackages(packageGroups, wheelsDir)
+        foundLocally = [
+            p
+            for group in packageGroups
+            for p in group.packages
+            if not p.isDownloadRequired()
+        ]
 
-        downloadedWheels = rez_pip.download.downloadPackages(
-            wheelsToDownload, wheelsDir
+        _LOG.info(
+            f"[bold]Downloaded {len(downloadedWheels)} wheels, skipped {len(foundLocally)} because they resolved to local files"
         )
-        _LOG.info(f"[bold]Downloaded {len(downloadedWheels)} wheels")
 
-        localWheels += downloadedWheels
-
-        # Here, we could have a mapping of <merged package>: <dists> and pass that to installWheel
         with rich.get_console().status(
             f"[bold]Installing wheels into {installedWheelsDir!r}"
         ):
             for group in packageGroups:
-                for package, wheel in zip(group.packages, group.downloadUrls):
-                    _LOG.info(f"[bold]Installing {wheel}")
+                for package in group.packages:
+                    _LOG.info(f"[bold]Installing {package.name} {package.localPath}")
                     dist = rez_pip.install.installWheel(
                         package,
-                        pathlib.Path(
-                            wheel[7:] if wheel.startswith("file://") else wheel
-                        ),
+                        package.localPath,
                         os.path.join(installedWheelsDir, package.name),
                     )
                     group.dists.append(dist)
 
         with rich.get_console().status("[bold]Creating rez packages..."):
             for group in packageGroups:
-                print(list(package.name for package in group.packages))
                 rez_pip.rez.createPackage(
                     group,
                     rez.version.Version(pythonVersion),

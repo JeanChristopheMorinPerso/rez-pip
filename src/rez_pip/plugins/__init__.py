@@ -1,10 +1,12 @@
 """Plugin system."""
+
 import sys
 import typing
 import logging
 import pkgutil
 import functools
 import importlib
+import collections.abc
 
 if sys.version_info >= (3, 10):
     import importlib.metadata as importlib_metadata
@@ -26,7 +28,7 @@ def __dir__() -> typing.List[str]:
     return __all__
 
 
-__LOG = logging.getLogger(__name__)
+_LOG = logging.getLogger(__name__)
 
 F = typing.TypeVar("F", bound=typing.Callable[..., typing.Any])
 hookspec = typing.cast(typing.Callable[[F], F], pluggy.HookspecMarker("rez-pip"))
@@ -36,7 +38,9 @@ hookimpl = typing.cast(typing.Callable[[F], F], pluggy.HookimplMarker("rez-pip")
 class PluginSpec:
     @hookspec
     def prePipResolve(
-        self, packages: typing.List[str], requirements: typing.List[str]
+        self,
+        packages: collections.abc.Sequence[str],  # Immutable
+        requirements: collections.abc.Sequence[str],  # Immutable
     ) -> None:
         """
         Take an action before resolving the packages using pip.
@@ -44,7 +48,9 @@ class PluginSpec:
         """
 
     @hookspec
-    def postPipResolve(self, packages: typing.List["rez_pip.pip.PackageInfo"]) -> None:
+    def postPipResolve(
+        self, packages: collections.abc.Sequence["rez_pip.pip.PackageInfo"]  # Immutable
+    ) -> None:
         """
         Take an action after resolving the packages using pip.
         The packages argument should not be modified in any way.
@@ -52,8 +58,8 @@ class PluginSpec:
 
     @hookspec
     def groupPackages(  # type: ignore[empty-body]
-        self, packages: typing.List["rez_pip.pip.PackageInfo"]
-    ) -> typing.List["rez_pip.pip.PackageGroup"]:
+        self, packages: collections.abc.MutableSequence["rez_pip.pip.PackageInfo"]
+    ) -> collections.abc.Sequence["rez_pip.pip.PackageGroup"]:
         """
         Merge packages into groups of packages. The name and version of the first package
         in the group will be used as the name and version for the rez package.
@@ -73,6 +79,25 @@ class PluginSpec:
         """
 
 
+def before(
+    hookName: str,
+    hookImpls: collections.abc.Sequence[pluggy.HookImpl],
+    kwargs: collections.abc.Mapping[str, typing.Any],
+) -> None:
+    """Function that will be called before each hook."""
+    _LOG.debug("Calling the %r hooks", hookName)
+
+
+def after(
+    outcome: pluggy.Result[typing.Any],
+    hookName: str,
+    hookImpls: collections.abc.Sequence[pluggy.HookImpl],
+    kwargs: collections.abc.Mapping[str, typing.Any],
+) -> None:
+    """Function that will be called after each hook."""
+    _LOG.debug("Called the %r hooks", hookName)
+
+
 @functools.lru_cache()
 def getManager() -> pluggy.PluginManager:
     """
@@ -80,8 +105,9 @@ def getManager() -> pluggy.PluginManager:
     and the cached value will be return in subsequent calls.
     """
     manager = pluggy.PluginManager("rez-pip")
-    # manager.trace.root.setwriter(print)
-    # manager.enable_tracing()
+    if _LOG.getEffectiveLevel() <= logging.DEBUG:
+        manager.trace.root.setwriter(print)
+        manager.enable_tracing()
 
     manager.add_hookspecs(PluginSpec)
 
@@ -94,6 +120,7 @@ def getManager() -> pluggy.PluginManager:
 
     manager.load_setuptools_entrypoints("rez-pip")
 
+    manager.add_hookcall_monitoring(before, after)
     return manager
 
 
