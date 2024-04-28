@@ -1,4 +1,5 @@
 """Development automation"""
+
 import nox
 
 # nox.options.sessions = ["lint", "test", "doctest"]
