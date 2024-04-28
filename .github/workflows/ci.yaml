@@ -27,7 +27,9 @@ jobs:
     strategy:
       matrix:
         python: ['3.7', '3.8', '3.9', '3.10', '3.11']
-        os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
+        # Ping macos to 13 so that we get intel CPUs.
+        # TODO: Make our tests support arm64.
+        os: ['ubuntu-latest', 'windows-latest', 'macos-13']
       fail-fast: false
 
     steps:
