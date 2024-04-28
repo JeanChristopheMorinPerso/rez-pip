@@ -55,6 +55,10 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
         undefined=dataclasses_json.Undefined.EXCLUDE
     )
 
+    # Must be set once the package is downloaded.
+    # Can be retrieved through the localPath property.
+    __localPath: typing.Optional[str] = None
+
     @property
     def name(self) -> str:
         return self.metadata.name
@@ -62,6 +66,25 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
     @property
     def version(self) -> str:
         return self.metadata.version
+
+    def isDownloadRequired(self):
+        return not self.download_info.url.startswith("file://")
+
+    @property
+    def localPath(self) -> str:
+        """Path to the package on disk."""
+        if not self.isDownloadRequired():
+            return self.download_info.url[7:]
+
+        if self.__localPath is None:
+            raise rez_pip.exceptions.RezPipError(
+                f"{self.download_info.url} is not yet downloaded."
+            )
+        return self.__localPath
+
+    @localPath.setter
+    def localPath(self, path: str) -> None:
+        self.__localPath = path
 
 
 class PackageGroup:
@@ -73,6 +96,19 @@ class PackageGroup:
     def __init__(self, packages: typing.List[PackageInfo]) -> None:
         self.packages = packages
         self.dists = []
+
+    def __str__(self) -> str:
+        return "PackageGroup({})".format(
+            [f"{p.name}=={p.version}" for p in self.packages]
+        )
+
+    def __repr__(self) -> str:
+        return "PackageGroup({})".format(
+            [f"{p.name}=={p.version}" for p in self.packages]
+        )
+
+    def __bool__(self) -> bool:
+        return bool(self.packages)
 
     @property
     def downloadUrls(self) -> typing.List[str]:
