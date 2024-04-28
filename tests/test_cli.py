@@ -13,6 +13,7 @@ else:
 
 import pytest
 import rich.console
+import packaging.version
 
 import rez_pip.cli
 import rez_pip.pip
@@ -112,6 +113,16 @@ def test_parseArgs_pipArgs():
     }
 
     assert pipArgs == ["adasdasd", "--requirement", "asd.txt"]
+
+
+def test_version():
+    result = subprocess.run(
+        [sys.executable, "-m", "rez_pip", "--version"],
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    assert packaging.version.parse(result.stdout.strip())
 
 
 def test_validateArgs_pip_good(tmp_path: pathlib.Path):

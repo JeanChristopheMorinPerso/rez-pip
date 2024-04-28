@@ -92,6 +92,13 @@ def _createParser() -> argparse.ArgumentParser:
         "-h", "--help", action="help", help="Show this help message and exit."
     )
 
+    generalGroup.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=importlib_metadata.version(__package__),
+    )
+
     debugGroup = parser.add_argument_group(title="debug options")
     debugGroup.add_argument(
         "-l",
