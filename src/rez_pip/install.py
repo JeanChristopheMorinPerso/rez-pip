@@ -39,6 +39,9 @@ if typing.TYPE_CHECKING:
 
 
 def isWheelPure(dist: importlib_metadata.Distribution) -> bool:
+    # dist.files should never be empty, but assert to silence mypy.
+    assert dist.files is not None
+
     path = next(
         f for f in dist.files if os.fspath(f.locate()).endswith(".dist-info/WHEEL")
     )
@@ -72,7 +75,7 @@ def getSchemeDict(name: str, target: str) -> typing.Dict[str, str]:
 
 def installWheel(
     package: rez_pip.pip.PackageInfo,
-    wheelPath: pathlib.Path,
+    wheelPath: str,
     targetPath: str,
 ) -> importlib_metadata.Distribution:
     # TODO: Technically, target should be optional. We will always want to install in "pip install --target"
@@ -86,7 +89,7 @@ def installWheel(
     )
 
     _LOG.debug(f"Installing {wheelPath} into {targetPath!r}")
-    with installer.sources.WheelFile.open(wheelPath) as source:
+    with installer.sources.WheelFile.open(pathlib.Path(wheelPath)) as source:
         installer.install(
             source=source,
             destination=destination,

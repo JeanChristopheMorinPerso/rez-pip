@@ -67,7 +67,7 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
     def version(self) -> str:
         return self.metadata.version
 
-    def isDownloadRequired(self):
+    def isDownloadRequired(self) -> bool:
         return not self.download_info.url.startswith("file://")
 
     @property

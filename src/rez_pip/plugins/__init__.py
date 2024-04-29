@@ -140,7 +140,11 @@ def _getHookImplementations() -> typing.Dict[str, typing.List[str]]:
 
     implementations = {}
     for name, plugin in manager.list_name_plugin():
-        implementations[name] = [
-            caller.name for caller in manager.get_hookcallers(plugin)
-        ]
+        hookcallers = manager.get_hookcallers(plugin)
+
+        # hookcallers will never be None because we get the names from list_name_plugin.
+        # But it silences mypy.
+        assert hookcallers is not None
+
+        implementations[name] = [caller.name for caller in hookcallers]
     return implementations
