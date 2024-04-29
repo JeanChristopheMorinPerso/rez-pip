@@ -1,23 +1,17 @@
 """Plugin system."""
 
-import sys
 import typing
 import logging
 import pkgutil
 import functools
 import importlib
-import collections.abc
-
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
 
 import pluggy
 import rez.package_maker
 
 if typing.TYPE_CHECKING:
     import rez_pip.pip
+    import rez_pip.compat
 
 __all__ = [
     "hookimpl",
@@ -39,8 +33,8 @@ class PluginSpec:
     @hookspec
     def prePipResolve(
         self,
-        packages: collections.abc.Sequence[str],  # Immutable
-        requirements: collections.abc.Sequence[str],  # Immutable
+        packages: rez_pip.compat.Sequence[str],  # Immutable
+        requirements: rez_pip.compat.Sequence[str],  # Immutable
     ) -> None:
         """
         Take an action before resolving the packages using pip.
@@ -49,7 +43,7 @@ class PluginSpec:
 
     @hookspec
     def postPipResolve(
-        self, packages: collections.abc.Sequence["rez_pip.pip.PackageInfo"]  # Immutable
+        self, packages: rez_pip.compat.Sequence["rez_pip.pip.PackageInfo"]  # Immutable
     ) -> None:
         """
         Take an action after resolving the packages using pip.
@@ -58,8 +52,8 @@ class PluginSpec:
 
     @hookspec
     def groupPackages(  # type: ignore[empty-body]
-        self, packages: collections.abc.MutableSequence["rez_pip.pip.PackageInfo"]
-    ) -> collections.abc.Sequence["rez_pip.pip.PackageGroup"]:
+        self, packages: rez_pip.compat.MutableSequence["rez_pip.pip.PackageInfo"]
+    ) -> rez_pip.compat.Sequence["rez_pip.pip.PackageGroup"]:
         """
         Merge packages into groups of packages. The name and version of the first package
         in the group will be used as the name and version for the rez package.
@@ -68,7 +62,9 @@ class PluginSpec:
         """
 
     @hookspec
-    def cleanup(self, dist: importlib_metadata.Distribution, path: str) -> None:
+    def cleanup(
+        self, dist: rez_pip.compat.importlib_metadata.Distribution, path: str
+    ) -> None:
         """Cleanup installed distribution"""
 
     @hookspec
@@ -81,8 +77,8 @@ class PluginSpec:
 
 def before(
     hookName: str,
-    hookImpls: collections.abc.Sequence[pluggy.HookImpl],
-    kwargs: collections.abc.Mapping[str, typing.Any],
+    hookImpls: rez_pip.compat.Sequence[pluggy.HookImpl],
+    kwargs: rez_pip.compat.Mapping[str, typing.Any],
 ) -> None:
     """Function that will be called before each hook."""
     _LOG.debug("Calling the %r hooks", hookName)
@@ -91,8 +87,8 @@ def before(
 def after(
     outcome: pluggy.Result[typing.Any],
     hookName: str,
-    hookImpls: collections.abc.Sequence[pluggy.HookImpl],
-    kwargs: collections.abc.Mapping[str, typing.Any],
+    hookImpls: rez_pip.compat.Sequence[pluggy.HookImpl],
+    kwargs: rez_pip.compat.Mapping[str, typing.Any],
 ) -> None:
     """Function that will be called after each hook."""
     _LOG.debug("Called the %r hooks", hookName)

@@ -1,6 +1,4 @@
 import os
-import sys
-import glob
 import pathlib
 import platform
 import subprocess
@@ -10,6 +8,7 @@ import installer.utils
 
 import rez_pip.pip
 import rez_pip.install
+from rez_pip.compat import importlib_metadata
 
 from . import utils
 

@@ -11,11 +11,6 @@ import logging
 import pathlib
 import sysconfig
 
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
-
 if typing.TYPE_CHECKING:
     if sys.version_info >= (3, 8):
         from typing import Literal
@@ -30,6 +25,7 @@ import installer.sources
 import installer.destinations
 
 import rez_pip.pip
+from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger(__name__)
 

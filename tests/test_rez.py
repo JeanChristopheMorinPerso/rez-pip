@@ -1,5 +1,4 @@
 import os
-import sys
 import stat
 import typing
 import pathlib
@@ -12,14 +11,10 @@ import rez.version
 import rez.packages
 import rez.package_repository
 
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
-
 import rez_pip.pip
 import rez_pip.rez
 import rez_pip.utils
+from rez_pip.compat import importlib_metadata
 
 
 def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):

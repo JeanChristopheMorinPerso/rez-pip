@@ -1,5 +1,4 @@
 import os
-import sys
 import typing
 import asyncio
 import hashlib
@@ -9,12 +8,8 @@ import rich
 import aiohttp
 import rich.progress
 
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
-
 import rez_pip.pip
+from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger(__name__)
 _lock = asyncio.Lock()

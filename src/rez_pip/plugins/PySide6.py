@@ -13,14 +13,8 @@ So it's at least a 3 steps process:
 """
 
 import os
-import sys
 import shutil
 import typing
-
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
 
 import packaging.utils
 import packaging.version
@@ -30,6 +24,9 @@ import packaging.requirements
 import rez_pip.pip
 import rez_pip.plugins
 import rez_pip.exceptions
+
+if typing.TYPE_CHECKING:
+    from rez_pip.compat import importlib_metadata
 
 # PySide6 was initiall a single package that had shiboken as a dependency.
 # Starting from 6.3.0, the package was spit in 3, PySide6, PySide6-Essentials and
