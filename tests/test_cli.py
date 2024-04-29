@@ -6,11 +6,6 @@ import argparse
 import subprocess
 import unittest.mock
 
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
-
 import pytest
 import rich.console
 import packaging.version
@@ -19,6 +14,7 @@ import rez_pip.cli
 import rez_pip.pip
 import rez_pip.rez
 import rez_pip.exceptions
+from rez_pip.compat import importlib_metadata
 
 
 def test_parseArgs_empty():

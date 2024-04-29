@@ -9,16 +9,12 @@ if sys.version_info[:2] < (3, 8):
 else:
     from unittest import mock
 
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
-
 import pytest
 import aiohttp
 
 import rez_pip.pip
 import rez_pip.download
+from rez_pip.compat import importlib_metadata
 
 
 @pytest.fixture(scope="module", autouse=True)

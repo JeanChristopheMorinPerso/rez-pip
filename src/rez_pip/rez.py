@@ -1,16 +1,10 @@
 import os
-import sys
 import copy
 import shutil
 import typing
 import logging
 import pathlib
 import itertools
-
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
 
 import rez.config
 import rez.version
@@ -21,6 +15,7 @@ import rez.resolved_context
 import rez_pip.pip
 import rez_pip.utils
 import rez_pip.plugins
+from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger(__name__)
 

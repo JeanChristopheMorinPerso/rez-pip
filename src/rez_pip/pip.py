@@ -8,16 +8,14 @@ import itertools
 import subprocess
 import dataclasses
 
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
-
 import dataclasses_json
 
 import rez_pip.data
 import rez_pip.plugins
 import rez_pip.exceptions
+
+if typing.TYPE_CHECKING:
+    import importlib.metadata as importlib_metadata
 
 _LOG = logging.getLogger(__name__)
 

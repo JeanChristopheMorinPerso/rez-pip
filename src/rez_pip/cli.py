@@ -10,11 +10,6 @@ import tempfile
 import itertools
 import subprocess
 
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
-
 import rich
 import rich.text
 import rich.panel
@@ -30,6 +25,7 @@ import rez_pip.plugins
 import rez_pip.install
 import rez_pip.download
 import rez_pip.exceptions
+from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger("rez_pip.cli")
 

@@ -1,12 +1,6 @@
-import sys
 import typing
 import logging
 import dataclasses
-
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
 
 import rez.system
 import rez.version
@@ -15,6 +9,9 @@ import packaging.specifiers
 import packaging.requirements
 
 import rez_pip.install
+
+if typing.TYPE_CHECKING:
+    from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger(__name__)
 
