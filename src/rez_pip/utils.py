@@ -463,7 +463,7 @@ def convertMarker(marker: str) -> typing.List[str]:
 
 
 def getRezRequirements(
-    installedDist: importlib_metadata.Distribution,
+    installedDist: "importlib_metadata.Distribution",
     pythonVersion: rez.version.Version,
     nameCasings: typing.Optional[typing.List[str]] = None,
 ) -> RequirementsDict:

@@ -33,8 +33,8 @@ class PluginSpec:
     @hookspec
     def prePipResolve(
         self,
-        packages: rez_pip.compat.Sequence[str],  # Immutable
-        requirements: rez_pip.compat.Sequence[str],  # Immutable
+        packages: "rez_pip.compat.Sequence[str]",  # Immutable
+        requirements: "rez_pip.compat.Sequence[str]",  # Immutable
     ) -> None:
         """
         Take an action before resolving the packages using pip.
@@ -43,7 +43,8 @@ class PluginSpec:
 
     @hookspec
     def postPipResolve(
-        self, packages: rez_pip.compat.Sequence["rez_pip.pip.PackageInfo"]  # Immutable
+        self,
+        packages: 'rez_pip.compat.Sequence["rez_pip.pip.PackageInfo"]',  # Immutable
     ) -> None:
         """
         Take an action after resolving the packages using pip.
@@ -52,8 +53,8 @@ class PluginSpec:
 
     @hookspec
     def groupPackages(  # type: ignore[empty-body]
-        self, packages: rez_pip.compat.MutableSequence["rez_pip.pip.PackageInfo"]
-    ) -> rez_pip.compat.Sequence["rez_pip.pip.PackageGroup"]:
+        self, packages: 'rez_pip.compat.MutableSequence["rez_pip.pip.PackageInfo"]'
+    ) -> 'rez_pip.compat.Sequence["rez_pip.pip.PackageGroup"]':
         """
         Merge packages into groups of packages. The name and version of the first package
         in the group will be used as the name and version for the rez package.
@@ -63,7 +64,7 @@ class PluginSpec:
 
     @hookspec
     def cleanup(
-        self, dist: rez_pip.compat.importlib_metadata.Distribution, path: str
+        self, dist: "rez_pip.compat.importlib_metadata.Distribution", path: str
     ) -> None:
         """Cleanup installed distribution"""
 
@@ -77,8 +78,8 @@ class PluginSpec:
 
 def before(
     hookName: str,
-    hookImpls: rez_pip.compat.Sequence[pluggy.HookImpl],
-    kwargs: rez_pip.compat.Mapping[str, typing.Any],
+    hookImpls: "rez_pip.compat.Sequence[pluggy.HookImpl]",
+    kwargs: "rez_pip.compat.Mapping[str, typing.Any]",
 ) -> None:
     """Function that will be called before each hook."""
     _LOG.debug("Calling the %r hooks", hookName)
@@ -87,8 +88,8 @@ def before(
 def after(
     outcome: pluggy.Result[typing.Any],
     hookName: str,
-    hookImpls: rez_pip.compat.Sequence[pluggy.HookImpl],
-    kwargs: rez_pip.compat.Mapping[str, typing.Any],
+    hookImpls: "rez_pip.compat.Sequence[pluggy.HookImpl]",
+    kwargs: "rez_pip.compat.Mapping[str, typing.Any]",
 ) -> None:
     """Function that will be called after each hook."""
     _LOG.debug("Called the %r hooks", hookName)

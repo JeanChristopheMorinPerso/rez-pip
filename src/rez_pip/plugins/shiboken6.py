@@ -14,7 +14,7 @@ _LOG = logging.getLogger(__name__)
 
 
 @rez_pip.plugins.hookimpl
-def cleanup(dist: importlib_metadata.Distribution, path: str) -> None:
+def cleanup(dist: "importlib_metadata.Distribution", path: str) -> None:
     if packaging.utils.canonicalize_name(dist.name) != "shiboken6":
         return
 
