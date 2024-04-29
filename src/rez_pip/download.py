@@ -1,5 +1,4 @@
 import os
-import sys
 import typing
 import asyncio
 import hashlib
@@ -9,25 +8,21 @@ import rich
 import aiohttp
 import rich.progress
 
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
-
 import rez_pip.pip
+from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger(__name__)
 _lock = asyncio.Lock()
 
 
 def downloadPackages(
-    packages: typing.List[rez_pip.pip.PackageInfo], dest: str
+    packageGroups: typing.List[rez_pip.pip.PackageGroup], dest: str
 ) -> typing.List[str]:
-    return asyncio.run(_downloadPackages(packages, dest))
+    return asyncio.run(_downloadPackages(packageGroups, dest))
 
 
 async def _downloadPackages(
-    packages: typing.List[rez_pip.pip.PackageInfo], dest: str
+    packageGroups: typing.List[rez_pip.pip.PackageGroup], dest: str
 ) -> typing.List[str]:
     items: typing.List[
         typing.Coroutine[typing.Any, typing.Any, typing.Optional[str]]
@@ -47,18 +42,33 @@ async def _downloadPackages(
             tasks: typing.Dict[str, rich.progress.TaskID] = {}
 
             # Create all the downlod tasks first
-            for package in packages:
-                tasks[package.name] = progress.add_task(package.name)
+            numPackages = 0
+            for group in packageGroups:
+                for package in group.packages:
+                    if not package.isDownloadRequired():
+                        continue
+
+                    numPackages += 1
+                    tasks[package.name] = progress.add_task(package.name)
 
             # Then create the "total" progress bar. This ensures that total is at the bottom.
-            mainTask = progress.add_task(f"[bold]Total (0/{len(packages)})", total=0)
+            mainTask = progress.add_task(f"[bold]Total (0/{numPackages})", total=0)
 
-            for package in packages:
-                items.append(
-                    _download(
-                        package, dest, session, progress, tasks[package.name], mainTask
+            for group in packageGroups:
+                for package in group.packages:
+                    if not package.isDownloadRequired():
+                        continue
+
+                    items.append(
+                        _download(
+                            package,
+                            dest,
+                            session,
+                            progress,
+                            tasks[package.name],
+                            mainTask,
+                        )
                     )
-                )
 
             wheels = await asyncio.gather(*items)
 
@@ -152,4 +162,5 @@ async def _download(
             mainTaskID, description=f"[bold]Total ({len(completedItems)}/{total})"
         )
 
+    package.localPath = wheelPath
     return wheelPath

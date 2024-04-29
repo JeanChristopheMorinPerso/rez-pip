@@ -11,7 +11,11 @@ import dataclasses
 import dataclasses_json
 
 import rez_pip.data
+import rez_pip.plugins
 import rez_pip.exceptions
+
+if typing.TYPE_CHECKING:
+    import importlib.metadata as importlib_metadata
 
 _LOG = logging.getLogger(__name__)
 
@@ -49,6 +53,10 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
         undefined=dataclasses_json.Undefined.EXCLUDE
     )
 
+    # Must be set once the package is downloaded.
+    # Can be retrieved through the localPath property.
+    __localPath: typing.Optional[str] = None
+
     @property
     def name(self) -> str:
         return self.metadata.name
@@ -56,6 +64,53 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
     @property
     def version(self) -> str:
         return self.metadata.version
+
+    def isDownloadRequired(self) -> bool:
+        return not self.download_info.url.startswith("file://")
+
+    @property
+    def localPath(self) -> str:
+        """Path to the package on disk."""
+        if not self.isDownloadRequired():
+            return self.download_info.url[7:]
+
+        if self.__localPath is None:
+            raise rez_pip.exceptions.RezPipError(
+                f"{self.download_info.url} is not yet downloaded."
+            )
+        return self.__localPath
+
+    @localPath.setter
+    def localPath(self, path: str) -> None:
+        self.__localPath = path
+
+
+class PackageGroup:
+    """A group of package"""
+
+    packages: typing.List[PackageInfo]
+    dists: typing.List["importlib_metadata.Distribution"]
+
+    def __init__(self, packages: typing.List[PackageInfo]) -> None:
+        self.packages = packages
+        self.dists = []
+
+    def __str__(self) -> str:
+        return "PackageGroup({})".format(
+            [f"{p.name}=={p.version}" for p in self.packages]
+        )
+
+    def __repr__(self) -> str:
+        return "PackageGroup({})".format(
+            [f"{p.name}=={p.version}" for p in self.packages]
+        )
+
+    def __bool__(self) -> bool:
+        return bool(self.packages)
+
+    @property
+    def downloadUrls(self) -> typing.List[str]:
+        return [p.download_info.url for p in self.packages]
 
 
 def getBundledPip() -> str:
@@ -71,7 +126,9 @@ def getPackages(
     constraints: typing.List[str],
     extraArgs: typing.List[str],
 ) -> typing.List[PackageInfo]:
-    # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
+    rez_pip.plugins.getHook().prePipResolve(
+        packages=packageNames, requirements=requirements
+    )
 
     _fd, tmpFile = tempfile.mkstemp(prefix="pip-install-output", text=True)
     os.close(_fd)
@@ -137,6 +194,8 @@ def getPackages(
     for rawPackage in rawPackages:
         packageInfo = PackageInfo.from_dict(rawPackage)
         packages.append(packageInfo)
+
+    rez_pip.plugins.getHook().postPipResolve(packages=packages)
 
     return packages
 
