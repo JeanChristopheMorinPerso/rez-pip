@@ -191,7 +191,13 @@ def downloadPythonVersion(
         pytest.param(
             # Nuget doesn't have 3.7.16
             "3.7.9" if platform.system() == "Windows" else "3.7.16",
-            marks=pytest.mark.py37,
+            marks=[
+                pytest.mark.py3,
+                pytest.mark.skipif(
+                    platform.processor() == "arm" and platform.system() == "Darwin",
+                    reason="Python 3.7 is not compatible with Apple Silicon",
+                ),
+            ],
         ),
         pytest.param(
             # Nuget doesn't have 3.9.16
