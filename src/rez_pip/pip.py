@@ -89,7 +89,7 @@ class PackageGroup:
     """A group of package"""
 
     packages: typing.List[PackageInfo]
-    dists: typing.List[importlib_metadata.Distribution]
+    dists: typing.List["importlib_metadata.Distribution"]
 
     def __init__(self, packages: typing.List[PackageInfo]) -> None:
         self.packages = packages

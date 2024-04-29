@@ -101,7 +101,7 @@ def groupPackages(
 
 
 @rez_pip.plugins.hookimpl
-def cleanup(dist: importlib_metadata.Distribution, path: str) -> None:
+def cleanup(dist: "importlib_metadata.Distribution", path: str) -> None:
     if packaging.utils.canonicalize_name(dist.name) not in [
         "pyside6",
         "pyside6-addons",
