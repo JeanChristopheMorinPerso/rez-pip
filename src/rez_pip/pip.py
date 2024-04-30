@@ -3,10 +3,12 @@ import sys
 import json
 import typing
 import logging
+import pathlib
 import tempfile
 import itertools
 import subprocess
 import dataclasses
+import urllib.parse
 
 import dataclasses_json
 
@@ -57,6 +59,36 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
     def version(self) -> str:
         return self.metadata.version
 
+    def isLocal(self) -> bool:
+        """Returns True if the wheel is a local file"""
+        return urllib.parse.urlparse(self.download_info.url).scheme == "file"
+
+    @property
+    def path(self) -> str:
+        if not self.isLocal():
+            raise RuntimeError("Cannot be path of a non local wheel")
+
+        # Taken from https://github.com/python/cpython/pull/107640
+        path = self.download_info.url[5:]
+        if path[:3] == "///":
+            # Remove empty authority
+            path = path[2:]
+        elif path[:12] == "//localhost/":
+            # Remove 'localhost' authority
+            path = path[11:]
+        if path[:3] == "///" or (path[:1] == "/" and path[2:3] in ":|"):
+            # Remove slash before DOS device/UNC path
+            path = path[1:]
+        if path[1:2] == "|":
+            # Replace bar with colon in DOS drive
+            path = path[:1] + ":" + path[2:]
+
+        _path = pathlib.PurePath(os.fsdecode(urllib.parse.unquote_to_bytes(path)))
+        if not _path.is_absolute():
+            raise ValueError(f"URI is not absolute: {self.download_info.url!r}")
+
+        return os.fspath(path)
+
 
 def getBundledPip() -> str:
     return os.path.join(os.path.dirname(rez_pip.data.__file__), "pip.pyz")
@@ -95,7 +127,6 @@ def getPackages(
             "--ignore-installed",
             f"--python-version={pythonVersion}" if pythonVersion else "",
             "--only-binary=:all:",
-            "--target=/tmp/asd",
             "--disable-pip-version-check",
             "--report",  # This is the "magic". Pip will generate a JSON with all the resolved URLs.
             tmpFile,
