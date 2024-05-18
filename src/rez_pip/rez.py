@@ -33,7 +33,17 @@ def createPackage(
     wheelURL: str,
     prefix: typing.Optional[str] = None,
     release: bool = False,
-) -> None:
+    creationCallback: typing.Optional[
+        typing.Callable[
+            [
+                rez.package_maker.PackageMaker,
+                importlib_metadata.Distribution,
+                rez.version.Version,
+            ],
+            None,
+        ]
+    ] = None,
+) -> rez.package_maker.PackageMaker:
     _LOG.info(f"Creating rez package for {dist.name}")
     name = rez_pip.utils.pythontDistributionNameToRez(dist.name)
     version = rez_pip.utils.pythonDistributionVersionToRez(dist.version)
@@ -126,9 +136,13 @@ def createPackage(
 
         pkg.pip["metadata"] = remainingMetadata
 
+        if creationCallback is not None:
+            creationCallback(pkg, dist, pythonVersion)
+
     _LOG.info(
         f"[bold]Created {len(pkg.installed_variants)} variants and skipped {len(pkg.skipped_variants)}"
     )
+    return pkg
 
 
 def _convertMetadata(
@@ -224,25 +238,59 @@ def _convertMetadata(
     return metadata, originalMetadata
 
 
-def getPythonExecutables(
-    range_: typing.Optional[str], packageFamily: str = "python"
-) -> typing.Dict[str, pathlib.Path]:
+def getPythonExecutable(package: rez.packages.Package) -> typing.Optional[pathlib.Path]:
     """
-    Get the available python executable from rez packages.
+    Get the path of the python executable for the given package.
 
-    :param range_: version specifier
-    :param packageFamily: Name of the rez package family for the python package. This allows ot support PyPy, etc.
-    :returns: Dict where the keys are the python versions and values are abolute paths to executables.
+    The package expect to resolve an env with the ``python`` alias available.
+
+    :param package: a rez package, usually named just ``python``.
+    :return: filesystem path to an existing python interpreter or None if not found.
     """
+    resolvedContext = rez.resolved_context.ResolvedContext(
+        [f"{package.name}=={package.version}"]
+    )
+
+    # Make sure that system PATH doens't interfere with the "which" method.
+    resolvedContext.append_sys_path = False
+
+    executablePath: typing.Optional[pathlib.Path] = None
+
+    for trimmedVersion in map(package.version.trim, [2, 1, 0]):
+        path: str = resolvedContext.which(f"python{trimmedVersion}", parent_environ={})
+        if path:
+            executablePath = pathlib.Path(path)
+            break
+
+    return executablePath
+
+
+def findPythonPackages(
+    versionRange: typing.Optional[str],
+    packageName: str = "python",
+) -> typing.List[rez.packages.Package]:
+    """
+    Return a list of python packages on the system matching the given arguments.
+
+    :param versionRange:
+        version range in rez syntax for the packages to retrieve.
+        Use ``"latest"`` to only retrieve the latest version.
+        Use ``None`` to retrieve all the latest major+minor versions.
+    :param packageName: name of the python packages. Usually just "python".
+    :return: list of python rez packages found on the system
+    """
+    latestRange: bool = versionRange == "latest"
+
     all_packages = sorted(
         rez.packages.iter_packages(
-            packageFamily, range_=range_ if range_ != "latest" else None
+            packageName, range_=None if latestRange else versionRange
         ),
         key=lambda x: x.version,
     )
 
     packages: typing.List[rez.packages.Package]
-    if range_ == "latest":
+
+    if latestRange:
         packages = [list(all_packages)[-1]]
     else:
         # Get the latest x.x (major+minor) and ignore anything else.
@@ -257,20 +305,26 @@ def getPythonExecutables(
         # Note that "pkgs" is already in the right order since all_packages is sorted.
         packages = [pkgs[-1] for pkgs in groups]
 
+    return packages
+
+
+def getPythonExecutables(
+    range_: typing.Optional[str], packageFamily: str = "python"
+) -> typing.Dict[str, pathlib.Path]:
+    """
+    Get the available python executable from rez packages.
+
+    :param range_: version specifier
+    :param packageFamily: Name of the rez package family for the python package. This allows ot support PyPy, etc.
+    :returns: Dict where the keys are the python versions and values are abolute paths to executables.
+    """
+    packages = findPythonPackages(versionRange=range_, packageName=packageFamily)
+
     pythons: typing.Dict[str, pathlib.Path] = {}
     for package in packages:
-        resolvedContext = rez.resolved_context.ResolvedContext(
-            [f"{package.name}=={package.version}"]
-        )
-
-        # Make sure that system PATH doens't interfere with the "which" method.
-        resolvedContext.append_sys_path = False
-
-        for trimmedVersion in map(package.version.trim, [2, 1, 0]):
-            path = resolvedContext.which(f"python{trimmedVersion}", parent_environ={})
-            if path:
-                pythons[str(package.version)] = pathlib.Path(path)
-                break
+        executablePath = getPythonExecutable(package)
+        if executablePath:
+            pythons[str(package.version)] = executablePath
         else:
             _LOG.warning(
                 f"Failed to find a Python executable in the {package.qualified_name!r} rez package"
