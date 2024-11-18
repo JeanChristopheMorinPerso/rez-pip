@@ -2,4 +2,4 @@
 # Mypy complains about that. So constraints to less than 3.
 markdown-it-py<3
 # 3.9 dropped support for python 3.7
-aiohttp<3.9.0
+aiohttp<3.12.0
