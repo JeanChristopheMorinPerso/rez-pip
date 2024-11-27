@@ -80,7 +80,7 @@ def createPackage(
 
         wheelsDirAbsolute = pathlib.Path(installedWheelsDir).resolve()
         for src in dist.files:
-            srcAbsolute = src.locate().resolve()
+            srcAbsolute = typing.cast(pathlib.Path, src.locate()).resolve()
             dest = os.path.join(path, srcAbsolute.relative_to(wheelsDirAbsolute))
             if not os.path.exists(os.path.dirname(dest)):
                 os.makedirs(os.path.dirname(dest))
@@ -148,7 +148,7 @@ def createPackage(
 def _convertMetadata(
     dist: importlib_metadata.Distribution,
 ) -> typing.Tuple[typing.Dict[str, typing.Any], typing.Dict[str, typing.Any]]:
-    metadata = {}
+    metadata: typing.Dict[str, typing.Any] = {}
     originalMetadata = copy.deepcopy(dist.metadata.json)
     del originalMetadata["metadata_version"]
     del originalMetadata["name"]
@@ -221,7 +221,7 @@ def _convertMetadata(
     if dist.metadata["Project-URL"]:
         urls = [
             url.strip()
-            for value in dist.metadata.get_all("Project-URL")
+            for value in dist.metadata.get_all("Project-URL", failobj=[])
             for url in value.split(",")
         ]
         helpLinks.extend([list(entry) for entry in zip(urls[::2], urls[1::2])])
