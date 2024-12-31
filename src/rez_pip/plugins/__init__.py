@@ -37,8 +37,14 @@ class PluginSpec:
         requirements: "rez_pip.compat.Sequence[str]",  # Immutable
     ) -> None:
         """
-        Take an action before resolving the packages using pip.
-        The packages argument should not be modified in any way.
+        The pre-pip resolve hook allows a plugin to run some checks *before* resolving the
+        requested packages using pip. The hook **must** not modify the content of the
+        arguments passed to it.
+
+        Some use cases are allowing or disallowing the installation of some packages.
+
+        :param packages: List of packages requested by the user.
+        :param requirements: List of `requirements files <https://pip.pypa.io/en/stable/reference/requirements-file-format/#requirements-file-format>`_ if any.
         """
 
     @hookspec
@@ -47,32 +53,48 @@ class PluginSpec:
         packages: 'rez_pip.compat.Sequence["rez_pip.pip.PackageInfo"]',  # Immutable
     ) -> None:
         """
-        Take an action after resolving the packages using pip.
-        The packages argument should not be modified in any way.
+        The post-pip resolve hook allows a plugin to run some checks *after* resolving the
+        requested packages using pip. The hook **must** not modify the content of the
+        arguments passed to it.
+
+        Some use cases are allowing or disallowing the installation of some packages.
+
+        :param packages: List of resolved packages.
         """
 
     @hookspec
     def groupPackages(  # type: ignore[empty-body]
-        self, packages: 'rez_pip.compat.MutableSequence["rez_pip.pip.PackageInfo"]'
-    ) -> 'rez_pip.compat.Sequence["rez_pip.pip.PackageGroup"]':
+        self,
+        packages: 'rez_pip.compat.MutableSequence["rez_pip.pip.PackageInfo"]',
+    ) -> 'rez_pip.compat.Sequence["rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]"]':
         """
         Merge packages into groups of packages. The name and version of the first package
         in the group will be used as the name and version for the rez package.
 
-        The hook must pop grouped packages out of the "packages" variable.
+        The hook **must** pop grouped packages out of the "packages" variable.
+
+        :param packages: List of resolved packages.
+        :returns: A list of package groups.
         """
 
     @hookspec
     def cleanup(
         self, dist: "rez_pip.compat.importlib_metadata.Distribution", path: str
     ) -> None:
-        """Cleanup installed distribution"""
+        """
+        Cleanup a package post-installation.
+
+        :param dist: Python distribution.
+        :param path: Root path of the rez variant.
+        """
 
     @hookspec
     def metadata(self, package: rez.package_maker.PackageMaker) -> None:
         """
         Modify/inject metadata in the rez package. The plugin is expected to modify
         "package" in place.
+
+        :param package: An instanciate PackageMaker.
         """
 
 

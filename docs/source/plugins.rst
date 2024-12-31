@@ -2,7 +2,34 @@
 Plugins
 =======
 
+rez-pip can be extended using plugins. Plugins can be used to do various things, such as
+modifying packages (both metadata and files), etc.
 
+This page documents the hooks available to plugins and how to implement plugins.
+
+Register a plugin
+=================
+
+rez-pip's plugin system is based on the `pluggy <https://pluggy.readthedocs.io/en/latest/>`_ framework,
+and as such, plugins must be registered using `entry points <https://packaging.python.org/en/latest/specifications/entry-points/>`_.
+
+The entry point group is named `rez-pip`.
+
+In a `pyproject.toml` file, it can be set like this:
+
+.. code-block:: toml
+   :caption: pyproject.toml
+
+   [project.entry-points."rez-pip"]
+   my_plugin = "my_plugin_module"
+
+
+Functions
+=========
+
+.. Not Using autodoc here because the decorator has a complex
+   signature to help type hinters. That signature is not needed
+   for the end user.
 .. py:decorator:: rez_pip.plugins.hookimpl
 
    Decorator used to register a plugin hook.
@@ -10,47 +37,8 @@ Plugins
 Hooks
 =====
 
-.. py:function:: prePipResolve(packages: list[str], requirements: list[str]) -> None
-
-   The pre-pip resolve hook allows a plugin to run some checks *before* resolving the
-   requested packages using pip. The hook **must** not modify the content of the
-   arguments passed to it.
-
-   Some use cases are allowing or disallowing the installation of some packages.
-
-   :param packages: List of packages requested by the user.
-   :param requirements: List of `requirements files <https://pip.pypa.io/en/stable/reference/requirements-file-format/#requirements-file-format>`_ if any.
-
-.. py:function:: postPipResolve(packages: list[rez_pip.pip.PackageInfo]) -> None
-
-   The post-pip resolve hook allows a plugin to run some checks *after* resolving the
-   requested packages using pip. The hook **must** not modify the content of the
-   arguments passed to it.
-
-   Some use cases are allowing or disallowing the installation of some packages.
-
-   :param packages: List of resolved packages.
-
-.. py:function:: groupPackages(packages: list[rez_pip.pip.PackageInfo]) -> list[rez_pip.pip.PackageGroup]:
-
-   Merge packages into groups of packages. The name and version of the first package
-   in the group will be used as the name and version for the rez package.
-
-   The hook **must** pop grouped packages out of the "packages" variable.
-
-   :param packages: List of resolved packages.
-   :returns: A list of package groups.
-
-.. py:function:: metadata(package: rez.package_maker.PackageMaker) -> None
-
-   Modify/inject metadata in the rez package. The plugin is expected to modify
-   "package" in place.
-
-   :param package: An instanciate PackageMaker.
-
-.. py:function:: cleanup(dist: importlib.metadata.Distribution, path: str) -> None
-
-   Cleanup a package post-installation.
-
-   :param dist: Python distribution.
-   :param path: Root path of the rez variant.
+.. autohook:: rez_pip.plugins.PluginSpec.prePipResolve
+.. autohook:: rez_pip.plugins.PluginSpec.postPipResolve
+.. autohook:: rez_pip.plugins.PluginSpec.groupPackages
+.. autohook:: rez_pip.plugins.PluginSpec.cleanup
+.. autohook:: rez_pip.plugins.PluginSpec.metadata
