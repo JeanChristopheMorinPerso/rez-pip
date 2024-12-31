@@ -97,15 +97,9 @@ def test_download(groups: typing.List[Group], tmp_path: pathlib.Path):
                 )
             _groups.append(rez_pip.pip.PackageGroup(infos))
 
-        wheels = rez_pip.download.downloadPackages(_groups, os.fspath(tmp_path))
+        new_groups = rez_pip.download.downloadPackages(_groups, os.fspath(tmp_path))
 
-    assert sorted(wheels) == sorted(
-        [
-            os.fspath(tmp_path / f"{package.name}.whl")
-            for group in groups
-            for package in group.packages
-        ]
-    )
+    assert sorted(new_groups) == sorted(groups)
 
     wheelsMapping = {os.path.basename(wheel).split(".")[0]: wheel for wheel in wheels}
 
@@ -129,8 +123,9 @@ def test_download(groups: typing.List[Group], tmp_path: pathlib.Path):
 
 
 def test_download_skip_local(tmp_path: pathlib.Path):
+    """Test that wheels are not downloaded if they are local wheels"""
     groups = [
-        rez_pip.pip.PackageGroup(
+        rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo](
             [
                 rez_pip.pip.PackageInfo(
                     metadata=rez_pip.pip.Metadata(name="package-a", version="1.0.0"),
@@ -152,10 +147,24 @@ def test_download_skip_local(tmp_path: pathlib.Path):
         wheels = rez_pip.download.downloadPackages(groups, os.fspath(tmp_path))
 
     assert not mocked.called
-    assert wheels == []
+    data = rez_pip.pip.PackageGroup(
+        (
+            rez_pip.pip.DownloadedArtifact.from_dict(
+                {
+                    **groups[0].packages[0].to_dict(),
+                    "_localPath": os.path.join(os.fspath(tmp_path), "package-a"),
+                }
+            ),
+        )
+    )
+    assert wheels == [data]
 
 
 def test_download_multiple_packages_with_failure(tmp_path: pathlib.Path):
+    """
+    Test that a failure in one package does not prevent other
+    packages from being downloaded
+    """
     mockedContent = mock.MagicMock()
     mockedContent.return_value.__aiter__.return_value = [
         [
@@ -371,13 +380,13 @@ def test_download_reuse_if_same_hash(tmp_path: pathlib.Path):
             ),
         ]
 
-    assert sorted(wheels) == [
-        os.fspath(tmp_path / f"{package}.whl") for package in ["package-b", "package-c"]
-    ]
+    assert len(wheels) == 2
+    assert len(wheels[0].packages) == 1
+    assert len(wheels[1].packages) == 1
 
 
 def test_download_redownload_if_hash_changes(tmp_path: pathlib.Path):
-    """Test that wheels are re-used if the sha256 matches"""
+    """Test that wheels are re-downloaded if the sha256 changes"""
     sideEffects = tuple()
     groups = []
 
@@ -447,7 +456,6 @@ def test_download_redownload_if_hash_changes(tmp_path: pathlib.Path):
         ]
 
     groups = []
-    # package-b will be re-used
     for package in ["package-a", "package-b"]:
         content = f"{package} data".encode("utf-8")
 
@@ -514,6 +522,6 @@ def test_download_redownload_if_hash_changes(tmp_path: pathlib.Path):
             ),
         ]
 
-    assert sorted(wheels) == [
-        os.fspath(tmp_path / f"{package}.whl") for package in ["package-a", "package-b"]
-    ]
+    assert len(wheels) == 2
+    assert len(wheels[0].packages) == 1
+    assert len(wheels[1].packages) == 1

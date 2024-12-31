@@ -212,21 +212,27 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
         packageGroups = [group for group in packageGroups if group]
 
         # Add packages that were not grouped.
-        packageGroups += [rez_pip.pip.PackageGroup([package]) for package in packages]
+        packageGroups += [
+            rez_pip.pip.PackageGroup(tuple([package])) for package in packages
+        ]
 
         # TODO: Should we postpone downloading to the last minute if we can?
         _LOG.info("[bold]Downloading...")
 
-        downloadedWheels = rez_pip.download.downloadPackages(packageGroups, wheelsDir)
-        foundLocally = [
-            p
-            for group in packageGroups
-            for p in group.packages
-            if not p.isDownloadRequired()
-        ]
+        packageGroups: typing.List[
+            rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]
+        ] = rez_pip.download.downloadPackages(packageGroups, wheelsDir)
+
+        foundLocally = downloaded = 0
+        for group in packageGroups:
+            for package in group.packages:
+                if not package.isDownloadRequired():
+                    foundLocally += 1
+                else:
+                    downloaded += 1
 
         _LOG.info(
-            f"[bold]Downloaded {len(downloadedWheels)} wheels, skipped {len(foundLocally)} because they resolved to local files"
+            f"[bold]Downloaded {downloaded} wheels, skipped {foundLocally} because they resolved to local files"
         )
 
         with rich.get_console().status(
@@ -234,10 +240,10 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
         ):
             for group in packageGroups:
                 for package in group.packages:
-                    _LOG.info(f"[bold]Installing {package.name} {package.localPath}")
+                    _LOG.info(f"[bold]Installing {package.name} {package.path}")
                     dist = rez_pip.install.installWheel(
                         package,
-                        package.localPath,
+                        package.path,
                         os.path.join(installedWheelsDir, package.name),
                     )
                     group.dists.append(dist)

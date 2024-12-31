@@ -87,7 +87,7 @@ def postPipResolve(packages: typing.List[rez_pip.pip.PackageInfo]) -> None:
 @rez_pip.plugins.hookimpl
 def groupPackages(
     packages: typing.List[rez_pip.pip.PackageInfo],
-) -> typing.List[rez_pip.pip.PackageGroup]:
+) -> typing.List[rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]]:
     data = []
     for index, package in enumerate(packages[:]):
         if packaging.utils.canonicalize_name(package.name) in [
@@ -97,7 +97,13 @@ def groupPackages(
         ]:
             data.append(package)
             packages.remove(package)
-    return [rez_pip.pip.PackageGroup(data)]
+
+    return [
+        rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo](
+            # Casting to get rid of ... in tuple[type, ...]
+            typing.cast(typing.Tuple[rez_pip.pip.PackageInfo], tuple(data))
+        )
+    ]
 
 
 @rez_pip.plugins.hookimpl

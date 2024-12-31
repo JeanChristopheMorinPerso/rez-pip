@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import sys
 import json
@@ -42,7 +44,7 @@ class DownloadInfo(dataclasses_json.DataClassJsonMixin):
     )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class PackageInfo(dataclasses_json.DataClassJsonMixin):
     download_info: DownloadInfo
     is_direct: bool
@@ -52,10 +54,6 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
     dataclass_json_config = dataclasses_json.config(
         undefined=dataclasses_json.Undefined.EXCLUDE
     )
-
-    # Must be set once the package is downloaded.
-    # Can be retrieved through the localPath property.
-    __localPath: typing.Optional[str] = None
 
     @property
     def name(self) -> str:
@@ -68,32 +66,36 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
     def isDownloadRequired(self) -> bool:
         return not self.download_info.url.startswith("file://")
 
+
+@dataclasses.dataclass(frozen=True)  # Nonsense, but we have to do this here too...
+class DownloadedArtifact(PackageInfo):
+    """
+    This is a subclass of PackageInfo. It's used to represent a local wheel.
+    It is immutable so that we can clearly express immutability in plugins.
+    """
+
+    _localPath: str
+
     @property
-    def localPath(self) -> str:
+    def path(self) -> str:
         """Path to the package on disk."""
         if not self.isDownloadRequired():
+            # It's a local file, so we can return the URL (without file://)
             return self.download_info.url[7:]
 
-        if self.__localPath is None:
-            raise rez_pip.exceptions.RezPipError(
-                f"{self.download_info.url} is not yet downloaded."
-            )
-        return self.__localPath
-
-    @localPath.setter
-    def localPath(self, path: str) -> None:
-        self.__localPath = path
+        return self._localPath
 
 
-class PackageGroup:
+T = typing.TypeVar("T", PackageInfo, DownloadedArtifact)
+
+
+class PackageGroup(typing.Generic[T]):
     """A group of package"""
 
-    packages: typing.List[PackageInfo]
-    dists: typing.List["importlib_metadata.Distribution"]
-
-    def __init__(self, packages: typing.List[PackageInfo]) -> None:
-        self.packages = packages
-        self.dists = []
+    # Using a tuple to make it immutable
+    def __init__(self, packages: typing.Tuple[T]) -> None:
+        self.packages: typing.Tuple[T] = packages
+        self.dists: typing.List["importlib_metadata.Distribution"] = []
 
     def __str__(self) -> str:
         return "PackageGroup({})".format(
