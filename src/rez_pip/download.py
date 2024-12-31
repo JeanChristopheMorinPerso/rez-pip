@@ -81,7 +81,7 @@ async def _downloadPackages(
 
                     if not package.isDownloadRequired():
 
-                        async def _return_local():
+                        async def _return_local() -> rez_pip.pip.DownloadedArtifact:
                             return rez_pip.pip.DownloadedArtifact.from_dict(
                                 {"_localPath": wheelPath, **package.to_dict()}
                             )

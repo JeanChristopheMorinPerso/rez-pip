@@ -67,8 +67,10 @@ class PluginSpec:
     @hookspec
     def groupPackages(  # type: ignore[empty-body]
         self,
-        packages: 'rez_pip.compat.MutableSequence["rez_pip.pip.PackageInfo"]',
-    ) -> 'rez_pip.compat.Sequence["rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]"]':
+        packages: rez_pip.compat.MutableSequence[rez_pip.pip.PackageInfo],
+    ) -> rez_pip.compat.Sequence[
+        rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]
+    ]:
         """
         Merge packages into groups of packages. The name and version of the first package
         in the group will be used as the name and version for the rez package.
@@ -81,7 +83,7 @@ class PluginSpec:
 
     @hookspec
     def cleanup(
-        self, dist: "rez_pip.compat.importlib_metadata.Distribution", path: str
+        self, dist: rez_pip.compat.importlib_metadata.Distribution, path: str
     ) -> None:
         """
         Cleanup a package post-installation.
@@ -102,8 +104,8 @@ class PluginSpec:
 
 def before(
     hookName: str,
-    hookImpls: "rez_pip.compat.Sequence[pluggy.HookImpl]",
-    kwargs: "rez_pip.compat.Mapping[str, typing.Any]",
+    hookImpls: rez_pip.compat.Sequence[pluggy.HookImpl],
+    kwargs: rez_pip.compat.Mapping[str, typing.Any],
 ) -> None:
     """Function that will be called before each hook."""
     _LOG.debug("Calling the %r hooks", hookName)
@@ -112,8 +114,8 @@ def before(
 def after(
     outcome: pluggy.Result[typing.Any],
     hookName: str,
-    hookImpls: "rez_pip.compat.Sequence[pluggy.HookImpl]",
-    kwargs: "rez_pip.compat.Mapping[str, typing.Any]",
+    hookImpls: rez_pip.compat.Sequence[pluggy.HookImpl],
+    kwargs: rez_pip.compat.Mapping[str, typing.Any],
 ) -> None:
     """Function that will be called after each hook."""
     _LOG.debug("Called the %r hooks", hookName)

@@ -93,8 +93,8 @@ class PackageGroup(typing.Generic[T]):
     """A group of package"""
 
     # Using a tuple to make it immutable
-    def __init__(self, packages: typing.Tuple[T]) -> None:
-        self.packages: typing.Tuple[T] = packages
+    def __init__(self, packages: typing.Tuple[T, ...]) -> None:
+        self.packages: typing.Tuple[T, ...] = packages
         self.dists: typing.List["importlib_metadata.Distribution"] = []
 
     def __str__(self) -> str:

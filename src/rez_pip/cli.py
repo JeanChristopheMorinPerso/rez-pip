@@ -213,7 +213,8 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
 
         # Add packages that were not grouped.
         packageGroups += [
-            rez_pip.pip.PackageGroup(tuple([package])) for package in packages
+            rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo](tuple([package]))
+            for package in packages
         ]
 
         # TODO: Should we postpone downloading to the last minute if we can?
