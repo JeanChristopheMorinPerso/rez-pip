@@ -1,5 +1,7 @@
 """Plugin system."""
 
+from __future__ import annotations
+
 import typing
 import logging
 import pkgutil
@@ -33,8 +35,8 @@ class PluginSpec:
     @hookspec
     def prePipResolve(
         self,
-        packages: "rez_pip.compat.Sequence[str]",  # Immutable
-        requirements: "rez_pip.compat.Sequence[str]",  # Immutable
+        packages: typing.Tuple[str, ...],  # Immutable
+        requirements: typing.Tuple[str, ...],  # Immutable
     ) -> None:
         """
         The pre-pip resolve hook allows a plugin to run some checks *before* resolving the
@@ -50,7 +52,7 @@ class PluginSpec:
     @hookspec
     def postPipResolve(
         self,
-        packages: 'rez_pip.compat.Sequence["rez_pip.pip.PackageInfo"]',  # Immutable
+        packages: typing.Tuple[rez_pip.pip.PackageInfo, ...],  # Immutable
     ) -> None:
         """
         The post-pip resolve hook allows a plugin to run some checks *after* resolving the

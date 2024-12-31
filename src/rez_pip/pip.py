@@ -128,9 +128,7 @@ def getPackages(
     constraints: typing.List[str],
     extraArgs: typing.List[str],
 ) -> typing.List[PackageInfo]:
-    rez_pip.plugins.getHook().prePipResolve(
-        packages=packageNames, requirements=requirements
-    )
+    rez_pip.plugins.getHook().prePipResolve(tuple(packageNames), tuple(requirements))
 
     _fd, tmpFile = tempfile.mkstemp(prefix="pip-install-output", text=True)
     os.close(_fd)
@@ -197,7 +195,7 @@ def getPackages(
         packageInfo = PackageInfo.from_dict(rawPackage)
         packages.append(packageInfo)
 
-    rez_pip.plugins.getHook().postPipResolve(packages=packages)
+    rez_pip.plugins.getHook().postPipResolve(tuple(packages))
 
     return packages
 
