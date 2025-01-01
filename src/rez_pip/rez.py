@@ -141,39 +141,39 @@ def _convertMetadata(
     del originalMetadata["version"]
 
     # https://packaging.python.org/en/latest/specifications/core-metadata/#summary
-    if dist.metadata["Summary"]:
+    if "Summary" in dist.metadata:
         metadata["summary"] = dist.metadata["Summary"]
         del originalMetadata["summary"]
 
     # https://packaging.python.org/en/latest/specifications/core-metadata/#description
-    if dist.metadata["Description"]:
+    if "Description" in dist.metadata:
         metadata["description"] = dist.metadata["Description"]
         del originalMetadata["description"]
 
     authors = []
 
     # https://packaging.python.org/en/latest/specifications/core-metadata/#author
-    author = dist.metadata["Author"]
-    if author:
-        authors.append(author)
+    if "Author" in dist.metadata:
+        authors.append(dist.metadata["Author"])
         del originalMetadata["author"]
 
     # https://packaging.python.org/en/latest/specifications/core-metadata/#author-email
-    authorEmail = dist.metadata["Author-email"]
-    if authorEmail:
-        authors.extend([email.strip() for email in authorEmail.split(",")])
+    if "Author-email" in dist.metadata:
+        authors.extend(
+            [email.strip() for email in dist.metadata["Author-email"].split(",")]
+        )
         del originalMetadata["author_email"]
 
     # https://packaging.python.org/en/latest/specifications/core-metadata/#maintainer
-    maintainer = dist.metadata["Maintainer"]
-    if maintainer:
-        authors.append(maintainer)
+    if "Maintainer" in dist.metadata:
+        authors.append(dist.metadata["Maintainer"])
         del originalMetadata["maintainer"]
 
     # https://packaging.python.org/en/latest/specifications/core-metadata/#maintainer-email
-    maintainerEmail = dist.metadata["Maintainer-email"]
-    if maintainerEmail:
-        authors.extend([email.strip() for email in maintainerEmail.split(",")])
+    if "Maintainer-email" in dist.metadata:
+        authors.extend(
+            [email.strip() for email in dist.metadata["Maintainer-email"].split(",")]
+        )
         del originalMetadata["maintainer_email"]
 
     if authors:
@@ -181,7 +181,7 @@ def _convertMetadata(
 
     # https://packaging.python.org/en/latest/specifications/core-metadata/#license
     # Prefer the License field and fallback to classifiers if one is present.
-    if dist.metadata["License"]:
+    if "License" in dist.metadata:
         metadata["license"] = dist.metadata["License"]
         del originalMetadata["license"]
     else:
@@ -199,12 +199,12 @@ def _convertMetadata(
     helpLinks = []
 
     # https://packaging.python.org/en/latest/specifications/core-metadata/#home-page
-    if dist.metadata["Home-page"]:
+    if "Home-page" in dist.metadata:
         helpLinks.append(["Home-page", dist.metadata["Home-page"]])
         del originalMetadata["home_page"]
 
     # https://packaging.python.org/en/latest/specifications/core-metadata/#project-url-multiple-use
-    if dist.metadata["Project-URL"]:
+    if "Project-URL" in dist.metadata:
         urls = [
             url.strip()
             for value in dist.metadata.get_all("Project-URL", failobj=[])
@@ -214,7 +214,7 @@ def _convertMetadata(
         del originalMetadata["project_url"]
 
     # https://packaging.python.org/en/latest/specifications/core-metadata/#download-url
-    if dist.metadata["Download-URL"]:
+    if "Download-URL" in dist.metadata:
         helpLinks.append(["Download-URL", dist.metadata["Download-URL"]])
         del originalMetadata["download_url"]
 

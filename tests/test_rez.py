@@ -91,7 +91,7 @@ def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
 
 
 def test_convertMetadata_nothing_to_convert(monkeypatch: pytest.MonkeyPatch):
-    dist = importlib_metadata.Distribution()
+    dist = importlib_metadata.Distribution.at("asd")
     monkeypatch.setattr(
         dist,
         "read_text",
@@ -232,7 +232,7 @@ def test_convertMetadata(
     expectedRemaining,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    dist = importlib_metadata.Distribution()
+    dist = importlib_metadata.Distribution.at("asd")
     monkeypatch.setattr(
         dist,
         "read_text",

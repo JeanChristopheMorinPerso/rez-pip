@@ -3,6 +3,7 @@ name: test
 
 on:
   push:
+    branches: [main]
     paths-ignore:
     - .github/workflows/update_pip.yaml
     - 'docs/**'
