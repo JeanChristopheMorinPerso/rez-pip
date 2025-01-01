@@ -24,19 +24,27 @@ _LOG = logging.getLogger(__name__)
 
 @dataclasses.dataclass
 class Metadata(dataclasses_json.DataClassJsonMixin):
+    """Represents metadata for a package"""
+
     version: str
     name: str
 
 
 @dataclasses.dataclass
 class ArchiveInfo(dataclasses_json.DataClassJsonMixin):
+    #: Archive hash
     hash: str
+
+    #: Archive hashes
     hashes: typing.Dict[str, str]
 
 
 @dataclasses.dataclass
 class DownloadInfo(dataclasses_json.DataClassJsonMixin):
+    #: Download URL
     url: str
+
+    #: Archive information
     archive_info: ArchiveInfo
 
     dataclass_json_config = dataclasses_json.config(
@@ -46,9 +54,18 @@ class DownloadInfo(dataclasses_json.DataClassJsonMixin):
 
 @dataclasses.dataclass(frozen=True)
 class PackageInfo(dataclasses_json.DataClassJsonMixin):
+    """Represents data returned by pip for a single package"""
+
+    #: Download information
     download_info: DownloadInfo
+
+    #: Is this a direct dependency?
     is_direct: bool
+
+    #: Is this a requested package?
     requested: bool
+
+    #: Metadata about the package
     metadata: Metadata
 
     dataclass_json_config = dataclasses_json.config(
@@ -57,10 +74,12 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
 
     @property
     def name(self) -> str:
+        """Package name"""
         return self.metadata.name
 
     @property
     def version(self) -> str:
+        """Package version"""
         return self.metadata.version
 
     def isDownloadRequired(self) -> bool:
@@ -70,7 +89,7 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
 @dataclasses.dataclass(frozen=True)  # Nonsense, but we have to do this here too...
 class DownloadedArtifact(PackageInfo):
     """
-    This is a subclass of PackageInfo. It's used to represent a local wheel.
+    This is a subclass of :class:`PackageInfo`. It's used to represent a local wheel.
     It is immutable so that we can clearly express immutability in plugins.
     """
 
@@ -90,8 +109,12 @@ T = typing.TypeVar("T", PackageInfo, DownloadedArtifact)
 
 
 class PackageGroup(typing.Generic[T]):
-    """A group of package"""
+    """A group of package. The order of packages and dists must be the same."""
+
+    #: List of packages
     packages: typing.Tuple[T, ...]
+
+    #: List of distributions
     dists: typing.List[rez_pip.compat.importlib_metadata.Distribution] = []
 
     # Using a tuple to make it immutable
@@ -113,6 +136,7 @@ class PackageGroup(typing.Generic[T]):
 
     @property
     def downloadUrls(self) -> typing.List[str]:
+        """List of download URLs"""
         return [p.download_info.url for p in self.packages]
 
 
