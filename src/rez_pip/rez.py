@@ -23,7 +23,7 @@ _LOG = logging.getLogger(__name__)
 
 
 def createPackage(
-    packageGroup: rez_pip.pip.PackageGroup,
+    packageGroup: rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact],
     pythonVersion: rez.version.Version,
     installedWheelsDir: str,
     prefix: typing.Optional[str] = None,

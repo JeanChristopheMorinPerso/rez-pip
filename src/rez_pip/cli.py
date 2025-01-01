@@ -206,15 +206,17 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
             )
 
         _LOG.info(f"Resolved {len(packages)} dependencies for python {pythonVersion}")
-        packageGroups: typing.List[rez_pip.pip.PackageGroup] = list(
+        _packageGroups: typing.List[
+            rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]
+        ] = list(
             itertools.chain(*rez_pip.plugins.getHook().groupPackages(packages=packages))  # type: ignore[arg-type]
         )
 
         # Remove empty groups
-        packageGroups = [group for group in packageGroups if group]
+        _packageGroups = [group for group in _packageGroups if group]
 
         # Add packages that were not grouped.
-        packageGroups += [
+        _packageGroups += [
             rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo](tuple([package]))
             for package in packages
         ]
@@ -224,7 +226,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
 
         packageGroups: typing.List[
             rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]
-        ] = rez_pip.download.downloadPackages(packageGroups, wheelsDir)
+        ] = rez_pip.download.downloadPackages(_packageGroups, wheelsDir)
 
         foundLocally = downloaded = 0
         for group in packageGroups:
