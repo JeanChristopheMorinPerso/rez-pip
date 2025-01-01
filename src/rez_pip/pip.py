@@ -17,7 +17,7 @@ import rez_pip.plugins
 import rez_pip.exceptions
 
 if typing.TYPE_CHECKING:
-    import importlib.metadata as importlib_metadata
+    import rez_pip.compat
 
 _LOG = logging.getLogger(__name__)
 
@@ -91,11 +91,12 @@ T = typing.TypeVar("T", PackageInfo, DownloadedArtifact)
 
 class PackageGroup(typing.Generic[T]):
     """A group of package"""
+    packages: typing.Tuple[T, ...]
+    dists: typing.List[rez_pip.compat.importlib_metadata.Distribution] = []
 
     # Using a tuple to make it immutable
     def __init__(self, packages: typing.Tuple[T, ...]) -> None:
-        self.packages: typing.Tuple[T, ...] = packages
-        self.dists: typing.List["importlib_metadata.Distribution"] = []
+        self.packages = packages
 
     def __str__(self) -> str:
         return "PackageGroup({})".format(
@@ -128,7 +129,9 @@ def getPackages(
     constraints: typing.List[str],
     extraArgs: typing.List[str],
 ) -> typing.List[PackageInfo]:
-    rez_pip.plugins.getHook().prePipResolve(tuple(packageNames), tuple(requirements))
+    rez_pip.plugins.getHook().prePipResolve(
+        packages=tuple(packageNames), requirements=tuple(requirements)
+    )
 
     _fd, tmpFile = tempfile.mkstemp(prefix="pip-install-output", text=True)
     os.close(_fd)
@@ -195,7 +198,7 @@ def getPackages(
         packageInfo = PackageInfo.from_dict(rawPackage)
         packages.append(packageInfo)
 
-    rez_pip.plugins.getHook().postPipResolve(tuple(packages))
+    rez_pip.plugins.getHook().postPipResolve(packages=tuple(packages))
 
     return packages
 
