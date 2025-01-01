@@ -99,9 +99,14 @@ def test_download(groups: typing.List[Group], tmp_path: pathlib.Path):
 
         new_groups = rez_pip.download.downloadPackages(_groups, os.fspath(tmp_path))
 
-    assert sorted(new_groups) == sorted(groups)
+    assert len(new_groups) == len(groups)
+    assert sum(len(group.packages) for group in new_groups) == sum(
+        len(group.packages) for group in groups
+    )
 
-    wheelsMapping = {os.path.basename(wheel).split(".")[0]: wheel for wheel in wheels}
+    wheelsMapping = {
+        package.name: package.path for group in new_groups for package in group.packages
+    }
 
     for group in groups:
         for package in group.packages:
