@@ -134,6 +134,13 @@ class PackageGroup(typing.Generic[T]):
     def __bool__(self) -> bool:
         return bool(self.packages)
 
+    def __eq__(self, value: typing.Any) -> bool:
+        """Needed for tests"""
+        if not isinstance(value, PackageGroup):
+            return False
+
+        return self.packages == value.packages and self.dists == value.dists
+
     @property
     def downloadUrls(self) -> typing.List[str]:
         """List of download URLs"""
