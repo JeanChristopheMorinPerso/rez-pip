@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import typing
 import asyncio
@@ -93,7 +95,7 @@ async def _downloadPackages(
                                 package,
                                 session,
                                 progress,
-                                tasks.get(package.name, None),
+                                tasks[package.name],
                                 mainTask,
                                 wheelName,
                                 wheelPath,
@@ -141,7 +143,7 @@ async def _download(
     package: rez_pip.pip.PackageInfo,
     session: aiohttp.ClientSession,
     progress: rich.progress.Progress,
-    taskID: rich.progress.TaskID | None,
+    taskID: rich.progress.TaskID,
     mainTaskID: rich.progress.TaskID,
     wheelName: str,
     wheelPath: str,

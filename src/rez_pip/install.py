@@ -2,6 +2,8 @@
 Code that takes care of installing (extracting) wheels.
 """
 
+from __future__ import annotations
+
 import io
 import os
 import sys

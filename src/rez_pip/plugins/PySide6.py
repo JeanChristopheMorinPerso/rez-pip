@@ -12,6 +12,8 @@ So it's at least a 3 steps process:
 2. Install shiboken + cleanup. The Cleanup could be its own hook here specific to shiboken.
 """
 
+from __future__ import annotations
+
 import os
 import shutil
 import typing
@@ -98,12 +100,7 @@ def groupPackages(
             data.append(package)
             packages.remove(package)
 
-    return [
-        rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo](
-            # Casting to get rid of ... in tuple[type, ...]
-            typing.cast(typing.Tuple[rez_pip.pip.PackageInfo], tuple(data))
-        )
-    ]
+    return [rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo](tuple(data))]
 
 
 @rez_pip.plugins.hookimpl
