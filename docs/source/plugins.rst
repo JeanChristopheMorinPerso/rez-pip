@@ -42,3 +42,18 @@ Hooks
 .. autohook:: rez_pip.plugins.PluginSpec.groupPackages
 .. autohook:: rez_pip.plugins.PluginSpec.cleanup
 .. autohook:: rez_pip.plugins.PluginSpec.metadata
+
+Built-in plugins
+================
+
+rez-pip comes with some built-in plugins that are enabled by default. They exists mostly
+to fix packages that are known to be "broken" if we don't fix them using plugins.
+
+This lists the plugin names and the hooks they implement.
+
+.. rez-pip-autoplugins::
+
+Example
+=======
+
+.. todo:: Add an example plugin

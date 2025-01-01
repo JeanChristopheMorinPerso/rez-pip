@@ -70,5 +70,6 @@ automatically created by the `install.py <https://github.com/AcademySoftwareFoun
    transition
    metadata
    plugins
+   api
    faq
    changelog

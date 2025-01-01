@@ -13,6 +13,7 @@ import sphinx.ext.autodoc
 import sphinx.util.docutils
 
 import rez_pip.cli
+import rez_pip.plugins
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -26,6 +27,7 @@ author = "Rez Developers"
 
 extensions = [
     # first-party extensions
+    "sphinx.ext.todo",
     "sphinx.ext.autodoc",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
@@ -71,6 +73,18 @@ intersphinx_mapping = {
 # Force usage of :external:
 # intersphinx_disabled_reftypes = ["*"]
 
+
+# -- Options for sphinx.ext.autodoc ------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
+
+# autodoc_typehints = "description"
+autodoc_typehints_format = "short"
+autodoc_member_order = "bysource"
+
+# -- Options for sphinx.ext.todo --------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/extensions/todo.html
+
+todo_include_todos = True
 
 # -- Custom ------------------------------------------------------------------
 # Custom stuff
@@ -237,6 +251,48 @@ class RezAutoArgparseDirective(sphinx.util.docutils.SphinxDirective):
         return node.children
 
 
+class RezAutoPlugins(sphinx.util.docutils.SphinxDirective):
+    """
+    Special rez-pip-autoplugins directive. This is quite similar to "autosummary" in some ways.
+    """
+
+    required_arguments = 0
+    optional_arguments = 0
+
+    def run(self) -> list[docutils.nodes.Node]:
+        # Create the node.
+        node = docutils.nodes.section()
+        node.document = self.state.document
+
+        rst = docutils.statemachine.ViewList()
+
+        # Add rezconfig as a dependency to the current document. The document
+        # will be rebuilt if rezconfig changes.
+        self.env.note_dependency(rez_pip.plugins.__file__)
+        self.env.note_dependency(__file__)
+
+        path, lineNumber = self.get_source_info()
+
+        document = []
+        for plugin, hooks in rez_pip.plugins._getHookImplementations().items():
+            hooks = [f":func:`{hook}`" for hook in hooks]
+            document.append(f"* {plugin.split('.')[-1]}: {', '.join(hooks)}")
+
+        document = "\n".join(document)
+
+        # Add each line to the view list.
+        for index, line in enumerate(document.split("\n")):
+            # Note to future people that will look at this.
+            # "line" has to be a single line! It can't be a line like "this\nthat".
+            rst.append(line, path, lineNumber + index)
+
+        # Finally, convert the rst into the appropriate docutils/sphinx nodes.
+        sphinx.util.nodes.nested_parse_with_titles(self.state, rst, node)
+
+        # Return the generated nodes.
+        return node.children
+
+
 def autodoc_process_signature(
     app: sphinx.application.Sphinx,
     what: str,
@@ -248,15 +304,15 @@ def autodoc_process_signature(
 ):
     for name in ["Sequence", "Mapping", "MutableSequence"]:
         signature = signature.replace(
-            f"rez_pip.compat.{name}", f"collections.abc.{name}"
+            f"rez_pip.compat.{name}", f"~collections.abc.{name}"
         )
         if return_annotation:
             return_annotation = return_annotation.replace(
-                f"rez_pip.compat.{name}", f"collections.abc.{name}"
+                f"rez_pip.compat.{name}", f"~collections.abc.{name}"
             )
 
     signature = signature.replace(
-        "rez_pip.compat.importlib_metadata", "importlib.metadata"
+        "rez_pip.compat.importlib_metadata", "~importlib.metadata"
     )
 
     return signature, return_annotation
@@ -279,6 +335,10 @@ class HookDocumenter(sphinx.ext.autodoc.FunctionDocumenter):
         """
         sig = super().format_signature(**kwargs)
         sig = re.sub(r"\(self(,\s)?", "(", sig)
+
+        # Also force short names for our own types
+        sig = sig.replace("rez_pip.", "~rez_pip.")
+
         return sig
 
     def add_directive_header(self, sig):
@@ -296,6 +356,7 @@ class HookDocumenter(sphinx.ext.autodoc.FunctionDocumenter):
 
 def setup(app: sphinx.application.Sphinx):
     app.add_directive("rez-autoargparse", RezAutoArgparseDirective)
+    app.add_directive("rez-pip-autoplugins", RezAutoPlugins)
     app.add_transform(ReplaceGHRefs)
 
     app.connect("autodoc-process-signature", autodoc_process_signature)
