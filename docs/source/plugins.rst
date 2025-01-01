@@ -7,6 +7,11 @@ modifying packages (both metadata and files), etc.
 
 This page documents the hooks available to plugins and how to implement plugins.
 
+List installed plugins
+======================
+
+To list all installed plugins, use the :option:`--list-plugins` command line argument.
+
 Register a plugin
 =================
 

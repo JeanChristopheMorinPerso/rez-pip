@@ -1,5 +1,3 @@
-import typing
-
 import pluggy
 
 import rez_pip.plugins

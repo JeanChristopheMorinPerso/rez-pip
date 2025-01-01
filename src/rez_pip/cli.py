@@ -212,6 +212,12 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
             itertools.chain(*rez_pip.plugins.getHook().groupPackages(packages=packages))  # type: ignore[arg-type]
         )
 
+        # TODO: Verify that no packages are in two or more groups? It should theorically
+        # not be possible since plugins are called one after the other? But it could happen
+        # if a plugin forgets to pop items from the package list... The problem is that we
+        # can't know which plugin did what, so we could only say "something went wrong"
+        # and can't point to which plugin is at fault.
+
         # Remove empty groups
         _packageGroups = [group for group in _packageGroups if group]
 

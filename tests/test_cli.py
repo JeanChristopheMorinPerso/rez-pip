@@ -367,3 +367,19 @@ rez python packages:
 
 """
     )
+
+
+def test_list_plugins(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture):
+    monkeypatch.setattr(sys, "argv", ["rez-pip", "--list-plugins"])
+
+    assert rez_pip.cli.run() == 0
+
+    output = capsys.readouterr().out
+    output = "\n".join(map(str.strip, output.split("\n")))
+    assert (
+        output
+        == """Name               Hooks
+rez_pip.PySide6    cleanup, groupPackages, postPipResolve, prePipResolve
+rez_pip.shiboken6  cleanup
+"""
+    )

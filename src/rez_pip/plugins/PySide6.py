@@ -1,15 +1,4 @@
 """PySide6 plugin.
-
-For PySide6, we need a merge hook. If User says "install PySide6", we need to install PySide6, PySide6-Addons and PySide6-Essentials and shiboken6.
-
-But PySide6, PySide6-Addons and PySide6-Essentials have to be merged. Additionally, shiboken6 needs to be broken down to remove PySide6 (core).
-Because shiboken6 vendors PySide6-core... See https://inspector.pypi.io/project/shiboken6/6.6.1/packages/bb/72/e54f758e49e8da0dcd9490d006c41a814b0e56898ce4ca054d60cdba97bd/shiboken6-6.6.1-cp38-abi3-manylinux_2_28_x86_64.whl/.
-
-On Windows, the PySide6/openssl folder has to be added to PATH, see https://inspector.pypi.io/project/pyside6/6.6.1/packages/ec/3d/1da1b88d74cb5318466156bac91f17ad4272c6c83a973e107ad9a9085009/PySide6-6.6.1-cp38-abi3-win_amd64.whl/PySide6/__init__.py#line.81.
-
-So it's at least a 3 steps process:
-1. Merge PySide6, PySide6-Essentials and PySide6-Addons into the same install. Unvendor shiboken.
-2. Install shiboken + cleanup. The Cleanup could be its own hook here specific to shiboken.
 """
 
 from __future__ import annotations
@@ -17,6 +6,7 @@ from __future__ import annotations
 import os
 import shutil
 import typing
+import logging
 
 import packaging.utils
 import packaging.version
@@ -30,15 +20,21 @@ import rez_pip.exceptions
 if typing.TYPE_CHECKING:
     from rez_pip.compat import importlib_metadata
 
-# PySide6 was initiall a single package that had shiboken as a dependency.
-# Starting from 6.3.0, the package was spit in 3, PySide6, PySide6-Essentials and
-# PySide6-Addons.
+_LOG = logging.getLogger(__name__)
 
 
 @rez_pip.plugins.hookimpl
 def prePipResolve(
-    packages: typing.List[str],
+    packages: typing.Tuple[str],
 ) -> None:
+    """
+    PySide6 was initially a single package that had shiboken as a dependency.
+    Starting from 6.3.0, the package was spit in 3, PySide6, PySide6-Essentials and
+    PySide6-Addons.
+
+    So we need to intercept what the user installs and install all 3 packages together.
+    Not doing that would result in a broken install (eventually).
+    """
     pyside6Seen = False
     variantsSeens = []
 
@@ -60,7 +56,7 @@ def prePipResolve(
 
 
 @rez_pip.plugins.hookimpl
-def postPipResolve(packages: typing.List[rez_pip.pip.PackageInfo]) -> None:
+def postPipResolve(packages: typing.Tuple[rez_pip.pip.PackageInfo]) -> None:
     """
     This hook is implemented out of extra caution. We really don't want PySide6-Addons
     or PySide6-Essentials to be installed without PySide6.
@@ -91,7 +87,7 @@ def groupPackages(
     packages: typing.List[rez_pip.pip.PackageInfo],
 ) -> typing.List[rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]]:
     data = []
-    for index, package in enumerate(packages[:]):
+    for package in packages[:]:
         if packaging.utils.canonicalize_name(package.name) in [
             "pyside6",
             "pyside6-addons",
@@ -116,5 +112,10 @@ def cleanup(dist: "importlib_metadata.Distribution", path: str) -> None:
     # PySide6 >=6.3, <6.6.2 were shipping some shiboken6 folders by mistake.
     # Not removing these extra folders would stop python from being able to import
     # the correct shiboken (that lives in a separate rez package).
-    shutil.rmtree(os.path.join(path, "python", "shiboken6"))
-    shutil.rmtree(os.path.join(path, "python", "shiboken6_generator"))
+    for innerpath in [
+        os.path.join(path, "python", "shiboken6"),
+        os.path.join(path, "python", "shiboken6_generator"),
+    ]:
+        if os.path.exists(innerpath):
+            _LOG.debug("Removing %r", innerpath)
+            shutil.rmtree(innerpath)
