@@ -11,6 +11,7 @@ import urllib.request
 
 import pytest
 import rez.config
+import rez.system
 import rez.packages
 import rez.package_bind
 import rez.package_maker
@@ -132,6 +133,13 @@ def hardenRezConfig(tmp_path_factory: pytest.TempPathFactory):
     )
     with rez.config._replace_config(defaultConfig):
         yield
+
+
+@pytest.fixture(scope="function", autouse=True)
+def resetRez():
+    """Reset rez caches to make sure we don't leak anything between tests"""
+    yield
+    rez.system.system.clear_caches()
 
 
 @pytest.fixture(scope="session")
