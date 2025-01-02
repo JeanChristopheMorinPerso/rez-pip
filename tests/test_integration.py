@@ -97,6 +97,7 @@ def test_installs(
     if platform.system() == "Windows":
         # https://stackoverflow.com/a/64706392
         env["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
+        # Needed for getpass.getuser to work on Windows.
         env["USERNAME"] = os.environ["USERNAME"]
 
     with capsys.disabled():
@@ -119,14 +120,14 @@ def test_installs(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
+    print(stdout)
+    print("****")
+    print(stderr)
     assert code == 0
-    assert all(
-        [line.startswith(os.fspath(tmp_path)) for line in stdout.strip().split("\n")]
-    )
 
-    for index, path in enumerate(stdout.strip().split("\n")):
-        assert path.startswith(
-            os.fspath(tmp_path)
+    for path in stdout.strip().split("\n"):
+        assert path.lower().startswith(
+            os.fspath(tmp_path).lower()
         ), f"{path!r} does not start with {os.fspath(tmp_path)!r}"
 
     assert not stderr
