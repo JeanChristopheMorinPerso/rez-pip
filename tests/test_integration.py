@@ -86,18 +86,21 @@ def test_installs(
         pythonRezPackage,
     ]
 
+    env = {
+        "REZ_PACKAGES_PATH": os.pathsep.join([rezRepo, os.fspath(tmp_path)]),
+        "REZ_DISABLE_HOME_CONFIG": "1",
+        "COVERAGE_PROCESS_START": os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), ".coveragerc"
+        ),
+        "PYTHONPATH": os.path.dirname(__file__),
+    }
+    if platform.system() == "Windows":
+        # https://stackoverflow.com/a/64706392
+        env["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
+        env["USERNAME"] = os.environ["USERNAME"]
+
     with capsys.disabled():
-        subprocess.check_call(
-            command,
-            env={
-                "REZ_PACKAGES_PATH": os.pathsep.join([rezRepo, os.fspath(tmp_path)]),
-                "REZ_DISABLE_HOME_CONFIG": "1",
-                "COVERAGE_PROCESS_START": os.path.join(
-                    os.path.dirname(os.path.dirname(__file__)), ".coveragerc"
-                ),
-                "PYTHONPATH": os.path.dirname(__file__),
-            },
-        )
+        subprocess.check_call(command, env=env)
 
     ctx = rez.resolved_context.ResolvedContext(
         packagesToInstall + [f"python-{pythonRezPackage}"],
