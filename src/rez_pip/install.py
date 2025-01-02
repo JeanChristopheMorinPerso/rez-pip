@@ -2,6 +2,8 @@
 Code that takes care of installing (extracting) wheels.
 """
 
+from __future__ import annotations
+
 import io
 import os
 import sys
@@ -10,11 +12,6 @@ import zipfile
 import logging
 import pathlib
 import sysconfig
-
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
 
 if typing.TYPE_CHECKING:
     if sys.version_info >= (3, 8):
@@ -30,6 +27,7 @@ import installer.sources
 import installer.destinations
 
 import rez_pip.pip
+from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger(__name__)
 
@@ -38,9 +36,17 @@ if typing.TYPE_CHECKING:
     ScriptSection = Literal["console", "gui"]
 
 
-def isWheelPure(source: installer.sources.WheelSource) -> bool:
-    stream = source.read_dist_info("WHEEL")
-    metadata = installer.utils.parse_metadata_file(stream)
+def isWheelPure(dist: importlib_metadata.Distribution) -> bool:
+    # dist.files should never be empty, but assert to silence mypy.
+    assert dist.files is not None
+
+    path = next(
+        f
+        for f in dist.files
+        if os.fspath(f.locate()).endswith(os.path.join(".dist-info", "WHEEL"))
+    )
+    with open(path.locate()) as fd:
+        metadata = installer.utils.parse_metadata_file(fd.read())
     return typing.cast(str, metadata["Root-Is-Purelib"]) == "true"
 
 
@@ -69,9 +75,9 @@ def getSchemeDict(name: str, target: str) -> typing.Dict[str, str]:
 
 def installWheel(
     package: rez_pip.pip.PackageInfo,
-    wheelPath: pathlib.Path,
+    wheelPath: str,
     targetPath: str,
-) -> typing.Tuple[importlib_metadata.Distribution, bool]:
+) -> importlib_metadata.Distribution:
     # TODO: Technically, target should be optional. We will always want to install in "pip install --target"
     #       mode. So right now it's a CLI option for debugging purposes.
 
@@ -82,11 +88,8 @@ def installWheel(
         script_kind=installer.utils.get_launcher_kind(),
     )
 
-    isPure = True
     _LOG.debug(f"Installing {wheelPath} into {targetPath!r}")
-    with installer.sources.WheelFile.open(wheelPath) as source:
-        isPure = isWheelPure(source)
-
+    with installer.sources.WheelFile.open(pathlib.Path(wheelPath)) as source:
         installer.install(
             source=source,
             destination=destination,
@@ -119,7 +122,7 @@ def installWheel(
         if not dist.files:
             raise RuntimeError(f"{path!r} does not exist!")
 
-    return dist, isPure
+    return dist
 
 
 # TODO: Document where this code comes from.

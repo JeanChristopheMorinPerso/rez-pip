@@ -15,6 +15,68 @@ import rez_pip.exceptions
 from . import utils
 
 
+@pytest.mark.parametrize(
+    "url,shouldDownload",
+    [
+        (
+            "https://pypi.org/packages/package_a/package_a-1.0.0-py2.py3-none-any.whl",
+            True,
+        ),
+        ("file:///tmp/asd.whl", False),
+    ],
+)
+def test_PackageInfo(url: str, shouldDownload: bool):
+    info = rez_pip.pip.PackageInfo(
+        rez_pip.pip.DownloadInfo(
+            url,
+            rez_pip.pip.ArchiveInfo(
+                "sha256=<val>",
+                {"sha256": "<val>"},
+            ),
+        ),
+        False,
+        True,
+        rez_pip.pip.Metadata(
+            "1.0.0",
+            "package_a",
+        ),
+    )
+
+    assert info.name == "package_a"
+    assert info.version == "1.0.0"
+    assert info.isDownloadRequired() == shouldDownload
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://pypi.org/packages/package_a/package_a-1.0.0-py2.py3-none-any.whl",
+        "file:///tmp/package_a-1.0.0-py2.py3-none-any.whl",
+    ],
+)
+def test_DownloadedArtifact(url: str):
+    info = rez_pip.pip.DownloadedArtifact(
+        rez_pip.pip.DownloadInfo(
+            url,
+            rez_pip.pip.ArchiveInfo(
+                "sha256=<val>",
+                {"sha256": "<val>"},
+            ),
+        ),
+        False,
+        True,
+        rez_pip.pip.Metadata(
+            "1.0.0",
+            "package_a",
+        ),
+        "/tmp/package_a-1.0.0-py2.py3-none-any.whl",
+    )
+
+    assert info.name == "package_a"
+    assert info.version == "1.0.0"
+    assert info.path == "/tmp/package_a-1.0.0-py2.py3-none-any.whl"
+
+
 def test_getBundledPip():
     """Test that the bundled pip exists and can be executed"""
     assert os.path.exists(rez_pip.pip.getBundledPip())

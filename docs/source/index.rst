@@ -69,5 +69,7 @@ automatically created by the `install.py <https://github.com/AcademySoftwareFoun
    command
    transition
    metadata
+   plugins
+   api
    faq
    changelog

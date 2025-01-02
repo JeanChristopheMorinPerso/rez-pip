@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import sys
 import json
@@ -11,26 +13,38 @@ import dataclasses
 import dataclasses_json
 
 import rez_pip.data
+import rez_pip.plugins
 import rez_pip.exceptions
+
+if typing.TYPE_CHECKING:
+    import rez_pip.compat
 
 _LOG = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
 class Metadata(dataclasses_json.DataClassJsonMixin):
+    """Represents metadata for a package"""
+
     version: str
     name: str
 
 
 @dataclasses.dataclass
 class ArchiveInfo(dataclasses_json.DataClassJsonMixin):
+    #: Archive hash
     hash: str
+
+    #: Archive hashes
     hashes: typing.Dict[str, str]
 
 
 @dataclasses.dataclass
 class DownloadInfo(dataclasses_json.DataClassJsonMixin):
+    #: Download URL
     url: str
+
+    #: Archive information
     archive_info: ArchiveInfo
 
     dataclass_json_config = dataclasses_json.config(
@@ -38,11 +52,20 @@ class DownloadInfo(dataclasses_json.DataClassJsonMixin):
     )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class PackageInfo(dataclasses_json.DataClassJsonMixin):
+    """Represents data returned by pip for a single package"""
+
+    #: Download information
     download_info: DownloadInfo
+
+    #: Is this a direct dependency?
     is_direct: bool
+
+    #: Is this a requested package?
     requested: bool
+
+    #: Metadata about the package
     metadata: Metadata
 
     dataclass_json_config = dataclasses_json.config(
@@ -51,11 +74,78 @@ class PackageInfo(dataclasses_json.DataClassJsonMixin):
 
     @property
     def name(self) -> str:
+        """Package name"""
         return self.metadata.name
 
     @property
     def version(self) -> str:
+        """Package version"""
         return self.metadata.version
+
+    def isDownloadRequired(self) -> bool:
+        return not self.download_info.url.startswith("file://")
+
+
+@dataclasses.dataclass(frozen=True)  # Nonsense, but we have to do this here too...
+class DownloadedArtifact(PackageInfo):
+    """
+    This is a subclass of :class:`PackageInfo`. It's used to represent a local wheel.
+    It is immutable so that we can clearly express immutability in plugins.
+    """
+
+    _localPath: str
+
+    @property
+    def path(self) -> str:
+        """Path to the package on disk."""
+        if not self.isDownloadRequired():
+            # It's a local file, so we can return the URL (without file://)
+            return self.download_info.url[7:]
+
+        return self._localPath
+
+
+T = typing.TypeVar("T", PackageInfo, DownloadedArtifact)
+
+
+class PackageGroup(typing.Generic[T]):
+    """A group of package. The order of packages and dists must be the same."""
+
+    #: List of packages
+    packages: typing.Tuple[T, ...]
+
+    #: List of distributions
+    dists: typing.List[rez_pip.compat.importlib_metadata.Distribution]
+
+    # Using a tuple to make it immutable
+    def __init__(self, packages: typing.Tuple[T, ...]) -> None:
+        self.packages = packages
+        self.dists = []
+
+    def __str__(self) -> str:
+        return "PackageGroup({})".format(
+            [f"{p.name}=={p.version}" for p in self.packages]
+        )
+
+    def __repr__(self) -> str:
+        return "PackageGroup({})".format(
+            [f"{p.name}=={p.version}" for p in self.packages]
+        )
+
+    def __bool__(self) -> bool:
+        return bool(self.packages)
+
+    def __eq__(self, value: typing.Any) -> bool:
+        """Needed for tests"""
+        if not isinstance(value, PackageGroup):
+            return False
+
+        return self.packages == value.packages and self.dists == value.dists
+
+    @property
+    def downloadUrls(self) -> typing.List[str]:
+        """List of download URLs"""
+        return [p.download_info.url for p in self.packages]
 
 
 def getBundledPip() -> str:
@@ -71,7 +161,9 @@ def getPackages(
     constraints: typing.List[str],
     extraArgs: typing.List[str],
 ) -> typing.List[PackageInfo]:
-    # python pip.pyz install -q requests --dry-run --ignore-installed --python-version 2.7 --only-binary=:all: --target /tmp/asd --report -
+    rez_pip.plugins.getHook().prePipResolve(
+        packages=tuple(packageNames), requirements=tuple(requirements)
+    )
 
     _fd, tmpFile = tempfile.mkstemp(prefix="pip-install-output", text=True)
     os.close(_fd)
@@ -137,6 +229,8 @@ def getPackages(
     for rawPackage in rawPackages:
         packageInfo = PackageInfo.from_dict(rawPackage)
         packages.append(packageInfo)
+
+    rez_pip.plugins.getHook().postPipResolve(packages=tuple(packages))
 
     return packages
 
