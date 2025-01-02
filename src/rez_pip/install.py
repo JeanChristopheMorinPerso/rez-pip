@@ -41,7 +41,9 @@ def isWheelPure(dist: importlib_metadata.Distribution) -> bool:
     assert dist.files is not None
 
     path = next(
-        f for f in dist.files if os.fspath(f.locate()).endswith(".dist-info/WHEEL")
+        f
+        for f in dist.files
+        if os.fspath(f.locate()).endswith(os.path.join(".dist-info", "WHEEL"))
     )
     with open(path.locate()) as fd:
         metadata = installer.utils.parse_metadata_file(fd.read())
