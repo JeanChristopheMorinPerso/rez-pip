@@ -16,7 +16,7 @@ else:
     from unittest import mock
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="module", autouse=True)
 def setupPluginManager():
     yield utils.initializePluginManager("shiboken6")
 
