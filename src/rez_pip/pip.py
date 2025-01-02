@@ -115,11 +115,12 @@ class PackageGroup(typing.Generic[T]):
     packages: typing.Tuple[T, ...]
 
     #: List of distributions
-    dists: typing.List[rez_pip.compat.importlib_metadata.Distribution] = []
+    dists: typing.List[rez_pip.compat.importlib_metadata.Distribution]
 
     # Using a tuple to make it immutable
     def __init__(self, packages: typing.Tuple[T, ...]) -> None:
         self.packages = packages
+        self.dists = []
 
     def __str__(self) -> str:
         return "PackageGroup({})".format(
