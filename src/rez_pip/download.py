@@ -83,12 +83,16 @@ async def _downloadPackages(
 
                     if not package.isDownloadRequired():
 
-                        async def _return_local() -> rez_pip.pip.DownloadedArtifact:
+                        # Note the subtlety of having to pass variables in the function
+                        # signature. We can't rely on the scoped variable.
+                        async def _return_local(
+                            _wheelPath: str, _package: rez_pip.pip.PackageInfo
+                        ) -> rez_pip.pip.DownloadedArtifact:
                             return rez_pip.pip.DownloadedArtifact.from_dict(
-                                {"_localPath": wheelPath, **package.to_dict()}
+                                {"_localPath": _wheelPath, **_package.to_dict()}
                             )
 
-                        futures.append(_return_local())
+                        futures.append(_return_local(wheelPath, package))
                     else:
                         futures.append(
                             _download(
