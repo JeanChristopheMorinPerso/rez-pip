@@ -326,14 +326,14 @@ class RezPipAutoPluginHooks(sphinx.util.docutils.SphinxDirective):
         klass = getattr(mod, klassname)
 
         methods = [
-            method[0]
+            method
             for method in inspect.getmembers(klass, predicate=inspect.isfunction)
             if not method[0].startswith("_")
         ]
 
         document = []
-        for method in methods:
-            document.append(f".. autohook:: {module}.{klassname}.{method}")
+        for method in sorted(methods, key=lambda x: x[1].__code__.co_firstlineno):
+            document.append(f".. autohook:: {module}.{klassname}.{method[0]}")
 
         document = "\n".join(document)
 

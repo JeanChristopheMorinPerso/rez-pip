@@ -26,9 +26,9 @@ Register a plugin
 rez-pip's plugin system is based on the `pluggy <https://pluggy.readthedocs.io/en/latest/>`_ framework,
 and as such, plugins must be registered using `entry points <https://packaging.python.org/en/latest/specifications/entry-points/>`_.
 
-The entry point group is named `rez-pip`.
+The entry point group is named ``rez-pip``.
 
-In a `pyproject.toml` file, it can be set like this:
+In a ``pyproject.toml`` file, it can be set like this:
 
 .. code-block:: toml
    :caption: pyproject.toml
@@ -49,6 +49,9 @@ Functions
 
 Hooks
 =====
+
+The list of available hooks is provided below. They are listed in the order they
+are called by rez-pip.
 
 .. rez-pip-autopluginhooks:: rez_pip.plugins.PluginSpec
 
