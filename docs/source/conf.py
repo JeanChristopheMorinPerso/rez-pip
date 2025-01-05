@@ -4,13 +4,17 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import re
+import inspect
 import argparse
+import importlib
 
 import docutils.nodes
 import sphinx.transforms
+import sphinx.util.nodes
 import sphinx.application
 import sphinx.ext.autodoc
 import sphinx.util.docutils
+import docutils.statemachine
 
 import rez_pip.cli
 import rez_pip.plugins
@@ -293,6 +297,59 @@ class RezAutoPlugins(sphinx.util.docutils.SphinxDirective):
         return node.children
 
 
+class RezPipAutoPluginHooks(sphinx.util.docutils.SphinxDirective):
+    """
+    Special rez-pip-autopluginhooks directive. This is quite similar to "autosummary" in some ways.
+    """
+
+    required_arguments = 1
+    optional_arguments = 0
+
+    def run(self) -> list[docutils.nodes.Node]:
+        # Create the node.
+        node = docutils.nodes.section()
+        node.document = self.state.document
+
+        rst = docutils.statemachine.ViewList()
+
+        # Add rezconfig as a dependency to the current document. The document
+        # will be rebuilt if rezconfig changes.
+        self.env.note_dependency(rez_pip.plugins.__file__)
+        self.env.note_dependency(__file__)
+
+        path, lineNumber = self.get_source_info()
+
+        fullyQualifiedClassName = self.arguments[0]
+        module, klassname = fullyQualifiedClassName.rsplit(".", 1)
+
+        mod = importlib.import_module(module)
+        klass = getattr(mod, klassname)
+
+        methods = [
+            method[0]
+            for method in inspect.getmembers(klass, predicate=inspect.isfunction)
+            if not method[0].startswith("_")
+        ]
+
+        document = []
+        for method in methods:
+            document.append(f".. autohook:: {module}.{klassname}.{method}")
+
+        document = "\n".join(document)
+
+        # Add each line to the view list.
+        for index, line in enumerate(document.split("\n")):
+            # Note to future people that will look at this.
+            # "line" has to be a single line! It can't be a line like "this\nthat".
+            rst.append(line, path, lineNumber + index)
+
+        # Finally, convert the rst into the appropriate docutils/sphinx nodes.
+        sphinx.util.nodes.nested_parse_with_titles(self.state, rst, node)
+
+        # Return the generated nodes.
+        return node.children
+
+
 def autodoc_process_signature(
     app: sphinx.application.Sphinx,
     what: str,
@@ -357,6 +414,7 @@ class HookDocumenter(sphinx.ext.autodoc.FunctionDocumenter):
 def setup(app: sphinx.application.Sphinx):
     app.add_directive("rez-autoargparse", RezAutoArgparseDirective)
     app.add_directive("rez-pip-autoplugins", RezAutoPlugins)
+    app.add_directive("rez-pip-autopluginhooks", RezPipAutoPluginHooks)
     app.add_transform(ReplaceGHRefs)
 
     app.connect("autodoc-process-signature", autodoc_process_signature)

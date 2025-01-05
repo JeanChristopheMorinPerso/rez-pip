@@ -2,6 +2,14 @@
 Plugins
 =======
 
+.. versionadded:: 0.4.0
+
+.. warning::
+   Plugins are new and have not been tested througfully. There might be bugs, missing
+   features and rough edges.
+
+   We encourage you to try them out and report any issues you might find.
+
 rez-pip can be extended using plugins. Plugins can be used to do various things, such as
 modifying packages (both metadata and files), etc.
 
@@ -42,11 +50,8 @@ Functions
 Hooks
 =====
 
-.. autohook:: rez_pip.plugins.PluginSpec.prePipResolve
-.. autohook:: rez_pip.plugins.PluginSpec.postPipResolve
-.. autohook:: rez_pip.plugins.PluginSpec.groupPackages
-.. autohook:: rez_pip.plugins.PluginSpec.cleanup
-.. autohook:: rez_pip.plugins.PluginSpec.metadata
+.. rez-pip-autopluginhooks:: rez_pip.plugins.PluginSpec
+
 
 Built-in plugins
 ================
@@ -57,8 +62,3 @@ to fix packages that are known to be "broken" if we don't fix them using plugins
 This lists the plugin names and the hooks they implement.
 
 .. rez-pip-autoplugins::
-
-Example
-=======
-
-.. todo:: Add an example plugin

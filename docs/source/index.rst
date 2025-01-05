@@ -22,6 +22,7 @@ Features
   create per python version variants when installing a package that has console scripts.
 * Better output logs.
 * Implemented as an out-of-tree plugin, which means faster development cycle and more frequent releases.
+* :doc:`Plugin system <plugins>` that allows for easy extensibility (experimental).
 * Maintained by the rez maintainers.
 
 Prerequisites
