@@ -82,6 +82,20 @@ class PluginSpec:
         """
 
     @hookspec
+    def patches(
+        self, dist: rez_pip.compat.importlib_metadata.Distribution, path: str
+    ) -> typing.Sequence[str]:
+        """
+        Provide paths to patches to be applied on the source code of a package.
+
+        :param dist: Python distribution.
+        :param path: Root path of the installed content.
+        """
+        # TODO: This will alter files (obviously) and change their hashes.
+        # This could be a problem to verify the integrity of the package.
+        # https://packaging.python.org/en/latest/specifications/recording-installed-packages/#the-record-file
+
+    @hookspec
     def cleanup(
         self, dist: rez_pip.compat.importlib_metadata.Distribution, path: str
     ) -> None:

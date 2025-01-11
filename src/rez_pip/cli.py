@@ -23,6 +23,7 @@ import rich.logging
 import rez_pip.pip
 import rez_pip.rez
 import rez_pip.data
+import rez_pip.patch
 import rez_pip.plugins
 import rez_pip.install
 import rez_pip.download
@@ -251,12 +252,16 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
         ):
             for group in packageGroups:
                 for package in group.packages:
-                    _LOG.info(f"[bold]Installing {package.name} {package.path}")
+                    _LOG.info(f"[bold]Installing {package.name!r} {package.path!r}")
+                    targetPath = os.path.join(installedWheelsDir, package.name)
                     dist = rez_pip.install.installWheel(
                         package,
                         package.path,
-                        os.path.join(installedWheelsDir, package.name),
+                        targetPath,
                     )
+
+                    rez_pip.patch.patch(dist, targetPath)
+
                     group.dists.append(dist)
 
         with rich.get_console().status("[bold]Creating rez packages..."):
