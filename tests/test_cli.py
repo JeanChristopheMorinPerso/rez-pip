@@ -7,7 +7,6 @@ import subprocess
 import unittest.mock
 
 import pytest
-import rich.console
 import packaging.version
 
 import rez_pip.cli
@@ -319,10 +318,10 @@ def test_debug(capsys: pytest.CaptureFixture, monkeypatch: pytest.MonkeyPatch):
             unittest.mock.Mock(stdout="mocked pip config list"),
         ),
     ) as mocked:
-        rez_pip.cli._debug(
-            argparse.Namespace(pip=None, python_version="2.7+"),
-            console=rich.console.Console(),
+        monkeypatch.setattr(
+            sys, "argv", ["rez-pip", "--debug-info", "asd", "--python-version", "2.7+"]
         )
+        assert rez_pip.cli.run() == 0
 
     assert mocked.call_args_list == [
         unittest.mock.call(

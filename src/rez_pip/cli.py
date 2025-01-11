@@ -12,7 +12,6 @@ import tempfile
 import itertools
 import subprocess
 
-import rich
 import rich.text
 import rich.panel
 import rich.table
@@ -24,6 +23,7 @@ import rez_pip.pip
 import rez_pip.rez
 import rez_pip.data
 import rez_pip.patch
+import rez_pip.utils
 import rez_pip.plugins
 import rez_pip.install
 import rez_pip.download
@@ -193,7 +193,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
         installedWheelsDir = os.path.join(pipWorkArea, "installed", pythonVersion)
         os.makedirs(installedWheelsDir, exist_ok=True)
 
-        with rich.get_console().status(
+        with rez_pip.utils.CONSOLE.status(
             f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(args.packages))} (python-{pythonVersion})"
         ):
             packages = rez_pip.pip.getPackages(
@@ -247,7 +247,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
             f"[bold]Downloaded {downloaded} wheels, skipped {foundLocally} because they resolved to local files"
         )
 
-        with rich.get_console().status(
+        with rez_pip.utils.CONSOLE.status(
             f"[bold]Installing wheels into {installedWheelsDir!r}"
         ):
             for group in packageGroups:
@@ -264,7 +264,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
 
                     group.dists.append(dist)
 
-        with rich.get_console().status("[bold]Creating rez packages..."):
+        with rez_pip.utils.CONSOLE.status("[bold]Creating rez packages..."):
             for group in packageGroups:
                 rez_pip.rez.createPackage(
                     group,
@@ -276,7 +276,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
 
 
 def _debug(
-    args: argparse.Namespace, console: rich.console.Console = rich.get_console()
+    args: argparse.Namespace, console: rich.console.Console = rez_pip.utils.CONSOLE
 ) -> None:
     """Print debug information"""
     prefix = "  "
@@ -354,7 +354,7 @@ def _printPlugins() -> None:
     table = rich.table.Table("Name", "Hooks", box=None)
     for plugin, hooks in rez_pip.plugins._getHookImplementations().items():
         table.add_row(plugin, ", ".join(hooks))
-    rich.get_console().print(table)
+    rez_pip.utils.CONSOLE.print(table)
 
 
 def run() -> int:
@@ -387,7 +387,7 @@ def run() -> int:
         _run(args, pipArgs, pipWorkArea)
         return 0
     except rez_pip.exceptions.RezPipError as exc:
-        rich.get_console().print(exc, soft_wrap=True)
+        rez_pip.utils.CONSOLE.print(exc, soft_wrap=True)
         return 1
     finally:
         if not args.keep_tmp_dirs:

@@ -6,6 +6,7 @@ import dataclasses
 
 import rez.system
 import rez.version
+import rich.console
 import packaging.version
 import packaging.specifiers
 import packaging.requirements
@@ -16,6 +17,9 @@ if typing.TYPE_CHECKING:
     from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger(__name__)
+
+
+CONSOLE = rich.console.Console()
 
 
 @dataclasses.dataclass

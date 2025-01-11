@@ -6,10 +6,10 @@ import typing
 import pathlib
 import subprocess
 
-import rich
 import pytest
 
 import rez_pip.pip
+import rez_pip.utils
 import rez_pip.exceptions
 
 from . import utils
@@ -232,8 +232,8 @@ def test_getPackages_error(
             ],
         )
 
-    with rich.get_console().capture() as capture:
-        rich.get_console().print(exc.value, soft_wrap=True)
+    with rez_pip.utils.CONSOLE.capture() as capture:
+        rez_pip.utils.CONSOLE.print(exc.value, soft_wrap=True)
 
     match = re.match(
         r"rez_pip\.exceptions\.PipError: Failed to run pip command\: '.*'",

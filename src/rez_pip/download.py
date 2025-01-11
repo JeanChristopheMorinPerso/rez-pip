@@ -6,11 +6,11 @@ import asyncio
 import hashlib
 import logging
 
-import rich
 import aiohttp
 import rich.progress
 
 import rez_pip.pip
+import rez_pip.utils
 from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ async def _downloadPackages(
             rich.progress.DownloadColumn(),
             rich.progress.TransferSpeedColumn(),
             transient=True,
-            console=rich.get_console(),
+            console=rez_pip.utils.CONSOLE,
         ) as progress:
             tasks: typing.Dict[str, rich.progress.TaskID] = {}
 

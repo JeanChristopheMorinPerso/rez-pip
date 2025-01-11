@@ -16,6 +16,8 @@ import rez.packages
 import rez.package_bind
 import rez.package_maker
 
+import rez_pip.utils
+
 from . import utils
 
 DATA_ROOT_DIR = os.path.join(os.path.dirname(__file__), "data")
@@ -34,6 +36,12 @@ def pytest_runtest_makereport(item: pytest.Item, call):
     # store test results for each phase of a call, which can
     # be "setup", "call", "teardown"
     item.stash.setdefault(phaseReportKey, {})[rep.when] = rep
+
+
+@pytest.fixture(scope="function", autouse=True)
+def patchRichConsole(monkeypatch: pytest.MonkeyPatch):
+    """Patch the rich console so that it doesn't wrap long lines"""
+    monkeypatch.setattr(rez_pip.utils.CONSOLE, "width", 1000)
 
 
 @pytest.fixture(scope="session")
