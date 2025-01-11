@@ -7,6 +7,7 @@ import os
 import shutil
 import typing
 import logging
+import platform
 
 import packaging.utils
 import packaging.version
@@ -14,6 +15,7 @@ import packaging.specifiers
 import packaging.requirements
 
 import rez_pip.pip
+import rez_pip.patch
 import rez_pip.plugins
 import rez_pip.exceptions
 
@@ -97,6 +99,56 @@ def groupPackages(
             packages.remove(package)
 
     return [rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo](tuple(data))]
+
+
+@rez_pip.plugins.hookimpl
+def patches(dist: "importlib_metadata.Distribution", path: str) -> typing.List[str]:
+    if dist.name != "PySide6" or platform.system() != "Windows":
+        return []
+
+    patches: typing.List[str] = []
+
+    # To generate the patches:
+    # 1. run srcipts/get_pyside6_files.py
+    # 2. Look at the output and get the different diffs.
+    # 3. Generate a patch for each version range where there is a diff:
+    # 3.1 cp patches/data/6.3.0/__init__.py patches/data/6.3.0/__init__.py.new
+    # 3.2 vim patches/data/6.3.0/__init__.py.new
+    # 3.3 diff --unified patches/data/6.3.0/__init__.py patches/data/6.3.0/__init__.py.new > src/rez_pip/data/patches/pyside6_6_3_0_win_dll_path.patch
+    # 3.4 Edit src/rez_pip/data/patches/pyside6_6_3_0_win_dll_path.patch to make sure the paths
+    #     are good in the patch header. Also make sure CRLF (line ending) is kept as-is.
+    #
+    # I think that it's important that the paths in the look like "python/PySide6/..."
+    # so that it matches the file layout...
+    version = packaging.version.Version(dist.version)
+    if version in packaging.specifiers.SpecifierSet(">=6.0.0,<6.1.0"):
+        patches.append(
+            os.path.join(
+                rez_pip.patch.getBuiltinPatchesDir(), "pyside6_6_0_0_win_dll_path.patch"
+            )
+        )
+
+    elif version in packaging.specifiers.SpecifierSet(">=6.1.0,<6.2.4"):
+        patches.append(
+            os.path.join(
+                rez_pip.patch.getBuiltinPatchesDir(), "pyside6_6_1_0_win_dll_path.patch"
+            )
+        )
+
+    elif version in packaging.specifiers.SpecifierSet(">=6.2.4,<6.3.0"):
+        patches.append(
+            os.path.join(
+                rez_pip.patch.getBuiltinPatchesDir(), "pyside6_6_2_4_win_dll_path.patch"
+            )
+        )
+
+    elif version in packaging.specifiers.SpecifierSet(">=6.3.0"):
+        patches.append(
+            os.path.join(
+                rez_pip.patch.getBuiltinPatchesDir(), "pyside6_6_3_0_win_dll_path.patch"
+            )
+        )
+    return patches
 
 
 @rez_pip.plugins.hookimpl
