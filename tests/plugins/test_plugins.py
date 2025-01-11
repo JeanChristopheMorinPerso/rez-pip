@@ -17,6 +17,7 @@ def test_getHookImplementations():
         "rez_pip.PySide6": [
             "cleanup",
             "groupPackages",
+            "patches",
             "postPipResolve",
             "prePipResolve",
         ],

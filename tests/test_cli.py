@@ -379,7 +379,7 @@ def test_list_plugins(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFix
     assert (
         output
         == """Name               Hooks
-rez_pip.PySide6    cleanup, groupPackages, postPipResolve, prePipResolve
+rez_pip.PySide6    cleanup, groupPackages, patches, postPipResolve, prePipResolve
 rez_pip.shiboken6  cleanup
 """
     )
