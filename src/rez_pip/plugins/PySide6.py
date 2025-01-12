@@ -142,10 +142,23 @@ def patches(dist: "importlib_metadata.Distribution", path: str) -> typing.List[s
             )
         )
 
-    elif version in packaging.specifiers.SpecifierSet(">=6.3.0"):
+    elif version in packaging.specifiers.SpecifierSet(">=6.3.0,<6.7.3"):
         patches.append(
             os.path.join(
                 rez_pip.patch.getBuiltinPatchesDir(), "pyside6_6_3_0_win_dll_path.patch"
+            )
+        )
+
+    elif version in packaging.specifiers.SpecifierSet(">=6.7.3,<6.8.1"):
+        patches.append(
+            os.path.join(
+                rez_pip.patch.getBuiltinPatchesDir(), "pyside6_6_7_3_win_dll_path.patch"
+            )
+        )
+    elif version in packaging.specifiers.SpecifierSet(">=6.8.1"):
+        patches.append(
+            os.path.join(
+                rez_pip.patch.getBuiltinPatchesDir(), "pyside6_6_8_1_win_dll_path.patch"
             )
         )
     return patches

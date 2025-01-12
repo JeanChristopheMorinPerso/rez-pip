@@ -47,5 +47,5 @@ def patch(dist: importlib_metadata.Distribution, path: str):
             raise PatchError(f"Patch at {patch!r} does not exist")
 
         patchset = patch_ng.fromfile(patch)
-        if not patchset.apply(root=path, fuzz=True):
+        if not patchset.apply(root=path):
             raise PatchError(f"Failed to apply patch {patch!r} on {path!r}")
