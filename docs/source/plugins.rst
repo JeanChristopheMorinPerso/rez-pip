@@ -10,6 +10,10 @@ Plugins
 
    We encourage you to try them out and report any issues you might find.
 
+   If you create your own plugins, expect them to break when you update
+   rez-pip's minor version. The plugin system is still in its early stages
+   and we will probably release breaking changes in the future.
+
 rez-pip can be extended using plugins. Plugins can be used to do various things, such as
 modifying packages (both metadata and files), etc.
 
