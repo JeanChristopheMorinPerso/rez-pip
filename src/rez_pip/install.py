@@ -243,7 +243,6 @@ def cleanup(dist: importlib_metadata.Distribution, path: str) -> None:
 
     recordEntriesToRemove = []
 
-    _LOG.info(actions)
     for action in actions:
         if not action.path.startswith(path):
             # Security measure. Only perform operations on
@@ -262,8 +261,6 @@ def cleanup(dist: importlib_metadata.Distribution, path: str) -> None:
             else:
                 os.remove(action.path)
 
-            print(path)
-            print(action.path)
             recordEntriesToRemove.append(
                 os.path.normpath(os.path.relpath(action.path, path)).replace("\\", "/")
             )
@@ -298,8 +295,6 @@ def deleteEntryFromRecord(
     with open(recordFilePath, "r") as f:
         lines = f.readlines()
 
-    print("Lines in RECORD:", lines)
-
     schemesRaw = getSchemeDict(dist.name, path)
     schemes = {
         key: os.path.relpath(value, path)
@@ -313,7 +308,7 @@ def deleteEntryFromRecord(
     for index, entry in enumerate(entries):
         for schemePath in schemes.values():
             if entry.startswith(schemePath):
-                _LOG.info(f"Stripping {schemePath!r}/ from {entry!r}")
+                _LOG.debug(f"Stripping {schemePath!r}/ from {entry!r}")
                 entries[index] = entry.lstrip(schemePath + "/")
                 # Break on first match
                 break
