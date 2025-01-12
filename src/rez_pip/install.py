@@ -296,6 +296,8 @@ def deleteEntryFromRecord(
     with open(recordFilePath, "r") as f:
         lines = f.readlines()
 
+    print("Lines in RECORD:", lines)
+
     schemesRaw = getSchemeDict(dist.name, path)
     schemes = {
         key: os.path.relpath(value, path)
@@ -309,6 +311,7 @@ def deleteEntryFromRecord(
     for index, entry in enumerate(entries):
         for schemePath in schemes.values():
             if entry.startswith(schemePath):
+                _LOG.info(f"Stripping {schemePath!r}/ from {entry!r}")
                 entries[index] = entry.lstrip(schemePath + "/")
                 # Break on first match
                 break
