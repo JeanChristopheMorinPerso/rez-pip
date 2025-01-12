@@ -35,14 +35,14 @@ hookimpl = typing.cast(typing.Callable[[F], F], pluggy.HookimplMarker("rez-pip")
 @dataclasses.dataclass(frozen=True)
 class CleanupAction:
     """
-    Cleanup hook action. If you want to to any cleanup from a cleanup hook
-    you need ot return this.
+    Cleanup hook action. If you want to do any cleanup from a cleanup hook
+    you need to return this from the :func:`cleanup` hook.
     """
 
     #: Operation to perform.
     op: typing.Literal["remove"]
 
-    #: Path to on which to perform the operation.
+    #: Path on which to perform the operation.
     path: str
 
 
@@ -101,8 +101,8 @@ class PluginSpec:
         self, dist: rez_pip.compat.importlib_metadata.Distribution, path: str
     ) -> rez_pip.compat.Sequence[CleanupAction]:
         """
-        Cleanup a package post-installation. Do not do any files/directories from this hook.
-        rez-pip will take care of deleting stuff for you.
+        Cleanup a package post-installation. Do not delete any files/directories from this hook.
+        Return the list of actions you want to perform and let rez-pip perform them.
 
         :param dist: Python distribution.
         :param path: Root path of the rez variant.

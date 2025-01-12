@@ -22,3 +22,6 @@ API
 
 .. autoclass:: rez_pip.pip.DownloadedArtifact
    :members:
+
+.. autoclass:: rez_pip.plugins.CleanupAction
+   :members:
