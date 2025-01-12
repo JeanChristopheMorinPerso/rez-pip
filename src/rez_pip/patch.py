@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import typing
 import logging
@@ -5,6 +7,7 @@ import logging
 import patch_ng
 
 import rez_pip.data.patches
+import rez_pip.compat
 import rez_pip.plugins
 import rez_pip.exceptions
 from rez_pip.compat import importlib_metadata
@@ -21,11 +24,11 @@ def getBuiltinPatchesDir() -> str:
     return os.path.dirname(rez_pip.data.patches.__file__)
 
 
-def patch(dist: importlib_metadata.Distribution, path: str):
+def patch(dist: importlib_metadata.Distribution, path: str) -> None:
     """Patch an installed package (wheel)"""
     _LOG.debug(f"[bold]Attempting to patch {dist.name!r} at {path!r}")
-    patchesGroups: typing.List[list[str]] = rez_pip.plugins.getHook().patches(
-        dist=dist, path=path
+    patchesGroups: rez_pip.compat.Sequence[rez_pip.compat.Sequence[str]] = (
+        rez_pip.plugins.getHook().patches(dist=dist, path=path)
     )
 
     # Flatten the list
