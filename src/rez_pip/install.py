@@ -264,7 +264,9 @@ def cleanup(dist: importlib_metadata.Distribution, path: str) -> None:
 
             print(path)
             print(action.path)
-            recordEntriesToRemove.append(os.path.relpath(action.path, path))
+            recordEntriesToRemove.append(
+                os.path.normpath(os.path.relpath(action.path, path)).replace("\\", "/")
+            )
         else:
             raise CleanupError(f"Unknown action: {action.op}")
 
