@@ -7,6 +7,7 @@ import logging
 import pkgutil
 import functools
 import importlib
+import dataclasses
 
 import pluggy
 import rez.package_maker
@@ -29,6 +30,20 @@ _LOG = logging.getLogger(__name__)
 F = typing.TypeVar("F", bound=typing.Callable[..., typing.Any])
 hookspec = typing.cast(typing.Callable[[F], F], pluggy.HookspecMarker("rez-pip"))
 hookimpl = typing.cast(typing.Callable[[F], F], pluggy.HookimplMarker("rez-pip"))
+
+
+@dataclasses.dataclass(frozen=True)
+class CleanupAction:
+    """
+    Cleanup hook action. If you want to to any cleanup from a cleanup hook
+    you need ot return this.
+    """
+
+    #: Operation to perform.
+    op: typing.Literal["remove"]
+
+    #: Path to on which to perform the operation.
+    path: str
 
 
 class PluginSpec:
@@ -82,9 +97,21 @@ class PluginSpec:
         """
 
     @hookspec
-    def patches(
+    def cleanup(  # type: ignore[empty-body]
         self, dist: rez_pip.compat.importlib_metadata.Distribution, path: str
-    ) -> typing.Sequence[str]:
+    ) -> rez_pip.compat.Sequence[CleanupAction]:
+        """
+        Cleanup a package post-installation. Do not do any files/directories from this hook.
+        rez-pip will take care of deleting stuff for you.
+
+        :param dist: Python distribution.
+        :param path: Root path of the rez variant.
+        """
+
+    @hookspec
+    def patches(  # type: ignore[empty-body]
+        self, dist: rez_pip.compat.importlib_metadata.Distribution, path: str
+    ) -> rez_pip.compat.Sequence[str]:
         """
         Provide paths to patches to be applied on the source code of a package.
 
@@ -94,17 +121,6 @@ class PluginSpec:
         # TODO: This will alter files (obviously) and change their hashes.
         # This could be a problem to verify the integrity of the package.
         # https://packaging.python.org/en/latest/specifications/recording-installed-packages/#the-record-file
-
-    @hookspec
-    def cleanup(
-        self, dist: rez_pip.compat.importlib_metadata.Distribution, path: str
-    ) -> None:
-        """
-        Cleanup a package post-installation.
-
-        :param dist: Python distribution.
-        :param path: Root path of the rez variant.
-        """
 
     @hookspec
     def metadata(self, package: rez.package_maker.PackageMaker) -> None:

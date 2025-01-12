@@ -260,6 +260,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
                         targetPath,
                     )
 
+                    rez_pip.install.cleanup(dist, targetPath)
                     rez_pip.patch.patch(dist, targetPath)
 
                     group.dists.append(dist)

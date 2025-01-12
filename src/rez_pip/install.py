@@ -6,18 +6,24 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import sys
+import shutil
 import typing
-import zipfile
 import logging
+import fnmatch
 import pathlib
+import zipfile
 import sysconfig
+
+import rez_pip.exceptions
 
 if typing.TYPE_CHECKING:
     if sys.version_info >= (3, 8):
         from typing import Literal
     else:
         from typing_extensions import Literal
+    import rez_pip.compat
 
 import installer
 import installer.utils
@@ -27,6 +33,8 @@ import installer.sources
 import installer.destinations
 
 import rez_pip.pip
+import rez_pip.plugins
+import rez_pip.exceptions
 from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger(__name__)
@@ -34,6 +42,12 @@ _LOG = logging.getLogger(__name__)
 if typing.TYPE_CHECKING:
     LauncherKind = Literal["posix", "win-ia32", "win-amd64", "win-arm", "win-arm64"]
     ScriptSection = Literal["console", "gui"]
+
+
+class CleanupError(rez_pip.exceptions.RezPipError):
+    """
+    Raised when a cleanup operation fails.
+    """
 
 
 def isWheelPure(dist: importlib_metadata.Distribution) -> bool:
@@ -208,3 +222,101 @@ class Script(installer.scripts.Script):
         name = f"{self.name}.exe"
         data = launcher + shebang + b"\n" + stream.getvalue()
         return (name, data)
+
+
+def cleanup(dist: importlib_metadata.Distribution, path: str) -> None:
+    """
+    Run cleanup hooks.
+
+    Note that this lives in install because the cleanups
+    are made on the installs (the wheel install). We could move this somewhere
+    else but it's not clear where.
+    """
+    actionsGroups: rez_pip.compat.Sequence[
+        rez_pip.compat.Sequence[rez_pip.plugins.CleanupAction]
+    ] = rez_pip.plugins.getHook().cleanup(dist=dist, path=path)
+
+    # Flatten
+    actions: typing.List[rez_pip.plugins.CleanupAction] = [
+        action for group in actionsGroups for action in group
+    ]
+
+    recordEntriesToRemove = []
+
+    _LOG.info(actions)
+    for action in actions:
+        if not action.path.startswith(path):
+            # Security measure. Only perform operations on
+            # paths that are within the install path.
+            raise CleanupError(
+                f"Typing to {action.op} {action.path!r} which is outside of {path!r}"
+            )
+
+        if action.op == "remove":
+            if not os.path.exists(action.path):
+                continue
+
+            _LOG.info(f"Removing {action.path!r}")
+            if os.path.isdir(action.path):
+                shutil.rmtree(action.path)
+            else:
+                os.remove(action.path)
+
+            print(path)
+            print(action.path)
+            recordEntriesToRemove.append(os.path.relpath(action.path, path))
+        else:
+            raise CleanupError(f"Unknown action: {action.op}")
+
+    if recordEntriesToRemove:
+        deleteEntryFromRecord(dist, path, recordEntriesToRemove)
+
+
+def deleteEntryFromRecord(
+    dist: importlib_metadata.Distribution, path: str, entries: typing.List[str]
+) -> None:
+    """
+    Delete an entry from the record file.
+
+    This code is not great. I feel like updating the RECORD file should
+    be simpler. Which means that we miht need to refactor things a bit.
+    """
+    items = [
+        os.fspath(item)
+        for item in dist.files
+        if re.search("[a-zA-Z0-9._+]+\.dist-info/RECORD", os.fspath(item))
+    ]
+
+    if not items:
+        raise CleanupError(f"RECORD file not found for {dist.name!r}")
+
+    recordFilePathRel = items[0]
+    recordFilePath = os.path.join(path, "python", recordFilePathRel)
+
+    with open(recordFilePath, "r") as f:
+        lines = f.readlines()
+
+    schemesRaw = getSchemeDict(dist.name, path)
+    schemes = {
+        key: os.path.relpath(value, path)
+        for key, value in schemesRaw.items()
+        if value.startswith(path)
+    }
+
+    # Format the entries to match the record file. This is important
+    # because when we install the files, we use a custom scheme.
+    # For example, we have to trim "python/" or "scripts/".
+    for index, entry in enumerate(entries):
+        for schemePath in schemes.values():
+            if entry.startswith(schemePath):
+                entries[index] = entry.lstrip(schemePath + "/")
+                # Break on first match
+                break
+
+    for index, elements in enumerate(installer.records.parse_record_file(lines)):
+        if elements[0] in entries:
+            lines.pop(index)
+
+    with open(recordFilePath, "w") as f:
+        for line in lines:
+            f.write(line)

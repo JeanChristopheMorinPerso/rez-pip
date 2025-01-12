@@ -119,8 +119,6 @@ def createPackage(
                 shutil.copyfile(srcAbsolute, dest)
                 shutil.copystat(srcAbsolute, dest)
 
-            rez_pip.plugins.getHook().cleanup(dist=dist, path=path)
-
     with rez.package_maker.make_package(
         name, packagesPath, make_root=make_root, skip_existing=True, warn_on_skip=False
     ) as pkg:

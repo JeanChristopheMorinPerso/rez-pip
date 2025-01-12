@@ -165,22 +165,44 @@ def patches(dist: "importlib_metadata.Distribution", path: str) -> typing.List[s
 
 
 @rez_pip.plugins.hookimpl
-def cleanup(dist: "importlib_metadata.Distribution", path: str) -> None:
+def cleanup(
+    dist: "importlib_metadata.Distribution", path: str
+) -> typing.List[rez_pip.plugins.CleanupAction]:
+    actions: typing.List[rez_pip.plugins.CleanupAction] = []
+
     if packaging.utils.canonicalize_name(dist.name) not in [
         "pyside6",
         "pyside6-addons",
         "pyside6-essentials",
     ]:
-        return
+        return actions
 
     # Remove shiboken6 from PySide6 packages...
     # PySide6 >=6.3, <6.6.2 were shipping some shiboken6 folders by mistake.
     # Not removing these extra folders would stop python from being able to import
     # the correct shiboken (that lives in a separate rez package).
-    for innerpath in [
-        os.path.join(path, "python", "shiboken6"),
-        os.path.join(path, "python", "shiboken6_generator"),
+    actions.extend(
+        [
+            rez_pip.plugins.CleanupAction(
+                "remove", os.path.join(path, "python", "shiboken6")
+            ),
+            rez_pip.plugins.CleanupAction(
+                "remove", os.path.join(path, "python", "shiboken6_generator")
+            ),
+        ]
+    )
+
+    if packaging.utils.canonicalize_name(dist.name) in [
+        "pyside6-addons",
+        "pyside6-essentials",
     ]:
-        if os.path.exists(innerpath):
-            _LOG.debug("Removing %r", innerpath)
-            shutil.rmtree(innerpath)
+        # Because we patch __init__.py, we need to make sure that
+        # PySide6-Addons and PySide6-Essentials' _init__.py won't
+        # overrite our patched __init__.py.
+        actions.append(
+            rez_pip.plugins.CleanupAction(
+                "remove", os.path.join(path, "python", "PySide6", "__init__.py")
+            )
+        )
+
+    return actions
