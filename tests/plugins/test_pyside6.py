@@ -1,3 +1,4 @@
+import os
 import sys
 import typing
 import pathlib
@@ -203,18 +204,36 @@ def test_cleanup_noop(package, tmp_path: pathlib.Path):
 
 
 @pytest.mark.parametrize(
-    "package",
+    "package,expectedPaths",
     [
-        fakePackage("pyside6"),
-        fakePackage("pyside6_essentials"),
-        fakePackage("PySiDe6-AddoNs"),
+        [fakePackage("pyside6"), ["shiboken6", "shiboken6_generator"]],
+        [
+            fakePackage("pyside6_essentials"),
+            [
+                "shiboken6",
+                "shiboken6_generator",
+                os.path.join("PySide6", "__init__.py"),
+            ],
+        ],
+        [
+            fakePackage("PySiDe6-AddoNs"),
+            [
+                "shiboken6",
+                "shiboken6_generator",
+                os.path.join("PySide6", "__init__.py"),
+            ],
+        ],
     ],
 )
-def test_cleanup(package, tmp_path: pathlib.Path):
-    (tmp_path / "python" / "shiboken6").mkdir(parents=True)
-    (tmp_path / "python" / "shiboken6_generator").mkdir(parents=True)
+def test_cleanup(package, expectedPaths: typing.List[str], tmp_path: pathlib.Path):
+    actions = rez_pip.plugins.getHook().cleanup(dist=package, path=tmp_path)
 
-    rez_pip.plugins.getHook().cleanup(dist=package, path=tmp_path)
-
-    assert not (tmp_path / "python" / "shiboken6").exists()
-    assert not (tmp_path / "python" / "shiboken6_generator").exists()
+    expectedActions = []
+    for path in expectedPaths:
+        expectedActions.append(
+            rez_pip.plugins.CleanupAction(
+                "remove",
+                str(tmp_path / "python" / path),
+            )
+        )
+    assert actions == [[], expectedActions]
