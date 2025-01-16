@@ -261,6 +261,8 @@ def pythonReqToRezReq(
 ) -> rez.version.Requirement:
     """Convert packaging requirement object to equivalent rez requirement.
 
+    TODO: How are environment markers ignored here? There's no clear indication
+      in the code.
     Note that environment markers are ignored.
 
     :param pythonReq: Python requirement.
@@ -413,7 +415,7 @@ def convertMarker(marker: str) -> typing.List[str]:
 
     See:
     * vendor/packaging/markers.py:line=76
-    * https://www.python.org/dev/peps/pep-0508/#id23
+    * https://www.python.org/dev/peps/pep-0508
 
     :param marker: Environment marker string, eg 'python_version == "3"'.
     :returns: System requirements (unversioned).
@@ -460,6 +462,8 @@ def convertMarker(marker: str) -> typing.List[str]:
         if varname in marker_parts:
             sys_requires.update(sys_reqs)
 
+    # TODO: This shouldn't return "python" when given a marker like
+    #  "python_version < '3.8'" right?
     return list(sys_requires)
 
 
@@ -574,6 +578,7 @@ def getRezRequirements(
                 marker_reqs = convertMarker(str(req.marker))
 
                 if marker_reqs:
+                    # TODO: Shouldn't this add to result_variant_requires instead?
                     sys_requires.update(marker_reqs)
                     to_variant = True
 
