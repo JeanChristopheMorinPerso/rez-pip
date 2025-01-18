@@ -1,20 +1,25 @@
-import sys
+from __future__ import annotations
+
 import typing
 import logging
 import dataclasses
 
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
-
 import rez.system
 import rez.version
+import rich.console
 import packaging.version
 import packaging.specifiers
 import packaging.requirements
 
+import rez_pip.install
+
+if typing.TYPE_CHECKING:
+    from rez_pip.compat import importlib_metadata
+
 _LOG = logging.getLogger(__name__)
+
+
+CONSOLE = rich.console.Console()
 
 
 @dataclasses.dataclass
@@ -464,9 +469,8 @@ def convertMarker(marker: str) -> typing.List[str]:
 
 
 def getRezRequirements(
-    installedDist: importlib_metadata.Distribution,
+    installedDist: "importlib_metadata.Distribution",
     pythonVersion: rez.version.Version,
-    isPure: bool,
     nameCasings: typing.Optional[typing.List[str]] = None,
 ) -> RequirementsDict:
     """Get requirements of the given dist, in rez-compatible format.
@@ -517,6 +521,7 @@ def getRezRequirements(
     # python build frontends during install
     has_entry_points_scripts = bool(installedDist.entry_points)
 
+    isPure = rez_pip.install.isWheelPure(installedDist)
     # assume package is platform- and arch- specific if it isn't pure python
     if not isPure or has_entry_points_scripts:
         sys_requires.update(["platform", "arch"])

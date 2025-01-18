@@ -1,38 +1,37 @@
+from __future__ import annotations
+
 import os
-import sys
 import typing
 import asyncio
 import hashlib
 import logging
 
-import rich
 import aiohttp
 import rich.progress
 
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
-
 import rez_pip.pip
+import rez_pip.utils
+from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger(__name__)
 _lock = asyncio.Lock()
 
 
 def downloadPackages(
-    packages: typing.List[rez_pip.pip.PackageInfo], dest: str
-) -> typing.List[str]:
-    return asyncio.run(_downloadPackages(packages, dest))
+    packageGroups: typing.List[rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]],
+    dest: str,
+) -> typing.List[rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]]:
+    return asyncio.run(_downloadPackages(packageGroups, dest))
 
 
 async def _downloadPackages(
-    packages: typing.List[rez_pip.pip.PackageInfo], dest: str
-) -> typing.List[str]:
-    items: typing.List[
-        typing.Coroutine[typing.Any, typing.Any, typing.Optional[str]]
+    packageGroups: typing.List[rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]],
+    dest: str,
+) -> list[rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]]:
+    newPackageGroups: typing.List[
+        rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]
     ] = []
-    wheels = []
+    someFailed = False
 
     async with aiohttp.ClientSession() as session:
         with rich.progress.Progress(
@@ -42,30 +41,90 @@ async def _downloadPackages(
             rich.progress.DownloadColumn(),
             rich.progress.TransferSpeedColumn(),
             transient=True,
-            console=rich.get_console(),
+            console=rez_pip.utils.CONSOLE,
         ) as progress:
             tasks: typing.Dict[str, rich.progress.TaskID] = {}
 
-            # Create all the downlod tasks first
-            for package in packages:
-                tasks[package.name] = progress.add_task(package.name)
+            # Create all the download tasks first
+            numPackages = 0
+            for group in packageGroups:
+                for package in group.packages:
+                    if not package.isDownloadRequired():
+                        continue
+
+                    numPackages += 1
+                    tasks[package.name] = progress.add_task(package.name)
 
             # Then create the "total" progress bar. This ensures that total is at the bottom.
-            mainTask = progress.add_task(f"[bold]Total (0/{len(packages)})", total=0)
+            mainTask = progress.add_task(f"[bold]Total (0/{numPackages})", total=0)
 
-            for package in packages:
-                items.append(
-                    _download(
-                        package, dest, session, progress, tasks[package.name], mainTask
-                    )
+            futureGroups: list[
+                list[
+                    typing.Coroutine[
+                        typing.Any,
+                        typing.Any,
+                        rez_pip.pip.DownloadedArtifact | None,
+                    ]
+                ]
+            ] = []
+
+            # loop = asyncio.get_event_loop()
+            for group in packageGroups:
+                futures: list[
+                    typing.Coroutine[
+                        typing.Any,
+                        typing.Any,
+                        rez_pip.pip.DownloadedArtifact | None,
+                    ]
+                ] = []
+                for package in group.packages:
+                    wheelName: str = os.path.basename(package.download_info.url)
+                    wheelPath = os.path.join(dest, wheelName)
+
+                    if not package.isDownloadRequired():
+
+                        # Note the subtlety of having to pass variables in the function
+                        # signature. We can't rely on the scoped variable.
+                        async def _return_local(
+                            _wheelPath: str, _package: rez_pip.pip.PackageInfo
+                        ) -> rez_pip.pip.DownloadedArtifact:
+                            return rez_pip.pip.DownloadedArtifact.from_dict(
+                                {"_localPath": _wheelPath, **_package.to_dict()}
+                            )
+
+                        futures.append(_return_local(wheelPath, package))
+                    else:
+                        futures.append(
+                            _download(
+                                package,
+                                session,
+                                progress,
+                                tasks[package.name],
+                                mainTask,
+                                wheelName,
+                                wheelPath,
+                            )
+                        )
+                futureGroups.append(futures)
+
+            for _futures in futureGroups:
+                artifacts = tuple(await asyncio.gather(*_futures))
+
+                if not all(artifacts):
+                    someFailed = True
+
+                artifacts = typing.cast(
+                    typing.Tuple[rez_pip.pip.DownloadedArtifact], artifacts
                 )
 
-            wheels = await asyncio.gather(*items)
+                newPackageGroups.append(
+                    rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact](artifacts)
+                )
 
-    if not all(wheels):
+    if someFailed:
         raise RuntimeError("Some wheels failed to be downloaded")
 
-    return typing.cast(typing.List[str], wheels)
+    return newPackageGroups
 
 
 def getSHA256(path: str) -> str:
@@ -86,15 +145,13 @@ def getSHA256(path: str) -> str:
 
 async def _download(
     package: rez_pip.pip.PackageInfo,
-    target: str,
     session: aiohttp.ClientSession,
     progress: rich.progress.Progress,
     taskID: rich.progress.TaskID,
     mainTaskID: rich.progress.TaskID,
-) -> typing.Optional[str]:
-    wheelName: str = os.path.basename(package.download_info.url)
-    wheelPath = os.path.join(target, wheelName)
-
+    wheelName: str,
+    wheelPath: str,
+) -> rez_pip.pip.DownloadedArtifact | None:
     # TODO: Handle case where sha256 doesn't exist. We should also support the other supported
     # hash types.
     if (
@@ -152,4 +209,6 @@ async def _download(
             mainTaskID, description=f"[bold]Total ({len(completedItems)}/{total})"
         )
 
-    return wheelPath
+    return rez_pip.pip.DownloadedArtifact.from_dict(
+        {"_localPath": wheelPath, **package.to_dict()}
+    )

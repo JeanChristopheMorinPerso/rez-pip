@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import sys
 import json
@@ -6,18 +8,13 @@ import typing
 import logging
 import argparse
 import textwrap
-import pathlib
 import tempfile
+import itertools
 import subprocess
 
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
-
-import rich
 import rich.text
 import rich.panel
+import rich.table
 import rez.version
 import rich.markup
 import rich.logging
@@ -25,9 +22,13 @@ import rich.logging
 import rez_pip.pip
 import rez_pip.rez
 import rez_pip.data
+import rez_pip.patch
+import rez_pip.utils
+import rez_pip.plugins
 import rez_pip.install
 import rez_pip.download
 import rez_pip.exceptions
+from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger("rez_pip.cli")
 
@@ -120,6 +121,10 @@ def _createParser() -> argparse.ArgumentParser:
         help="Print debug information that you can use when reporting an issue on GitHub.",
     )
 
+    debugGroup.add_argument(
+        "--list-plugins", action="store_true", help="List all registered plugins"
+    )
+
     parser.usage = f"""
 
   %(prog)s [options] <package(s)>
@@ -188,7 +193,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
         installedWheelsDir = os.path.join(pipWorkArea, "installed", pythonVersion)
         os.makedirs(installedWheelsDir, exist_ok=True)
 
-        with rich.get_console().status(
+        with rez_pip.utils.CONSOLE.status(
             f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(args.packages))} (python-{pythonVersion})"
         ):
             packages = rez_pip.pip.getPackages(
@@ -202,44 +207,77 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
             )
 
         _LOG.info(f"Resolved {len(packages)} dependencies for python {pythonVersion}")
+        _packageGroups: typing.List[
+            rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]
+        ] = list(
+            itertools.chain(*rez_pip.plugins.getHook().groupPackages(packages=packages))  # type: ignore[arg-type]
+        )
+
+        # TODO: Verify that no packages are in two or more groups? It should theorically
+        # not be possible since plugins are called one after the other? But it could happen
+        # if a plugin forgets to pop items from the package list... The problem is that we
+        # can't know which plugin did what, so we could only say "something went wrong"
+        # and can't point to which plugin is at fault.
+
+        # Remove empty groups
+        _packageGroups = [group for group in _packageGroups if group]
+
+        # Add packages that were not grouped.
+        _packageGroups += [
+            rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo](tuple([package]))
+            for package in packages
+        ]
 
         # TODO: Should we postpone downloading to the last minute if we can?
         _LOG.info("[bold]Downloading...")
-        wheels = rez_pip.download.downloadPackages(packages, wheelsDir)
-        _LOG.info(f"[bold]Downloaded {len(wheels)} wheels")
 
-        dists: typing.Dict[importlib_metadata.Distribution, bool] = {}
+        packageGroups: typing.List[
+            rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]
+        ] = rez_pip.download.downloadPackages(_packageGroups, wheelsDir)
 
-        with rich.get_console().status(
+        foundLocally = downloaded = 0
+        for group in packageGroups:
+            for package in group.packages:
+                if not package.isDownloadRequired():
+                    foundLocally += 1
+                else:
+                    downloaded += 1
+
+        _LOG.info(
+            f"[bold]Downloaded {downloaded} wheels, skipped {foundLocally} because they resolved to local files"
+        )
+
+        with rez_pip.utils.CONSOLE.status(
             f"[bold]Installing wheels into {installedWheelsDir!r}"
         ):
-            for package, wheel in zip(packages, wheels):
-                _LOG.info(f"[bold]Installing {package.name}-{package.version} wheel")
-                dist, isPure = rez_pip.install.installWheel(
-                    package, pathlib.Path(wheel), installedWheelsDir
-                )
+            for group in packageGroups:
+                for package in group.packages:
+                    _LOG.info(f"[bold]Installing {package.name!r} {package.path!r}")
+                    targetPath = os.path.join(installedWheelsDir, package.name)
+                    dist = rez_pip.install.installWheel(
+                        package,
+                        package.path,
+                        targetPath,
+                    )
 
-                dists[dist] = isPure
+                    rez_pip.install.cleanup(dist, targetPath)
+                    rez_pip.patch.patch(dist, targetPath)
 
-        distNames = [dist.name for dist in dists.keys()]
+                    group.dists.append(dist)
 
-        with rich.get_console().status("[bold]Creating rez packages..."):
-            for dist, package in zip(dists, packages):
-                isPure = dists[dist]
+        with rez_pip.utils.CONSOLE.status("[bold]Creating rez packages..."):
+            for group in packageGroups:
                 rez_pip.rez.createPackage(
-                    dist,
-                    isPure,
+                    group,
                     rez.version.Version(pythonVersion),
-                    distNames,
                     installedWheelsDir,
-                    wheelURL=package.download_info.url,
                     prefix=args.prefix,
                     release=args.release,
                 )
 
 
 def _debug(
-    args: argparse.Namespace, console: rich.console.Console = rich.get_console()
+    args: argparse.Namespace, console: rich.console.Console = rez_pip.utils.CONSOLE
 ) -> None:
     """Print debug information"""
     prefix = "  "
@@ -313,9 +351,23 @@ def _debug(
     )
 
 
+def _printPlugins() -> None:
+    table = rich.table.Table("Name", "Hooks", box=None)
+    for plugin, hooks in rez_pip.plugins._getHookImplementations().items():
+        table.add_row(plugin, ", ".join(hooks))
+    rez_pip.utils.CONSOLE.print(table)
+
+
 def run() -> int:
     pipWorkArea = tempfile.mkdtemp(prefix="rez-pip-target")
     args, pipArgs = _parseArgs(sys.argv[1:])
+
+    # Initialize the plugin system
+    rez_pip.plugins.getManager()
+
+    if args.list_plugins:
+        _printPlugins()
+        return 0
 
     try:
         _validateArgs(args)
@@ -336,7 +388,7 @@ def run() -> int:
         _run(args, pipArgs, pipWorkArea)
         return 0
     except rez_pip.exceptions.RezPipError as exc:
-        rich.get_console().print(exc, soft_wrap=True)
+        rez_pip.utils.CONSOLE.print(exc, soft_wrap=True)
         return 1
     finally:
         if not args.keep_tmp_dirs:

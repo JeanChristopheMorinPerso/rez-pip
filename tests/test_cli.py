@@ -6,19 +6,14 @@ import argparse
 import subprocess
 import unittest.mock
 
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
-
 import pytest
-import rich.console
 import packaging.version
 
 import rez_pip.cli
 import rez_pip.pip
 import rez_pip.rez
 import rez_pip.exceptions
+from rez_pip.compat import importlib_metadata
 
 
 def test_parseArgs_empty():
@@ -26,6 +21,7 @@ def test_parseArgs_empty():
     assert vars(args) == {
         "constraint": None,
         "keep_tmp_dirs": False,
+        "list_plugins": False,
         "log_level": "info",
         "packages": [],
         "pip": rez_pip.pip.getBundledPip(),
@@ -45,6 +41,7 @@ def test_parseArgs_packages(packages):
     assert vars(args) == {
         "constraint": None,
         "keep_tmp_dirs": False,
+        "list_plugins": False,
         "log_level": "info",
         "packages": packages,
         "pip": rez_pip.pip.getBundledPip(),
@@ -64,6 +61,7 @@ def test_parseArgs_no_package_with_requirements(files):
     assert vars(args) == {
         "constraint": None,
         "keep_tmp_dirs": False,
+        "list_plugins": False,
         "log_level": "info",
         "packages": [],
         "pip": rez_pip.pip.getBundledPip(),
@@ -82,6 +80,7 @@ def test_parseArgs_constraints():
     assert vars(args) == {
         "constraint": ["asd", "adasdasd"],
         "keep_tmp_dirs": False,
+        "list_plugins": False,
         "log_level": "info",
         "packages": [],
         "pip": rez_pip.pip.getBundledPip(),
@@ -102,6 +101,7 @@ def test_parseArgs_pipArgs():
     assert vars(args) == {
         "constraint": None,
         "keep_tmp_dirs": False,
+        "list_plugins": False,
         "log_level": "info",
         "packages": [],
         "pip": rez_pip.pip.getBundledPip(),
@@ -318,10 +318,10 @@ def test_debug(capsys: pytest.CaptureFixture, monkeypatch: pytest.MonkeyPatch):
             unittest.mock.Mock(stdout="mocked pip config list"),
         ),
     ) as mocked:
-        rez_pip.cli._debug(
-            argparse.Namespace(pip=None, python_version="2.7+"),
-            console=rich.console.Console(),
+        monkeypatch.setattr(
+            sys, "argv", ["rez-pip", "--debug-info", "asd", "--python-version", "2.7+"]
         )
+        assert rez_pip.cli.run() == 0
 
     assert mocked.call_args_list == [
         unittest.mock.call(
@@ -364,5 +364,21 @@ rez python packages:
   /path/to/python-3.7.15 (3.7.15)
   /path/to/another/python-3.100.7 (3.100.7)
 
+"""
+    )
+
+
+def test_list_plugins(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture):
+    monkeypatch.setattr(sys, "argv", ["rez-pip", "--list-plugins"])
+
+    assert rez_pip.cli.run() == 0
+
+    output = capsys.readouterr().out
+    output = "\n".join(map(str.strip, output.split("\n")))
+    assert (
+        output
+        == """Name               Hooks
+rez_pip.PySide6    cleanup, groupPackages, patches, postPipResolve, prePipResolve
+rez_pip.shiboken6  cleanup
 """
     )

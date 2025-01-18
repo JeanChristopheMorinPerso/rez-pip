@@ -1,16 +1,12 @@
+from __future__ import annotations
+
 import os
-import sys
 import copy
 import shutil
 import typing
 import logging
 import pathlib
 import itertools
-
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
 
 import rez.config
 import rez.version
@@ -20,29 +16,64 @@ import rez.resolved_context
 
 import rez_pip.pip
 import rez_pip.utils
+import rez_pip.plugins
+from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger(__name__)
 
 
 def createPackage(
-    dist: importlib_metadata.Distribution,
-    isPure: bool,
+    packageGroup: rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact],
     pythonVersion: rez.version.Version,
-    nameCasings: typing.List[str],
     installedWheelsDir: str,
-    wheelURL: str,
     prefix: typing.Optional[str] = None,
     release: bool = False,
 ) -> None:
-    _LOG.info(f"Creating rez package for {dist.name}")
-    name = rez_pip.utils.pythontDistributionNameToRez(dist.name)
-    version = rez_pip.utils.pythonDistributionVersionToRez(dist.version)
+    _LOG.info(
+        "Creating rez package for {0}".format(
+            " + ".join(dist.name for dist in packageGroup.dists)
+        )
+    )
 
-    requirements = rez_pip.utils.getRezRequirements(dist, pythonVersion, isPure, [])
+    rezNames = [
+        rez_pip.utils.pythontDistributionNameToRez(dist.name)
+        for dist in packageGroup.dists
+    ]
 
-    requires = requirements.requires
-    variant_requires = requirements.variant_requires
-    metadata = requirements.metadata
+    name = rezNames[0]
+    version = rez_pip.utils.pythonDistributionVersionToRez(
+        packageGroup.dists[0].version
+    )
+
+    requires = []
+    variant_requires = []
+    metadata: typing.Dict[str, typing.Any] = {}
+    isPure = True
+    for dist in packageGroup.dists:
+        requirements = rez_pip.utils.getRezRequirements(dist, pythonVersion, [])
+        if not metadata:
+            # For now we only use the metadata from the first package. Far from ideal...
+            metadata = requirements.metadata
+
+        # TODO: Remove grouped packages (PySide-Addons, etc)
+        requires += [
+            require
+            for require in requirements.requires
+            if require not in requires
+            # Check that the rez requirement isn't in the group name since it would be
+            # an invalid requirement (because we merge them).
+            and rez.version.Requirement(require).name not in rezNames[1:]
+        ]
+        variant_requires += [
+            require
+            for require in requirements.variant_requires
+            if require not in variant_requires
+            # Check that the rez requirement isn't in the group name since it would be
+            # an invalid requirement (because we merge them).
+            and rez.version.Requirement(require).name not in rezNames[1:]
+        ]
+        if isPure:
+            isPure = metadata["is_pure_python"]
 
     if prefix:
         packagesPath = prefix
@@ -63,21 +94,30 @@ def createPackage(
         _LOG.info(
             rf"Installing {variant.qualified_package_name} \[{formattedRequirements}]"
         )
-        if not dist.files:
-            raise RuntimeError(
-                f"{dist.name} package has no files registered! Something is wrong maybe?"
-            )
+        for dist in packageGroup.dists:
+            if not dist.files:
+                raise RuntimeError(
+                    f"{dist.name} package has no files registered! Something is wrong maybe?"
+                )
 
-        wheelsDirAbsolute = pathlib.Path(installedWheelsDir).resolve()
-        for src in dist.files:
-            srcAbsolute = typing.cast(pathlib.Path, src.locate()).resolve()
-            dest = os.path.join(path, srcAbsolute.relative_to(wheelsDirAbsolute))
-            if not os.path.exists(os.path.dirname(dest)):
-                os.makedirs(os.path.dirname(dest))
+            wheelsDirAbsolute = pathlib.Path(installedWheelsDir).resolve()
+            for src in dist.files:
+                srcAbsolute: pathlib.Path = typing.cast(
+                    pathlib.Path, src.locate()
+                ).resolve()
+                dest = os.path.join(
+                    path,
+                    os.path.sep.join(
+                        srcAbsolute.relative_to(wheelsDirAbsolute).parts[1:]
+                    ),
+                )
+                # print(dest)
+                if not os.path.exists(os.path.dirname(dest)):
+                    os.makedirs(os.path.dirname(dest))
 
-            _LOG.debug(f"Copying {str(srcAbsolute)!r} to {str(dest)!r}")
-            shutil.copyfile(srcAbsolute, dest)
-            shutil.copystat(srcAbsolute, dest)
+                _LOG.debug(f"Copying {str(srcAbsolute)!r} to {str(dest)!r}")
+                shutil.copyfile(srcAbsolute, dest)
+                shutil.copystat(srcAbsolute, dest)
 
     with rez.package_maker.make_package(
         name, packagesPath, make_root=make_root, skip_existing=True, warn_on_skip=False
@@ -113,8 +153,8 @@ def createPackage(
         pkg.pip = {
             "name": dist.name,
             "version": dist.version,
-            "is_pure_python": metadata["is_pure_python"],
-            "wheel_url": wheelURL,
+            "is_pure_python": isPure,
+            "wheel_urls": packageGroup.downloadUrls,
             "rez_pip_version": importlib_metadata.version("rez-pip"),
         }
 
@@ -125,6 +165,8 @@ def createPackage(
             setattr(pkg, key, values)
 
         pkg.pip["metadata"] = remainingMetadata
+
+        rez_pip.plugins.getHook().metadata(package=pkg)
 
     _LOG.info(
         f"[bold]Created {len(pkg.installed_variants)} variants and skipped {len(pkg.skipped_variants)}"

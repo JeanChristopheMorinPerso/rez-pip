@@ -1,0 +1,20 @@
+--- python/PySide6/__init__.py	2025-01-12 11:53:31.681352613 -0500
++++ python/PySide6/__init__.py	2025-01-12 11:56:58.385665284 -0500
+@@ -13,14 +13,9 @@
+ 
+ 
+ def _additional_dll_directories(package_dir):
+-    # Find shiboken6 relative to the package directory.
+-    root = Path(package_dir).parent
+-    # Check for a flat .zip as deployed by cx_free(PYSIDE-1257)
+-    if root.suffix == '.zip':
+-        return []
+-    shiboken6 = root / 'shiboken6'
+-    if shiboken6.is_dir():  # Standard case, only shiboken6 is needed
+-        return [shiboken6]
++    # rez-pip patch: Return the path to the shiboken rez package
++    return [os.path.join(os.environ["REZ_SHIBOKEN6_ROOT"], "python", "shiboken6")]
++
+     # The below code is for the build process when generate_pyi.py
+     # is executed in the build directory. We need libpyside and Qt in addition.
+     shiboken6 = Path(root).parent / 'shiboken6' / 'libshiboken'

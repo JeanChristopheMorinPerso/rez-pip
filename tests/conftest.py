@@ -11,9 +11,12 @@ import urllib.request
 
 import pytest
 import rez.config
+import rez.system
 import rez.packages
 import rez.package_bind
 import rez.package_maker
+
+import rez_pip.utils
 
 from . import utils
 
@@ -35,8 +38,16 @@ def pytest_runtest_makereport(item: pytest.Item, call):
     item.stash.setdefault(phaseReportKey, {})[rep.when] = rep
 
 
+@pytest.fixture(scope="function", autouse=True)
+def patchRichConsole(monkeypatch: pytest.MonkeyPatch):
+    """Patch the rich console so that it doesn't wrap long lines"""
+    monkeypatch.setattr(rez_pip.utils.CONSOLE, "width", 1000)
+
+
 @pytest.fixture(scope="session")
-def index(tmpdir_factory: pytest.TempdirFactory) -> utils.PyPIIndex:
+def index(
+    tmpdir_factory: pytest.TempdirFactory, printer_session: typing.Callable[[str], None]
+) -> utils.PyPIIndex:
     """Build PyPI Index and return the path"""
 
     srcPackages = os.path.join(DATA_ROOT_DIR, "src_packages")
@@ -45,7 +56,9 @@ def index(tmpdir_factory: pytest.TempdirFactory) -> utils.PyPIIndex:
 
     for pkg in os.listdir(srcPackages):
         dest = indexPath.mkdir(pkg)
-        utils.buildPackage(pkg, os.fspath(dest))
+        printer_session(f"Building {pkg!r}...")
+        wheel = utils.buildPackage(pkg, os.fspath(dest))
+        printer_session(f"Built {pkg!r} at {wheel!r}")
 
     return utils.PyPIIndex(pathlib.Path(indexPath.strpath))
 
@@ -132,6 +145,13 @@ def hardenRezConfig(tmp_path_factory: pytest.TempPathFactory):
     )
     with rez.config._replace_config(defaultConfig):
         yield
+
+
+@pytest.fixture(scope="function", autouse=True)
+def resetRez():
+    """Reset rez caches to make sure we don't leak anything between tests"""
+    yield
+    rez.system.system.clear_caches()
 
 
 @pytest.fixture(scope="session")

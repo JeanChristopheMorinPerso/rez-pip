@@ -6,13 +6,75 @@ import typing
 import pathlib
 import subprocess
 
-import rich
 import pytest
 
 import rez_pip.pip
+import rez_pip.utils
 import rez_pip.exceptions
 
 from . import utils
+
+
+@pytest.mark.parametrize(
+    "url,shouldDownload",
+    [
+        (
+            "https://pypi.org/packages/package_a/package_a-1.0.0-py2.py3-none-any.whl",
+            True,
+        ),
+        ("file:///tmp/asd.whl", False),
+    ],
+)
+def test_PackageInfo(url: str, shouldDownload: bool):
+    info = rez_pip.pip.PackageInfo(
+        rez_pip.pip.DownloadInfo(
+            url,
+            rez_pip.pip.ArchiveInfo(
+                "sha256=<val>",
+                {"sha256": "<val>"},
+            ),
+        ),
+        False,
+        True,
+        rez_pip.pip.Metadata(
+            "1.0.0",
+            "package_a",
+        ),
+    )
+
+    assert info.name == "package_a"
+    assert info.version == "1.0.0"
+    assert info.isDownloadRequired() == shouldDownload
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://pypi.org/packages/package_a/package_a-1.0.0-py2.py3-none-any.whl",
+        "file:///tmp/package_a-1.0.0-py2.py3-none-any.whl",
+    ],
+)
+def test_DownloadedArtifact(url: str):
+    info = rez_pip.pip.DownloadedArtifact(
+        rez_pip.pip.DownloadInfo(
+            url,
+            rez_pip.pip.ArchiveInfo(
+                "sha256=<val>",
+                {"sha256": "<val>"},
+            ),
+        ),
+        False,
+        True,
+        rez_pip.pip.Metadata(
+            "1.0.0",
+            "package_a",
+        ),
+        "/tmp/package_a-1.0.0-py2.py3-none-any.whl",
+    )
+
+    assert info.name == "package_a"
+    assert info.version == "1.0.0"
+    assert info.path == "/tmp/package_a-1.0.0-py2.py3-none-any.whl"
 
 
 def test_getBundledPip():
@@ -170,8 +232,8 @@ def test_getPackages_error(
             ],
         )
 
-    with rich.get_console().capture() as capture:
-        rich.get_console().print(exc.value, soft_wrap=True)
+    with rez_pip.utils.CONSOLE.capture() as capture:
+        rez_pip.utils.CONSOLE.print(exc.value, soft_wrap=True)
 
     match = re.match(
         r"rez_pip\.exceptions\.PipError: Failed to run pip command\: '.*'",
