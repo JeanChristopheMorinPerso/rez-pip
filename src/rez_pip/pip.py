@@ -36,7 +36,7 @@ class ArchiveInfo(dataclasses_json.DataClassJsonMixin):
     hash: str
 
     #: Archive hashes
-    hashes: dict[str, str]
+    hashes: typing.Dict[str, str]
 
 
 @dataclasses.dataclass

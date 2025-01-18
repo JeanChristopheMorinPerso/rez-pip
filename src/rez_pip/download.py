@@ -114,7 +114,7 @@ async def _downloadPackages(
                     someFailed = True
 
                 artifacts = typing.cast(
-                    tuple[rez_pip.pip.DownloadedArtifact], artifacts
+                    typing.Tuple[rez_pip.pip.DownloadedArtifact], artifacts
                 )
 
                 newPackageGroups.append(

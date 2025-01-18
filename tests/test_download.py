@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import typing
 import hashlib
 import pathlib
 import unittest.mock
@@ -29,7 +30,7 @@ class Package:
 
 
 class Group:
-    def __init__(self, packages: list[Package]):
+    def __init__(self, packages: typing.List[Package]):
         self.packages = packages
 
     def getPackage(self, name: str) -> Package:
@@ -50,7 +51,7 @@ class Group:
     ],
     ids=["one-group-with-one-package", "multiple-groups-with-one-package"],
 )
-def test_download(groups: list[Group], tmp_path: pathlib.Path):
+def test_download(groups: typing.List[Group], tmp_path: pathlib.Path):
     sideEffects = tuple()
     for group in groups:
         for package in group.packages:
