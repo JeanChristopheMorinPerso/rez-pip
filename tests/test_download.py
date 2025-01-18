@@ -1,13 +1,9 @@
+from __future__ import annotations
+
 import os
-import sys
-import typing
 import hashlib
 import pathlib
-
-if sys.version_info[:2] < (3, 8):
-    import mock
-else:
-    from unittest import mock
+import unittest.mock
 
 import pytest
 import aiohttp
@@ -19,7 +15,9 @@ from rez_pip.compat import importlib_metadata
 
 @pytest.fixture(scope="module", autouse=True)
 def rezPipVersion():
-    with mock.patch.object(importlib_metadata, "version", return_value="1.2.3.4.5"):
+    with unittest.mock.patch.object(
+        importlib_metadata, "version", return_value="1.2.3.4.5"
+    ):
         yield
 
 
@@ -31,7 +29,7 @@ class Package:
 
 
 class Group:
-    def __init__(self, packages: typing.List[Package]):
+    def __init__(self, packages: list[Package]):
         self.packages = packages
 
     def getPackage(self, name: str) -> Package:
@@ -52,11 +50,11 @@ class Group:
     ],
     ids=["one-group-with-one-package", "multiple-groups-with-one-package"],
 )
-def test_download(groups: typing.List[Group], tmp_path: pathlib.Path):
+def test_download(groups: list[Group], tmp_path: pathlib.Path):
     sideEffects = tuple()
     for group in groups:
         for package in group.packages:
-            mockedContent = mock.MagicMock()
+            mockedContent = unittest.mock.MagicMock()
             mockedContent.return_value.__aiter__.return_value = [
                 [
                     package.content.encode("utf-8"),
@@ -65,17 +63,17 @@ def test_download(groups: typing.List[Group], tmp_path: pathlib.Path):
             ]
 
             sideEffects += (
-                mock.Mock(
+                unittest.mock.Mock(
                     headers={"content-length": 100},
                     status=200,
-                    content=mock.Mock(iter_chunks=mockedContent),
+                    content=unittest.mock.Mock(iter_chunks=mockedContent),
                 ),
             )
 
-    mockedGet = mock.AsyncMock()
+    mockedGet = unittest.mock.AsyncMock()
     mockedGet.__aenter__.side_effect = sideEffects
 
-    with mock.patch.object(aiohttp.ClientSession, "get") as mocked:
+    with unittest.mock.patch.object(aiohttp.ClientSession, "get") as mocked:
         mocked.return_value = mockedGet
 
         _groups = []
@@ -110,12 +108,12 @@ def test_download(groups: typing.List[Group], tmp_path: pathlib.Path):
 
     for group in groups:
         for package in group.packages:
-            with open(wheelsMapping[package.name], "r") as fd:
+            with open(wheelsMapping[package.name]) as fd:
                 content = fd.read()
             assert content == package.content
 
     assert mocked.call_args_list == [
-        mock.call(
+        unittest.mock.call(
             f"https://example.com/{package.name}.whl",
             headers={
                 "Content-Type": "application/octet-stream",
@@ -145,9 +143,9 @@ def test_download_skip_local(tmp_path: pathlib.Path):
         )
     ]
 
-    mockedGet = mock.AsyncMock()
+    mockedGet = unittest.mock.AsyncMock()
 
-    with mock.patch.object(aiohttp.ClientSession, "get") as mocked:
+    with unittest.mock.patch.object(aiohttp.ClientSession, "get") as mocked:
         mocked.return_value = mockedGet
         wheels = rez_pip.download.downloadPackages(groups, os.fspath(tmp_path))
 
@@ -170,7 +168,7 @@ def test_download_multiple_packages_with_failure(tmp_path: pathlib.Path):
     Test that a failure in one package does not prevent other
     packages from being downloaded
     """
-    mockedContent = mock.MagicMock()
+    mockedContent = unittest.mock.MagicMock()
     mockedContent.return_value.__aiter__.return_value = [
         [
             b"package-a data",
@@ -178,23 +176,23 @@ def test_download_multiple_packages_with_failure(tmp_path: pathlib.Path):
         ]
     ]
 
-    mockedGet = mock.AsyncMock()
+    mockedGet = unittest.mock.AsyncMock()
     mockedGet.__aenter__.side_effect = (
-        mock.Mock(
+        unittest.mock.Mock(
             headers={"content-length": 100},
             status=200,
-            content=mock.Mock(iter_chunks=mockedContent),
+            content=unittest.mock.Mock(iter_chunks=mockedContent),
         ),
-        mock.Mock(
+        unittest.mock.Mock(
             headers={"content-length": 100},
             status=400,
             reason="Expected to fail",
             request_info={"key": "here"},
-            content=mock.Mock(iter_chunks=mockedContent),
+            content=unittest.mock.Mock(iter_chunks=mockedContent),
         ),
     )
 
-    with mock.patch.object(aiohttp.ClientSession, "get") as mocked:
+    with unittest.mock.patch.object(aiohttp.ClientSession, "get") as mocked:
         mocked.return_value = mockedGet
         with pytest.raises(RuntimeError):
             rez_pip.download.downloadPackages(
@@ -234,18 +232,18 @@ def test_download_multiple_packages_with_failure(tmp_path: pathlib.Path):
             )
 
         # Check that package-a was downloaded even if even if package-b failed.
-        with open(tmp_path / "package-a", "r") as fd:
+        with open(tmp_path / "package-a") as fd:
             assert fd.read() == "package-a data"
 
         assert mocked.call_args_list == [
-            mock.call(
+            unittest.mock.call(
                 "https://example.com/package-a",
                 headers={
                     "Content-Type": "application/octet-stream",
                     "User-Agent": "rez-pip/1.2.3.4.5",
                 },
             ),
-            mock.call(
+            unittest.mock.call(
                 "https://example.com/package-b",
                 headers={
                     "Content-Type": "application/octet-stream",
@@ -284,7 +282,7 @@ def test_download_reuse_if_same_hash(tmp_path: pathlib.Path):
             )
         )
 
-        mockedContent = mock.MagicMock()
+        mockedContent = unittest.mock.MagicMock()
         mockedContent.return_value.__aiter__.return_value = [
             [
                 content,
@@ -293,30 +291,30 @@ def test_download_reuse_if_same_hash(tmp_path: pathlib.Path):
         ]
 
         sideEffects += (
-            mock.Mock(
+            unittest.mock.Mock(
                 headers={"content-length": 100},
                 status=200,
-                content=mock.Mock(iter_chunks=mockedContent),
+                content=unittest.mock.Mock(iter_chunks=mockedContent),
             ),
         )
 
-    mockedGet1 = mock.AsyncMock()
+    mockedGet1 = unittest.mock.AsyncMock()
     mockedGet1.__aenter__.side_effect = sideEffects
 
-    with mock.patch.object(aiohttp.ClientSession, "get") as mocked:
+    with unittest.mock.patch.object(aiohttp.ClientSession, "get") as mocked:
         mocked.return_value = mockedGet1
 
         rez_pip.download.downloadPackages(groups, str(tmp_path))
 
         assert mocked.call_args_list == [
-            mock.call(
+            unittest.mock.call(
                 "https://example.com/package-a.whl",
                 headers={
                     "Content-Type": "application/octet-stream",
                     "User-Agent": "rez-pip/1.2.3.4.5",
                 },
             ),
-            mock.call(
+            unittest.mock.call(
                 "https://example.com/package-b.whl",
                 headers={
                     "Content-Type": "application/octet-stream",
@@ -351,7 +349,7 @@ def test_download_reuse_if_same_hash(tmp_path: pathlib.Path):
             )
         )
 
-        mockedContent = mock.MagicMock()
+        mockedContent = unittest.mock.MagicMock()
         mockedContent.return_value.__aiter__.return_value = [
             [
                 content,
@@ -360,23 +358,23 @@ def test_download_reuse_if_same_hash(tmp_path: pathlib.Path):
         ]
 
         sideEffects += (
-            mock.Mock(
+            unittest.mock.Mock(
                 headers={"content-length": 100},
                 status=200,
-                content=mock.Mock(iter_chunks=mockedContent),
+                content=unittest.mock.Mock(iter_chunks=mockedContent),
             ),
         )
 
-    mockedGet2 = mock.AsyncMock()
+    mockedGet2 = unittest.mock.AsyncMock()
     mockedGet2.__aenter__.side_effect = sideEffects
 
-    with mock.patch.object(aiohttp.ClientSession, "get") as mocked:
+    with unittest.mock.patch.object(aiohttp.ClientSession, "get") as mocked:
         mocked.return_value = mockedGet2
 
         wheels = rez_pip.download.downloadPackages(groups, str(tmp_path))
 
         assert mocked.call_args_list == [
-            mock.call(
+            unittest.mock.call(
                 "https://example.com/package-c.whl",
                 headers={
                     "Content-Type": "application/octet-stream",
@@ -419,7 +417,7 @@ def test_download_redownload_if_hash_changes(tmp_path: pathlib.Path):
             )
         )
 
-        mockedContent = mock.MagicMock()
+        mockedContent = unittest.mock.MagicMock()
         mockedContent.return_value.__aiter__.return_value = [
             [
                 content,
@@ -428,30 +426,30 @@ def test_download_redownload_if_hash_changes(tmp_path: pathlib.Path):
         ]
 
         sideEffects += (
-            mock.Mock(
+            unittest.mock.Mock(
                 headers={"content-length": 100},
                 status=200,
-                content=mock.Mock(iter_chunks=mockedContent),
+                content=unittest.mock.Mock(iter_chunks=mockedContent),
             ),
         )
 
-    mockedGet1 = mock.AsyncMock()
+    mockedGet1 = unittest.mock.AsyncMock()
     mockedGet1.__aenter__.side_effect = sideEffects
 
-    with mock.patch.object(aiohttp.ClientSession, "get") as mocked:
+    with unittest.mock.patch.object(aiohttp.ClientSession, "get") as mocked:
         mocked.return_value = mockedGet1
 
         rez_pip.download.downloadPackages(groups, str(tmp_path))
 
         assert mocked.call_args_list == [
-            mock.call(
+            unittest.mock.call(
                 "https://example.com/package-a.whl",
                 headers={
                     "Content-Type": "application/octet-stream",
                     "User-Agent": "rez-pip/1.2.3.4.5",
                 },
             ),
-            mock.call(
+            unittest.mock.call(
                 "https://example.com/package-b.whl",
                 headers={
                     "Content-Type": "application/octet-stream",
@@ -486,7 +484,7 @@ def test_download_redownload_if_hash_changes(tmp_path: pathlib.Path):
             )
         )
 
-        mockedContent = mock.MagicMock()
+        mockedContent = unittest.mock.MagicMock()
         mockedContent.return_value.__aiter__.return_value = [
             [
                 content,
@@ -495,30 +493,30 @@ def test_download_redownload_if_hash_changes(tmp_path: pathlib.Path):
         ]
 
         sideEffects += (
-            mock.Mock(
+            unittest.mock.Mock(
                 headers={"content-length": 100},
                 status=200,
-                content=mock.Mock(iter_chunks=mockedContent),
+                content=unittest.mock.Mock(iter_chunks=mockedContent),
             ),
         )
 
-    mockedGet2 = mock.AsyncMock()
+    mockedGet2 = unittest.mock.AsyncMock()
     mockedGet2.__aenter__.side_effect = sideEffects
 
-    with mock.patch.object(aiohttp.ClientSession, "get") as mocked:
+    with unittest.mock.patch.object(aiohttp.ClientSession, "get") as mocked:
         mocked.return_value = mockedGet2
 
         wheels = rez_pip.download.downloadPackages(groups, str(tmp_path))
 
         assert mocked.call_args_list == [
-            mock.call(
+            unittest.mock.call(
                 "https://example.com/package-a.whl",
                 headers={
                     "Content-Type": "application/octet-stream",
                     "User-Agent": "rez-pip/1.2.3.4.5",
                 },
             ),
-            mock.call(
+            unittest.mock.call(
                 "https://example.com/package-b.whl",
                 headers={
                     "Content-Type": "application/octet-stream",

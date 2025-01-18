@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import os
-import sys
-import typing
 import pathlib
+import unittest.mock
 
 import pytest
 
@@ -10,12 +11,6 @@ import rez_pip.plugins
 import rez_pip.exceptions
 
 from . import utils
-
-
-if sys.version_info[:2] < (3, 8):
-    import mock
-else:
-    from unittest import mock
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -35,18 +30,18 @@ def setupPluginManager():
         ("pyside6", "pyside6-addons", "asdasdad"),
     ],
 )
-def test_prePipResolve_noop(packages: typing.Tuple[str, ...]):
+def test_prePipResolve_noop(packages: tuple[str, ...]):
     rez_pip.plugins.getHook().prePipResolve(packages=packages)
 
 
 @pytest.mark.parametrize("packages", [("pyside6-addons",), ("PysiDe6_essentials",)])
-def test_prePipResolve_raises(packages: typing.Tuple[str, ...]):
+def test_prePipResolve_raises(packages: tuple[str, ...]):
     with pytest.raises(rez_pip.exceptions.RezPipError):
         rez_pip.plugins.getHook().prePipResolve(packages=packages)
 
 
-def fakePackage(name: str, **kwargs) -> mock.Mock:
-    value = mock.MagicMock()
+def fakePackage(name: str, **kwargs) -> unittest.mock.Mock:
+    value = unittest.mock.MagicMock()
     value.configure_mock(name=name, **kwargs)
     return value
 
@@ -71,7 +66,7 @@ def fakePackage(name: str, **kwargs) -> mock.Mock:
         ),
     ],
 )
-def test_postPipResolve_noop(packages: typing.Tuple[str, ...]):
+def test_postPipResolve_noop(packages: tuple[str, ...]):
     rez_pip.plugins.getHook().postPipResolve(packages=packages)
 
 
@@ -83,7 +78,7 @@ def test_postPipResolve_noop(packages: typing.Tuple[str, ...]):
         (fakePackage("PysiDe6_essentials"), fakePackage("asd")),
     ],
 )
-def test_postPipResolve_raises(packages: typing.Tuple[str, ...]):
+def test_postPipResolve_raises(packages: tuple[str, ...]):
     with pytest.raises(rez_pip.exceptions.RezPipError):
         rez_pip.plugins.getHook().postPipResolve(packages=packages)
 
@@ -92,7 +87,7 @@ def test_postPipResolve_raises(packages: typing.Tuple[str, ...]):
     "packages",
     [[fakePackage("asd")]],
 )
-def test_groupPackages_noop(packages: typing.List[str]):
+def test_groupPackages_noop(packages: list[str]):
     assert rez_pip.plugins.getHook().groupPackages(packages=packages) == [
         [rez_pip.pip.PackageGroup(tuple())]
     ]
@@ -186,7 +181,7 @@ class FakePackageInfo:
     ],
 )
 def test_groupPackages(
-    packages: typing.List[str], expectedGroups: typing.List[rez_pip.pip.PackageGroup]
+    packages: list[str], expectedGroups: list[rez_pip.pip.PackageGroup]
 ):
     data = rez_pip.plugins.getHook().groupPackages(packages=packages)
     assert data == expectedGroups
@@ -225,7 +220,7 @@ def test_cleanup_noop(package, tmp_path: pathlib.Path):
         ],
     ],
 )
-def test_cleanup(package, expectedPaths: typing.List[str], tmp_path: pathlib.Path):
+def test_cleanup(package, expectedPaths: list[str], tmp_path: pathlib.Path):
     actions = rez_pip.plugins.getHook().cleanup(dist=package, path=tmp_path)
 
     expectedActions = []

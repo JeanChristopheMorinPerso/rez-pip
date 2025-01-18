@@ -5,6 +5,7 @@ import math
 import typing
 import logging
 import contextlib
+import collections.abc
 import logging.handlers
 
 import patch_ng
@@ -30,7 +31,7 @@ def getBuiltinPatchesDir() -> str:
 
 
 @contextlib.contextmanager
-def logIfErrorOrRaises() -> typing.Generator[None]:
+def logIfErrorOrRaises() -> typing.Generator[None, None, None]:
     """
     Log patch_ng logs if any error is logged or if the wrapped body raises.
     Very slightly inspired by https://docs.python.org/3/howto/logging-cookbook.html#buffering-logging-messages-and-outputting-them-conditionally
@@ -66,7 +67,7 @@ def logIfErrorOrRaises() -> typing.Generator[None]:
 def patch(dist: importlib_metadata.Distribution, path: str) -> None:
     """Patch an installed package (wheel)"""
     _LOG.debug(f"[bold]Attempting to patch {dist.name!r} at {path!r}")
-    patchesGroups: rez_pip.compat.Sequence[rez_pip.compat.Sequence[str]] = (
+    patchesGroups: collections.abc.Sequence[collections.abc.Sequence[str]] = (
         rez_pip.plugins.getHook().patches(dist=dist, path=path)
     )
 

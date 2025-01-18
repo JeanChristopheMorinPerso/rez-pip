@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import os
 import re
 import sys
-import typing
 import pathlib
 import platform
 import subprocess
@@ -69,8 +70,8 @@ def test_python_packages(pythonRezPackage: str, rezRepo: str):
 def test_installs(
     pythonRezPackage: str,
     rezRepo: str,
-    packagesToInstall: typing.List[str],
-    imports: typing.List[str],
+    packagesToInstall: list[str],
+    imports: list[str],
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
 ):

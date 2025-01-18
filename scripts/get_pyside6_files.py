@@ -40,8 +40,8 @@ class LazyZipOverHTTP:
         self._length = int(head.headers["Content-Length"])
         self._file = tempfile.NamedTemporaryFile()
         self.truncate(self._length)
-        self._left: typing.List[int] = []
-        self._right: typing.List[int] = []
+        self._left: list[int] = []
+        self._right: list[int] = []
         if "bytes" not in head.headers.get("Accept-Ranges", "none"):
             raise ValueError("range request is not supported")
         self._check_zip()
@@ -101,7 +101,7 @@ class LazyZipOverHTTP:
         """Return the current position."""
         return self._file.tell()
 
-    def truncate(self, size: typing.Optional[int] = None) -> int:
+    def truncate(self, size: int | None = None) -> int:
         """Resize the stream to the given size in bytes.
 
         If size is unspecified resize to the current position.
@@ -115,7 +115,7 @@ class LazyZipOverHTTP:
         """Return False."""
         return False
 
-    def __enter__(self) -> "LazyZipOverHTTP":
+    def __enter__(self) -> LazyZipOverHTTP:
         self._file.__enter__()
         return self
 
@@ -123,7 +123,7 @@ class LazyZipOverHTTP:
         self._file.__exit__(*exc)
 
     @contextlib.contextmanager
-    def _stay(self) -> typing.Generator[None, None, None]:
+    def _stay(self) -> typing.Generator[None]:
         """Return a context manager keeping the position.
 
         At the end of the block, seek back to original position.
@@ -153,7 +153,7 @@ class LazyZipOverHTTP:
         self,
         start: int,
         end: int,
-        base_headers: typing.Dict[str, str] = {"Accept-Encoding": "identity"},
+        base_headers: dict[str, str] = {"Accept-Encoding": "identity"},
     ) -> requests.Response:
         """Return HTTP response to a range request from start to end."""
         headers = base_headers.copy()
@@ -164,7 +164,7 @@ class LazyZipOverHTTP:
 
     def _merge(
         self, start: int, end: int, left: int, right: int
-    ) -> typing.Generator[typing.Tuple[int, int], None, None]:
+    ) -> typing.Generator[tuple[int, int]]:
         """Return a generator of intervals to be fetched.
 
         Args:
@@ -276,7 +276,7 @@ def run():
     while len(versions) > 1:
         leftFile = f"patches/data/{versions[0]}/__init__.py"
         rightFile = f"patches/data/{versions[1]}/__init__.py"
-        with open(leftFile, "r") as lfh, open(rightFile, "r") as rfh:
+        with open(leftFile) as lfh, open(rightFile) as rfh:
             lhs = ast.parse(lfh.read())
             rhs = ast.parse(rfh.read())
 

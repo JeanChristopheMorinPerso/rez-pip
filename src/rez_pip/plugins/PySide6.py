@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import os
-import shutil
 import typing
 import logging
 import platform
@@ -27,7 +26,7 @@ _LOG = logging.getLogger(__name__)
 
 @rez_pip.plugins.hookimpl
 def prePipResolve(
-    packages: typing.Tuple[str],
+    packages: tuple[str],
 ) -> None:
     """
     PySide6 was initially a single package that had shiboken as a dependency.
@@ -58,7 +57,7 @@ def prePipResolve(
 
 
 @rez_pip.plugins.hookimpl
-def postPipResolve(packages: typing.Tuple[rez_pip.pip.PackageInfo]) -> None:
+def postPipResolve(packages: tuple[rez_pip.pip.PackageInfo]) -> None:
     """
     This hook is implemented out of extra caution. We really don't want PySide6-Addons
     or PySide6-Essentials to be installed without PySide6.
@@ -86,8 +85,8 @@ def postPipResolve(packages: typing.Tuple[rez_pip.pip.PackageInfo]) -> None:
 
 @rez_pip.plugins.hookimpl
 def groupPackages(
-    packages: typing.List[rez_pip.pip.PackageInfo],
-) -> typing.List[rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]]:
+    packages: list[rez_pip.pip.PackageInfo],
+) -> list[rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]]:
     data = []
     for package in packages[:]:
         if packaging.utils.canonicalize_name(package.name) in [
@@ -102,11 +101,11 @@ def groupPackages(
 
 
 @rez_pip.plugins.hookimpl
-def patches(dist: "importlib_metadata.Distribution", path: str) -> typing.List[str]:
+def patches(dist: importlib_metadata.Distribution, path: str) -> list[str]:
     if dist.name != "PySide6" or platform.system() != "Windows":
         return []
 
-    patches: typing.List[str] = []
+    patches: list[str] = []
 
     # To generate the patches:
     # 1. run srcipts/get_pyside6_files.py
@@ -166,9 +165,9 @@ def patches(dist: "importlib_metadata.Distribution", path: str) -> typing.List[s
 
 @rez_pip.plugins.hookimpl
 def cleanup(
-    dist: "importlib_metadata.Distribution", path: str
-) -> typing.List[rez_pip.plugins.CleanupAction]:
-    actions: typing.List[rez_pip.plugins.CleanupAction] = []
+    dist: importlib_metadata.Distribution, path: str
+) -> list[rez_pip.plugins.CleanupAction]:
+    actions: list[rez_pip.plugins.CleanupAction] = []
 
     if packaging.utils.canonicalize_name(dist.name) not in [
         "pyside6",

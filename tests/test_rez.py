@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import stat
 import typing
@@ -345,12 +347,12 @@ def test_convertMetadata(
 )
 def test_getPythonExecutables(
     monkeypatch: pytest.MonkeyPatch,
-    availableVersions: typing.List[str],
-    range_: typing.Optional[str],
-    executables: typing.List[str],
-    expectedExecutables: typing.Dict[str, str],
+    availableVersions: list[str],
+    range_: str | None,
+    executables: list[str],
+    expectedExecutables: dict[str, str],
 ) -> None:
-    repoData: typing.Dict[str, typing.Dict[str, typing.Dict[str, str]]] = {"python": {}}
+    repoData: dict[str, dict[str, dict[str, str]]] = {"python": {}}
 
     for version in availableVersions:
         repoData["python"][version] = {"version": version}
@@ -395,7 +397,7 @@ def test_getPythonExecutables_isolation(
 
     escapedPath = os.fspath(packagePath).replace("\\", "\\\\")
     # Create a fake python-1.0.0 package
-    repoData: typing.Dict[str, typing.Dict[str, typing.Dict[str, str]]] = {
+    repoData: dict[str, dict[str, dict[str, str]]] = {
         "python": {
             "1.0.0": {
                 "version": "1.0.0",

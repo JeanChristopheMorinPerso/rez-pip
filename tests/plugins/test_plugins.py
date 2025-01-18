@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pluggy
 
 import rez_pip.plugins

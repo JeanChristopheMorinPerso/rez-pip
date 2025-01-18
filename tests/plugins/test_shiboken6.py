@@ -1,5 +1,7 @@
-import sys
+from __future__ import annotations
+
 import pathlib
+import unittest.mock
 
 import pytest
 
@@ -10,19 +12,13 @@ import rez_pip.exceptions
 from . import utils
 
 
-if sys.version_info[:2] < (3, 8):
-    import mock
-else:
-    from unittest import mock
-
-
 @pytest.fixture(scope="module", autouse=True)
 def setupPluginManager():
     yield utils.initializePluginManager("shiboken6")
 
 
-def fakePackage(name: str, **kwargs) -> mock.Mock:
-    value = mock.MagicMock()
+def fakePackage(name: str, **kwargs) -> unittest.mock.Mock:
+    value = unittest.mock.MagicMock()
     value.configure_mock(name=name, **kwargs)
     return value
 

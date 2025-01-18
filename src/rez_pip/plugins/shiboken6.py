@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import os
 import typing
-import shutil
 import logging
 
 import packaging.utils
@@ -20,8 +19,8 @@ _LOG = logging.getLogger(__name__)
 
 @rez_pip.plugins.hookimpl
 def cleanup(
-    dist: "importlib_metadata.Distribution", path: str
-) -> typing.List[rez_pip.plugins.CleanupAction]:
+    dist: importlib_metadata.Distribution, path: str
+) -> list[rez_pip.plugins.CleanupAction]:
     if packaging.utils.canonicalize_name(dist.name) != "shiboken6":
         return []
 

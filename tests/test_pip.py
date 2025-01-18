@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import os
 import re
 import sys
 import uuid
-import typing
 import pathlib
 import subprocess
 
@@ -139,8 +140,8 @@ def test_getBundledPip():
     ids=["package_a", "package_a+console_scripts"],
 )
 def test_getPackages_no_deps(
-    packages: typing.List[str],
-    expectedPackages: typing.List[rez_pip.pip.PackageInfo],
+    packages: list[str],
+    expectedPackages: list[rez_pip.pip.PackageInfo],
     pythonRezPackage: str,
     rezRepo: str,
     pypi: str,

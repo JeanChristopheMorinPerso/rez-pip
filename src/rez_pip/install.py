@@ -11,19 +11,15 @@ import sys
 import shutil
 import typing
 import logging
-import fnmatch
 import pathlib
 import zipfile
 import sysconfig
+import collections.abc
 
 import rez_pip.exceptions
 
 if typing.TYPE_CHECKING:
-    if sys.version_info >= (3, 8):
-        from typing import Literal
-    else:
-        from typing_extensions import Literal
-    import rez_pip.compat
+    from typing import Literal
 
 import installer
 import installer.utils
@@ -65,7 +61,7 @@ def isWheelPure(dist: importlib_metadata.Distribution) -> bool:
 
 
 # Taken from https://github.com/pypa/installer/blob/main/src/installer/__main__.py#L49
-def getSchemeDict(name: str, target: str) -> typing.Dict[str, str]:
+def getSchemeDict(name: str, target: str) -> dict[str, str]:
     vars = {}
     vars["base"] = vars["platbase"] = installed_base = target
 
@@ -143,7 +139,7 @@ def installWheel(
 class CustomWheelDestination(installer.destinations.SchemeDictionaryDestination):
     # Exactly the same as SchemeDictionaryDestination, but uses our custom Script class.
     def write_script(
-        self, name: str, module: str, attr: str, section: "ScriptSection"
+        self, name: str, module: str, attr: str, section: ScriptSection
     ) -> installer.records.RecordEntry:
         """Write a script to invoke an entrypoint.
         :param name: name of the script
@@ -191,9 +187,7 @@ if __name__ == "__main__":
 
 # TODO: Document where this code comes from.
 class Script(installer.scripts.Script):
-    def generate(
-        self, executable: str, kind: "LauncherKind"
-    ) -> typing.Tuple[str, bytes]:
+    def generate(self, executable: str, kind: LauncherKind) -> tuple[str, bytes]:
         """Generate a launcher for this script.
         :param executable: Path to the executable to invoke.
         :param kind: Which launcher template should be used.
@@ -232,12 +226,14 @@ def cleanup(dist: importlib_metadata.Distribution, path: str) -> None:
     are made on the installs (the wheel install). We could move this somewhere
     else but it's not clear where.
     """
-    actionsGroups: rez_pip.compat.Sequence[
-        rez_pip.compat.Sequence[rez_pip.plugins.CleanupAction]
-    ] = rez_pip.plugins.getHook().cleanup(dist=dist, path=path)
+    actionsGroups: collections.abc.Sequence[
+        collections.abc.Sequence[rez_pip.plugins.CleanupAction]
+    ] = rez_pip.plugins.getHook().cleanup(
+        dist=dist, path=path
+    )  # type: ignore[assignment]
 
     # Flatten
-    actions: typing.List[rez_pip.plugins.CleanupAction] = [
+    actions: list[rez_pip.plugins.CleanupAction] = [
         action for group in actionsGroups for action in group
     ]
 
@@ -272,7 +268,7 @@ def cleanup(dist: importlib_metadata.Distribution, path: str) -> None:
 
 
 def deleteEntryFromRecord(
-    dist: importlib_metadata.Distribution, path: str, entries: typing.List[str]
+    dist: importlib_metadata.Distribution, path: str, entries: list[str]
 ) -> None:
     """
     Delete an entry from the record file.
@@ -283,7 +279,7 @@ def deleteEntryFromRecord(
     items = [
         os.fspath(item)
         for item in dist.files
-        if re.search("[a-zA-Z0-9._+]+\.dist-info/RECORD", os.fspath(item))
+        if re.search(r"[a-zA-Z0-9._+]+\.dist-info/RECORD", os.fspath(item))
     ]
 
     if not items:
@@ -292,7 +288,7 @@ def deleteEntryFromRecord(
     recordFilePathRel = items[0]
     recordFilePath = os.path.join(path, "python", recordFilePathRel)
 
-    with open(recordFilePath, "r") as f:
+    with open(recordFilePath) as f:
         lines = f.readlines()
 
     schemesRaw = getSchemeDict(dist.name, path)
