@@ -31,16 +31,6 @@ jobs:
         # Ping macos to 13 so that we get intel CPUs.
         # TODO: Make our tests support arm64.
         os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
-        include:
-          # 3.7 is not available on Apple silicon.
-          # So manually add 3.7+macos13 and 3.7 on the other platforms.
-          # Note: The macos-13 image is the last macos image version on GHA to run on Intel CPUs.
-          - python: '3.7'
-            os: 'macos-13'
-          - python: '3.7'
-            os: 'windows-latest'
-          - python: '3.7'
-            os: 'ubuntu-latest'
       fail-fast: false
 
     steps:

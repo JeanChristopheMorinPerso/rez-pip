@@ -26,7 +26,7 @@ def format(session: nox.Session):
     session.run("black", ".", "--check")
 
 
-@nox.session(python=["3.7", "3.8", "3.9", "3.10", "3.11"])
+@nox.session(python=["3.8", "3.9", "3.10", "3.11"])
 def test(session: nox.Session):
     session.install("-r", "tests/requirements.txt")
     session.install(".")
