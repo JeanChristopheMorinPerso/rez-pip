@@ -2,6 +2,12 @@
 branch = True
 source_pkgs=rez_pip
 
+[paths]
+; Map files to src/ so that codecov is happy and can find the right paths.
+source =
+    src
+    .nox/**/site-packages
+
 [report]
 exclude_also =
     def __dir__
