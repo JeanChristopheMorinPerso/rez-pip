@@ -4,6 +4,7 @@ import platform
 import subprocess
 
 import pytest
+import rez.rex
 import installer.utils
 
 import rez_pip.pip
@@ -59,18 +60,19 @@ def test_console_scripts(
 
     assert os.path.exists(consoleScript), f"{consoleScript!r} does not exists!"
 
+    def injectEnvVars(executor: rez.rex.RexExecutor):
+        executor.env.PYTHONPATH.prepend(os.fspath(installPath / "python"))
+
     code, stdout, _ = ctx.execute_shell(
         command=[consoleScript],
         block=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        parent_environ={
-            "PYTHONPATH": os.fspath(installPath / "python"),
-            "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
-        },
         text=True,
+        actions_callback=injectEnvVars,
     )
 
+    assert code == 0
     # Use dirnames to avoid having to deal woth python vs python2 or python vs python3
     assert os.path.dirname(stdout) == os.path.dirname(
         executable

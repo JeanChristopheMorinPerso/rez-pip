@@ -45,7 +45,9 @@ def patchRichConsole(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.fixture(scope="session")
-def index(tmpdir_factory: pytest.TempdirFactory) -> utils.PyPIIndex:
+def index(
+    tmpdir_factory: pytest.TempdirFactory, printer_session: typing.Callable[[str], None]
+) -> utils.PyPIIndex:
     """Build PyPI Index and return the path"""
 
     srcPackages = os.path.join(DATA_ROOT_DIR, "src_packages")
@@ -54,7 +56,9 @@ def index(tmpdir_factory: pytest.TempdirFactory) -> utils.PyPIIndex:
 
     for pkg in os.listdir(srcPackages):
         dest = indexPath.mkdir(pkg)
-        utils.buildPackage(pkg, os.fspath(dest))
+        printer_session(f"Building {pkg!r}...")
+        wheel = utils.buildPackage(pkg, os.fspath(dest))
+        printer_session(f"Built {pkg!r} at {wheel!r}")
 
     return utils.PyPIIndex(pathlib.Path(indexPath.strpath))
 
