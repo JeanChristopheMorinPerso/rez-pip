@@ -13,7 +13,7 @@ def lint(session: nox.Session):
 
 @nox.session()
 def mypy(session: nox.Session):
-    session.install("mypy")
+    session.install("mypy", ".")
 
     session.run("mypy")
 
