@@ -26,7 +26,7 @@ def createPackage(
     packageGroup: rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact],
     pythonVersion: rez.version.Version,
     installedWheelsDir: str,
-    prefix: typing.Optional[str] = None,
+    prefix: str | None = None,
     release: bool = False,
 ) -> None:
     _LOG.info(
@@ -47,7 +47,7 @@ def createPackage(
 
     requires = []
     variant_requires = []
-    metadata: typing.Dict[str, typing.Any] = {}
+    metadata: dict[str, typing.Any] = {}
     isPure = True
     for dist in packageGroup.dists:
         requirements = rez_pip.utils.getRezRequirements(dist, pythonVersion, [])
@@ -175,8 +175,8 @@ def createPackage(
 
 def _convertMetadata(
     dist: importlib_metadata.Distribution,
-) -> typing.Tuple[typing.Dict[str, typing.Any], typing.Dict[str, typing.Any]]:
-    metadata: typing.Dict[str, typing.Any] = {}
+) -> tuple[dict[str, typing.Any], dict[str, typing.Any]]:
+    metadata: dict[str, typing.Any] = {}
     originalMetadata = copy.deepcopy(dist.metadata.json)
     del originalMetadata["metadata_version"]
     del originalMetadata["name"]
@@ -267,8 +267,8 @@ def _convertMetadata(
 
 
 def getPythonExecutables(
-    range_: typing.Optional[str], packageFamily: str = "python"
-) -> typing.Dict[str, pathlib.Path]:
+    range_: str | None, packageFamily: str = "python"
+) -> dict[str, pathlib.Path]:
     """
     Get the available python executable from rez packages.
 
@@ -283,7 +283,7 @@ def getPythonExecutables(
         key=lambda x: x.version,
     )
 
-    packages: typing.List[rez.packages.Package]
+    packages: list[rez.packages.Package]
     if range_ == "latest":
         packages = [list(all_packages)[-1]]
     else:
@@ -299,7 +299,7 @@ def getPythonExecutables(
         # Note that "pkgs" is already in the right order since all_packages is sorted.
         packages = [pkgs[-1] for pkgs in groups]
 
-    pythons: typing.Dict[str, pathlib.Path] = {}
+    pythons: dict[str, pathlib.Path] = {}
     for package in packages:
         resolvedContext = rez.resolved_context.ResolvedContext(
             [f"{package.name}=={package.version}"]

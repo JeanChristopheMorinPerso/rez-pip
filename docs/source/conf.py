@@ -62,7 +62,7 @@ autosectionlabel_prefix_document = True
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-the-linkcheck-builder
 
 linkcheck_allowed_redirects = {
-    r"https://github.com/JeanChristopheMorinPerso/rez-pip/issues/\d+": "https://github.com/JeanChristopheMorinPerso/rez-pip/pull/\d+"
+    r"https://github.com/JeanChristopheMorinPerso/rez-pip/issues/\d+": r"https://github.com/JeanChristopheMorinPerso/rez-pip/pull/\d+"
 }
 
 
@@ -214,7 +214,7 @@ class RezAutoArgparseDirective(sphinx.util.docutils.SphinxDirective):
 
                 # Add links to rez docs for known settings.
                 help_str = re.sub(
-                    "(.* \(default: configured )([a-zA-Z_]+)(.*)$",
+                    r"(.* \(default: configured )([a-zA-Z_]+)(.*)$",
                     r"\g<1> :external:data:`\g<2>`\g<3>",
                     help_str,
                 )
@@ -359,15 +359,6 @@ def autodoc_process_signature(
     signature: str,
     return_annotation,
 ):
-    for name in ["Sequence", "Mapping", "MutableSequence"]:
-        signature = signature.replace(
-            f"rez_pip.compat.{name}", f"~collections.abc.{name}"
-        )
-        if return_annotation:
-            return_annotation = return_annotation.replace(
-                f"rez_pip.compat.{name}", f"~collections.abc.{name}"
-            )
-
     signature = signature.replace(
         "rez_pip.compat.importlib_metadata", "~importlib.metadata"
     )

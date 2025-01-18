@@ -8,6 +8,7 @@ import pkgutil
 import functools
 import importlib
 import dataclasses
+import collections.abc
 
 import pluggy
 import rez.package_maker
@@ -21,7 +22,7 @@ __all__ = [
 ]
 
 
-def __dir__() -> typing.List[str]:
+def __dir__() -> list[str]:
     return __all__
 
 
@@ -50,8 +51,8 @@ class PluginSpec:
     @hookspec
     def prePipResolve(
         self,
-        packages: typing.Tuple[str, ...],  # Immutable
-        requirements: typing.Tuple[str, ...],  # Immutable
+        packages: tuple[str, ...],  # Immutable
+        requirements: tuple[str, ...],  # Immutable
     ) -> None:
         """
         The pre-pip resolve hook allows a plugin to run some checks *before* resolving the
@@ -63,11 +64,12 @@ class PluginSpec:
         :param packages: List of packages requested by the user.
         :param requirements: List of `requirements files <https://pip.pypa.io/en/stable/reference/requirements-file-format/#requirements-file-format>`_ if any.
         """
+        ...
 
     @hookspec
     def postPipResolve(
         self,
-        packages: typing.Tuple[rez_pip.pip.PackageInfo, ...],  # Immutable
+        packages: tuple[rez_pip.pip.PackageInfo, ...],  # Immutable
     ) -> None:
         """
         The post-pip resolve hook allows a plugin to run some checks *after* resolving the
@@ -78,12 +80,13 @@ class PluginSpec:
 
         :param packages: List of resolved packages.
         """
+        ...
 
     @hookspec
     def groupPackages(  # type: ignore[empty-body]
         self,
-        packages: rez_pip.compat.MutableSequence[rez_pip.pip.PackageInfo],
-    ) -> rez_pip.compat.Sequence[
+        packages: collections.abc.MutableSequence[rez_pip.pip.PackageInfo],
+    ) -> collections.abc.Sequence[
         rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]
     ]:
         """
@@ -95,11 +98,12 @@ class PluginSpec:
         :param packages: List of resolved packages.
         :returns: A list of package groups.
         """
+        ...
 
     @hookspec
     def cleanup(  # type: ignore[empty-body]
         self, dist: rez_pip.compat.importlib_metadata.Distribution, path: str
-    ) -> rez_pip.compat.Sequence[CleanupAction]:
+    ) -> collections.abc.Sequence[CleanupAction]:
         """
         Cleanup a package post-installation. Do not delete any files/directories from this hook.
         Return the list of actions you want to perform and let rez-pip perform them.
@@ -107,11 +111,12 @@ class PluginSpec:
         :param dist: Python distribution.
         :param path: Root path of the rez variant.
         """
+        ...
 
     @hookspec
     def patches(  # type: ignore[empty-body]
         self, dist: rez_pip.compat.importlib_metadata.Distribution, path: str
-    ) -> rez_pip.compat.Sequence[str]:
+    ) -> collections.abc.Sequence[str]:
         """
         Provide paths to patches to be applied on the source code of a package.
 
@@ -121,6 +126,7 @@ class PluginSpec:
         # TODO: This will alter files (obviously) and change their hashes.
         # This could be a problem to verify the integrity of the package.
         # https://packaging.python.org/en/latest/specifications/recording-installed-packages/#the-record-file
+        ...
 
     @hookspec
     def metadata(self, package: rez.package_maker.PackageMaker) -> None:
@@ -130,12 +136,13 @@ class PluginSpec:
 
         :param package: An insatnce of :class:`rez.package_maker.PackageMaker`.
         """
+        ...
 
 
 def before(
     hookName: str,
-    hookImpls: rez_pip.compat.Sequence[pluggy.HookImpl],
-    kwargs: rez_pip.compat.Mapping[str, typing.Any],
+    hookImpls: collections.abc.Sequence[pluggy.HookImpl],
+    kwargs: collections.abc.Mapping[str, typing.Any],
 ) -> None:
     """Function that will be called before each hook."""
     _LOG.debug("Calling the %r hooks", hookName)
@@ -144,14 +151,14 @@ def before(
 def after(
     outcome: pluggy.Result[typing.Any],
     hookName: str,
-    hookImpls: rez_pip.compat.Sequence[pluggy.HookImpl],
-    kwargs: rez_pip.compat.Mapping[str, typing.Any],
+    hookImpls: collections.abc.Sequence[pluggy.HookImpl],
+    kwargs: collections.abc.Mapping[str, typing.Any],
 ) -> None:
     """Function that will be called after each hook."""
     _LOG.debug("Called the %r hooks", hookName)
 
 
-@functools.lru_cache()
+@functools.lru_cache
 def getManager() -> pluggy.PluginManager:
     """
     Returns the plugin manager. The return value will be cached on first call
@@ -188,7 +195,7 @@ def getHook() -> PluginSpec:
     return typing.cast(PluginSpec, manager.hook)
 
 
-def _getHookImplementations() -> typing.Dict[str, typing.List[str]]:
+def _getHookImplementations() -> dict[str, list[str]]:
     manager = getManager()
 
     implementations = {}

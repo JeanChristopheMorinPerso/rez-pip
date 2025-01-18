@@ -2,9 +2,6 @@ pytest
 pytest-cov
 pytest-print
 pypiserver
-# Needed because of the use of async mocks which were fully added in 3.8
-mock; python_version < "3.8"
-types-mock; python_version < "3.8"
 build
 hatchling
 git+https://github.com/conda/conda-package-handling@2.1.0; platform_system != "Windows"

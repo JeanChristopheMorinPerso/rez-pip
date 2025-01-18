@@ -4,7 +4,6 @@ import os
 import sys
 import json
 import shutil
-import typing
 import logging
 import argparse
 import textwrap
@@ -35,7 +34,7 @@ _LOG = logging.getLogger("rez_pip.cli")
 __all__ = ["run"]
 
 
-def __dir__() -> typing.List[str]:
+def __dir__() -> list[str]:
     return __all__
 
 
@@ -134,8 +133,8 @@ def _createParser() -> argparse.ArgumentParser:
 
 
 def _parseArgs(
-    args: typing.List[str],
-) -> typing.Tuple[argparse.Namespace, typing.List[str]]:
+    args: list[str],
+) -> tuple[argparse.Namespace, list[str]]:
     parser = _createParser()
 
     knownArgs = []
@@ -170,7 +169,7 @@ def _validateArgs(args: argparse.Namespace) -> None:
         )
 
 
-def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) -> None:
+def _run(args: argparse.Namespace, pipArgs: list[str], pipWorkArea: str) -> None:
     pythonVersions = rez_pip.rez.getPythonExecutables(
         args.python_version, packageFamily="python"
     )
@@ -207,9 +206,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
             )
 
         _LOG.info(f"Resolved {len(packages)} dependencies for python {pythonVersion}")
-        _packageGroups: typing.List[
-            rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]
-        ] = list(
+        _packageGroups: list[rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]] = list(
             itertools.chain(*rez_pip.plugins.getHook().groupPackages(packages=packages))  # type: ignore[arg-type]
         )
 
@@ -231,7 +228,7 @@ def _run(args: argparse.Namespace, pipArgs: typing.List[str], pipWorkArea: str) 
         # TODO: Should we postpone downloading to the last minute if we can?
         _LOG.info("[bold]Downloading...")
 
-        packageGroups: typing.List[
+        packageGroups: list[
             rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]
         ] = rez_pip.download.downloadPackages(_packageGroups, wheelsDir)
 

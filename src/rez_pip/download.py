@@ -18,19 +18,19 @@ _lock = asyncio.Lock()
 
 
 def downloadPackages(
-    packageGroups: typing.List[rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]],
+    packageGroups: list[rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]],
     dest: str,
-) -> typing.List[rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]]:
+) -> list[rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]]:
     return asyncio.run(_downloadPackages(packageGroups, dest))
 
 
 async def _downloadPackages(
-    packageGroups: typing.List[rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]],
+    packageGroups: list[rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]],
     dest: str,
 ) -> list[rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]]:
-    newPackageGroups: typing.List[
-        rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]
-    ] = []
+    newPackageGroups: list[rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]] = (
+        []
+    )
     someFailed = False
 
     async with aiohttp.ClientSession() as session:
@@ -43,7 +43,7 @@ async def _downloadPackages(
             transient=True,
             console=rez_pip.utils.CONSOLE,
         ) as progress:
-            tasks: typing.Dict[str, rich.progress.TaskID] = {}
+            tasks: dict[str, rich.progress.TaskID] = {}
 
             # Create all the download tasks first
             numPackages = 0
