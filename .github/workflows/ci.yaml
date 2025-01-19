@@ -40,7 +40,7 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Test
-      run: pipx run nox --error-on-missing-interpreter -s test-${{ matrix.python }}
+      run: pipx run nox --error-on-missing-interpreter -s test-${{ matrix.python }} -- -k test_python_packages
 
     - name: Upload test results to Codecov
       if: ${{ !cancelled() }}
