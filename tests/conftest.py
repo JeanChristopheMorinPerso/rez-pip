@@ -5,12 +5,10 @@ import time
 import typing
 import asyncio
 import pathlib
-import zipfile
 import platform
 import textwrap
 import subprocess
 import http.client
-import urllib.request
 
 import pytest
 import rattler
@@ -180,7 +178,7 @@ def rezRepo() -> typing.Generator[str, None, None]:
     scope="session",
     params=[
         pytest.param(
-            "3.7.16",
+            "3.7.12",
             marks=pytest.mark.py37,
         ),
         pytest.param(
@@ -244,27 +242,15 @@ def pythonRezPackage(
 
 
 async def createCondaEnvironment(pythonVersion: str, prefixPath: str):
-    # print("Started fetching repo_data")
-    repodata = await rattler.fetch_repo_data(
-        channels=[rattler.Channel("main")],
-        platforms=[rattler.Platform.current(), rattler.Platform("noarch")],
-        cache_path=os.path.join(CONDA_DIR, "cache"),
-        callback=None,
-    )
-    # print("Finished fetching repo_data")
-
-    # print("Solving dependencies")
-    solved_dependencies = rattler.solve(
-        specs=[rattler.MatchSpec(f"python={pythonVersion}")],
-        available_packages=repodata,
+    """Create a conda environment using py-rattler"""
+    records = await rattler.solve(
+        ["https://conda.anaconda.org/conda-forge"],
+        [rattler.MatchSpec(f"python={pythonVersion}")],
         virtual_packages=[p.into_generic() for p in rattler.VirtualPackage.current()],
     )
-    # print("Solved required dependencies")
 
-    # print("Creating environment")
-    await rattler.link(
-        dependencies=solved_dependencies,
-        target_prefix=prefixPath,
+    await rattler.install(
+        records,
+        prefixPath,
         cache_dir=os.path.join(CONDA_DIR, "pkgs"),
     )
-    # print(f"Created environment")
