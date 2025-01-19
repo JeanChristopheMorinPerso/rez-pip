@@ -236,8 +236,9 @@ def pythonRezPackage(
             ]
             if platform.system() == "Windows":
                 commands = [
+                    "env.PATH.prepend('{root}/python/DLLs')",
                     "env.PATH.prepend('{root}/python/Library/bin')",
-                    "env.PATH.prepend('{root}/python/Library/lib')",
+                    "env.PATH.prepend('{root}/python')",
                 ]
 
             pkg.commands = "\n".join(commands)

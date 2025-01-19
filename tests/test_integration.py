@@ -39,9 +39,11 @@ def test_python_packages(pythonRezPackage: str, rezRepo: str):
 
     if platform.system() == "Windows":
         executableName = "python.exe"
-        expectedExecutablePath = os.path.join(expectedExecutablePath, "Library")
-
-    expectedExecutablePath = os.path.join(expectedExecutablePath, "bin", executableName)
+        expectedExecutablePath = os.path.join(expectedExecutablePath, executableName)
+    else:
+        expectedExecutablePath = os.path.join(
+            expectedExecutablePath, "bin", executableName
+        )
 
     code, stdout, _ = ctx.execute_shell(
         command=[executableName, "-c", "import sys; print(sys.executable)"],
