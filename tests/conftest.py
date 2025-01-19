@@ -180,14 +180,14 @@ def rezRepo() -> typing.Generator[str, None, None]:
     scope="session",
     params=[
         pytest.param(
-            "3.7.12",
+            "3.7",
             marks=pytest.mark.py37,
         ),
         pytest.param(
-            "3.9.16",
+            "3.9",
             marks=pytest.mark.py39,
         ),
-        pytest.param("3.11.5", marks=pytest.mark.py311),
+        pytest.param("3.11", marks=pytest.mark.py311),
     ],
 )
 def pythonRezPackage(
