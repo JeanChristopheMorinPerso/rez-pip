@@ -77,6 +77,9 @@ def pypi(
     port = 45678
     host = "localhost"
 
+    subprocess.check_output(["which", "pypi-server"])
+    subprocess.check_output(["pypi-server", "--version"])
+
     proc = subprocess.Popen(
         [
             "pypi-server",
