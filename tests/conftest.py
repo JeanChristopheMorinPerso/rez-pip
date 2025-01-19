@@ -14,9 +14,11 @@ import pytest
 import rattler
 import rez.config
 import rez.system
+import rez.version
 import rez.packages
 import rez.package_bind
 import rez.package_maker
+import rez.package_remove
 
 import rez_pip.utils
 
@@ -213,25 +215,33 @@ def pythonRezPackage(
 
         asyncio.run(createCondaEnvironment(version, dest))
 
-    with rez.package_maker.make_package(
-        "python",
-        rezRepo,
-        make_root=make_root,
-        skip_existing=True,
-        warn_on_skip=False,
-    ) as pkg:
-        pkg.version = version
+    try:
+        with rez.package_maker.make_package(
+            "python",
+            rezRepo,
+            make_root=make_root,
+            skip_existing=True,
+            warn_on_skip=False,
+        ) as pkg:
+            pkg.version = version
 
-        commands = [
-            "env.PATH.prepend('{root}/python/bin')",
-        ]
-        if platform.system() == "Windows":
             commands = [
-                "env.PATH.prepend('{root}/python/Library/bin')",
-                "env.PATH.prepend('{root}/python/Library/lib')",
+                "env.PATH.prepend('{root}/python/bin')",
             ]
+            if platform.system() == "Windows":
+                commands = [
+                    "env.PATH.prepend('{root}/python/Library/bin')",
+                    "env.PATH.prepend('{root}/python/Library/lib')",
+                ]
 
-        pkg.commands = "\n".join(commands)
+            pkg.commands = "\n".join(commands)
+    except Exception as exc:
+        # If the creation fail, remove the package.
+        # make_package doesn't do any cleanup if make_root fails...
+        obj = rez.version.VersionedObject(f"python-{version}")
+        rez.package_remove.remove_package(obj.name, obj.version, rezRepo)
+
+        raise exc from None
 
     if pkg.skipped_variants:
         printer_session(
