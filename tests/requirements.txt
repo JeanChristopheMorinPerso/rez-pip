@@ -2,6 +2,7 @@ pytest
 pytest-cov
 pytest-print
 pypiserver
+importlib_resources
 build
 hatchling
 py-rattler
