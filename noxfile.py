@@ -13,7 +13,7 @@ def lint(session: nox.Session):
 
 @nox.session()
 def mypy(session: nox.Session):
-    session.install("mypy", ".")
+    session.install(".", "mypy")
 
     session.run("mypy")
 
@@ -27,8 +27,7 @@ def format(session: nox.Session):
 
 @nox.session(python=["3.8", "3.9", "3.10", "3.11"])
 def test(session: nox.Session):
-    session.install("-r", "tests/requirements.txt")
-    session.install(".")
+    session.install(".", "-r", "tests/requirements.txt")
 
     session.run(
         "pytest",
