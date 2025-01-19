@@ -35,12 +35,18 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
     - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
     - name: Test
-      run: pipx run nox --error-on-missing-interpreter -s test-${{ matrix.python }}
+      run: uvx nox --default-venv-backend uv --error-on-missing-interpreter -s test-${{ matrix.python }}
+      env:
+        UV_PYTHON_PREFERENCE: only-system
 
     - name: Upload test results to Codecov
       if: ${{ !cancelled() }}
