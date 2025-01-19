@@ -17,9 +17,16 @@ import rez.resolved_context
 import rez_pip.pip
 import rez_pip.utils
 import rez_pip.plugins
+import rez_pip.exceptions
 from rez_pip.compat import importlib_metadata
 
 _LOG = logging.getLogger(__name__)
+
+
+class NoPythonFound(rez_pip.exceptions.RezPipError):
+    """
+    Raised when no python package can be found.
+    """
 
 
 def createPackage(
@@ -276,12 +283,23 @@ def getPythonExecutables(
     :param packageFamily: Name of the rez package family for the python package. This allows ot support PyPy, etc.
     :returns: Dict where the keys are the python versions and values are abolute paths to executables.
     """
+    for family in rez.packages.iter_package_families():
+        if family.name == "python":
+            break
+    else:
+        raise NoPythonFound(f"No package family named {packageFamily!r} found")
+
     all_packages = sorted(
         rez.packages.iter_packages(
             packageFamily, range_=range_ if range_ != "latest" else None
         ),
         key=lambda x: x.version,
     )
+
+    if not all_packages:
+        raise NoPythonFound(
+            f"No version found for package family {packageFamily!r} within requested range: {range_!r}"
+        )
 
     packages: list[rez.packages.Package]
     if range_ == "latest":

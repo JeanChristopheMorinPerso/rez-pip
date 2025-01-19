@@ -382,6 +382,64 @@ def test_getPythonExecutables(
             )
 
 
+def test_getPythonExecutables_package_family_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Add a random package family just to get more code coverage.
+    # It is technically not necessary for the test. The repo could well be
+    # empty and it would still be a good test.
+    repoData: dict[str, dict[str, dict[str, str]]] = {"packageA": {}}
+
+    repo = typing.cast(
+        rez.package_repository.PackageRepository,
+        rez.package_repository.create_memory_package_repository(repoData),
+    )
+
+    with monkeypatch.context() as context:
+        context.setitem(
+            rez.package_repository.package_repository_manager.repositories,
+            f"memory@{repo.location}",
+            repo,
+        )
+
+        context.setattr(rez.config.config, "packages_path", [f"memory@{repo.location}"])
+
+        with pytest.raises(rez_pip.rez.NoPythonFound) as exc:
+            rez_pip.rez.getPythonExecutables("asd", "python")
+
+        assert str(exc.value) == "No package family named 'python' found"
+
+
+def test_getPythonExecutables_no_versions_found_in_range(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repoData: dict[str, dict[str, dict[str, str]]] = {
+        "python": {"1.0.0": {"version": "1.0.0"}}
+    }
+
+    repo = typing.cast(
+        rez.package_repository.PackageRepository,
+        rez.package_repository.create_memory_package_repository(repoData),
+    )
+
+    with monkeypatch.context() as context:
+        context.setitem(
+            rez.package_repository.package_repository_manager.repositories,
+            f"memory@{repo.location}",
+            repo,
+        )
+
+        context.setattr(rez.config.config, "packages_path", [f"memory@{repo.location}"])
+
+        with pytest.raises(rez_pip.rez.NoPythonFound) as exc:
+            rez_pip.rez.getPythonExecutables(">=2.0.0", "python")
+
+        assert (
+            str(exc.value)
+            == "No version found for package family 'python' within requested range: '>=2.0.0'"
+        )
+
+
 def test_getPythonExecutables_isolation(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: pathlib.Path,
