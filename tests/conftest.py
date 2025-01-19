@@ -255,7 +255,7 @@ async def createCondaEnvironment(pythonVersion: str, prefixPath: str):
     """Create a conda environment using py-rattler"""
     records = await rattler.solve(
         ["https://repo.anaconda.com/pkgs/main"],
-        [rattler.MatchSpec(f"python {pythonVersion}")],
+        [rattler.MatchSpec(f"python={pythonVersion}")],
         virtual_packages=rattler.VirtualPackage.detect(),
     )
 
