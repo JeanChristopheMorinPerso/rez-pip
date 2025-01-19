@@ -44,9 +44,15 @@ jobs:
       uses: astral-sh/setup-uv@v5
 
     - name: Test
-      run: uvx nox --default-venv-backend uv --error-on-missing-interpreter -s test-${{ matrix.python }} -- tests/test_pip.py::test_getPackages_no_deps[3.9.21-package_a]
+      run: uvx nox --default-venv-backend uv --error-on-missing-interpreter -s test-${{ matrix.python }}
       env:
+        # uv really wants to take control of what python it uses...
+        # Force it to only use system pythons
         UV_PYTHON_PREFERENCE: only-system
+        # When using nox with uv, it will try to automatically
+        # install python using uv using "uv python install".
+        # So tell uv that it can't do that. Nox will gracefully
+        # handle the failure and fallback to the system python.
         UV_PYTHON_DOWNLOADS: '0'
 
     - name: Upload test results to Codecov
