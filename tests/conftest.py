@@ -254,9 +254,9 @@ def pythonRezPackage(
 async def createCondaEnvironment(pythonVersion: str, prefixPath: str):
     """Create a conda environment using py-rattler"""
     records = await rattler.solve(
-        ["https://conda.anaconda.org/conda-forge"],
-        [rattler.MatchSpec(f"python={pythonVersion}")],
-        virtual_packages=[p.into_generic() for p in rattler.VirtualPackage.current()],
+        ["https://repo.anaconda.com/pkgs/main"],
+        [rattler.MatchSpec(f"python {pythonVersion}")],
+        virtual_packages=rattler.VirtualPackage.detect(),
     )
 
     await rattler.install(
