@@ -47,6 +47,7 @@ jobs:
       run: uvx nox --default-venv-backend uv --error-on-missing-interpreter -s test-${{ matrix.python }} -- tests/test_pip.py::test_getPackages_no_deps[3.9.21-package_a]
       env:
         UV_PYTHON_PREFERENCE: only-system
+        UV_PYTHON_DOWNLOADS: '0'
 
     - name: Upload test results to Codecov
       if: ${{ !cancelled() }}
