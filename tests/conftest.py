@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import time
 import typing
@@ -11,9 +13,12 @@ import urllib.request
 
 import pytest
 import rez.config
+import rez.system
 import rez.packages
 import rez.package_bind
 import rez.package_maker
+
+import rez_pip.utils
 
 from . import utils
 
@@ -35,8 +40,16 @@ def pytest_runtest_makereport(item: pytest.Item, call):
     item.stash.setdefault(phaseReportKey, {})[rep.when] = rep
 
 
+@pytest.fixture(scope="function", autouse=True)
+def patchRichConsole(monkeypatch: pytest.MonkeyPatch):
+    """Patch the rich console so that it doesn't wrap long lines"""
+    monkeypatch.setattr(rez_pip.utils.CONSOLE, "width", 1000)
+
+
 @pytest.fixture(scope="session")
-def index(tmpdir_factory: pytest.TempdirFactory) -> utils.PyPIIndex:
+def index(
+    tmpdir_factory: pytest.TempdirFactory, printer_session: typing.Callable[[str], None]
+) -> utils.PyPIIndex:
     """Build PyPI Index and return the path"""
 
     srcPackages = os.path.join(DATA_ROOT_DIR, "src_packages")
@@ -45,7 +58,9 @@ def index(tmpdir_factory: pytest.TempdirFactory) -> utils.PyPIIndex:
 
     for pkg in os.listdir(srcPackages):
         dest = indexPath.mkdir(pkg)
-        utils.buildPackage(pkg, os.fspath(dest))
+        printer_session(f"Building {pkg!r}...")
+        wheel = utils.buildPackage(pkg, os.fspath(dest))
+        printer_session(f"Built {pkg!r} at {wheel!r}")
 
     return utils.PyPIIndex(pathlib.Path(indexPath.strpath))
 
@@ -134,6 +149,13 @@ def hardenRezConfig(tmp_path_factory: pytest.TempPathFactory):
         yield
 
 
+@pytest.fixture(scope="function", autouse=True)
+def resetRez():
+    """Reset rez caches to make sure we don't leak anything between tests"""
+    yield
+    rez.system.system.clear_caches()
+
+
 @pytest.fixture(scope="session")
 def rezRepo() -> typing.Generator[str, None, None]:
     path = os.path.join(DATA_ROOT_DIR, "rez_repo")
@@ -191,7 +213,13 @@ def downloadPythonVersion(
         pytest.param(
             # Nuget doesn't have 3.7.16
             "3.7.9" if platform.system() == "Windows" else "3.7.16",
-            marks=pytest.mark.py37,
+            marks=[
+                pytest.mark.py3,
+                pytest.mark.skipif(
+                    platform.processor() == "arm" and platform.system() == "Darwin",
+                    reason="Python 3.7 is not compatible with Apple Silicon",
+                ),
+            ],
         ),
         pytest.param(
             # Nuget doesn't have 3.9.16

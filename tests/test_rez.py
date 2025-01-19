@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import os
-import sys
 import stat
 import typing
 import pathlib
@@ -12,13 +13,10 @@ import rez.version
 import rez.packages
 import rez.package_repository
 
-if sys.version_info >= (3, 10):
-    import importlib.metadata as importlib_metadata
-else:
-    import importlib_metadata
-
+import rez_pip.pip
 import rez_pip.rez
 import rez_pip.utils
+from rez_pip.compat import importlib_metadata
 
 
 def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
@@ -62,16 +60,28 @@ def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
         metadata={"is_pure_python": False},
     )
 
+    packageGroup = rez_pip.pip.PackageGroup(
+        [
+            rez_pip.pip.PackageInfo(
+                metadata=rez_pip.pip.Metadata(name="package-a", version="1.0.0.post0"),
+                download_info=rez_pip.pip.DownloadInfo(
+                    url=f"http://localhost/asd",
+                    archive_info=rez_pip.pip.ArchiveInfo("hash", {}),
+                ),
+                is_direct=True,
+                requested=True,
+            )
+        ]
+    )
+    packageGroup.dists = [dist]
+
     with unittest.mock.patch.object(
         rez_pip.utils, "getRezRequirements", return_value=expectedRequirements
     ):
         rez_pip.rez.createPackage(
-            dist,
-            False,
+            packageGroup,
             rez.version.Version("3.7.0"),
-            [],
             source,
-            "http://localhost/asd",
             prefix=repo,
         )
 
@@ -84,14 +94,14 @@ def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
         "name": dist.name,
         "version": dist.version,
         "is_pure_python": False,
-        "wheel_url": "http://localhost/asd",
+        "wheel_urls": ["http://localhost/asd"],
         "rez_pip_version": importlib_metadata.version("rez-pip"),
         "metadata": {},
     }
 
 
 def test_convertMetadata_nothing_to_convert(monkeypatch: pytest.MonkeyPatch):
-    dist = importlib_metadata.Distribution()
+    dist = importlib_metadata.Distribution.at("asd")
     monkeypatch.setattr(
         dist,
         "read_text",
@@ -232,7 +242,7 @@ def test_convertMetadata(
     expectedRemaining,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    dist = importlib_metadata.Distribution()
+    dist = importlib_metadata.Distribution.at("asd")
     monkeypatch.setattr(
         dist,
         "read_text",
@@ -337,12 +347,12 @@ def test_convertMetadata(
 )
 def test_getPythonExecutables(
     monkeypatch: pytest.MonkeyPatch,
-    availableVersions: typing.List[str],
-    range_: typing.Optional[str],
-    executables: typing.List[str],
-    expectedExecutables: typing.Dict[str, str],
+    availableVersions: list[str],
+    range_: str | None,
+    executables: list[str],
+    expectedExecutables: dict[str, str],
 ) -> None:
-    repoData: typing.Dict[str, typing.Dict[str, typing.Dict[str, str]]] = {"python": {}}
+    repoData: dict[str, dict[str, dict[str, str]]] = {"python": {}}
 
     for version in availableVersions:
         repoData["python"][version] = {"version": version}
@@ -387,7 +397,7 @@ def test_getPythonExecutables_isolation(
 
     escapedPath = os.fspath(packagePath).replace("\\", "\\\\")
     # Create a fake python-1.0.0 package
-    repoData: typing.Dict[str, typing.Dict[str, typing.Dict[str, str]]] = {
+    repoData: dict[str, dict[str, dict[str, str]]] = {
         "python": {
             "1.0.0": {
                 "version": "1.0.0",

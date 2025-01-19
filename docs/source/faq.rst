@@ -4,8 +4,31 @@ FAQ
 
 List of commonly asked questions.
 
-Why does the rez package created by rez-pip creates a variant per platform?
-===========================================================================
+Which packages does it support?
+===============================
+
+It technically supports all packages available on PyPI that are distributed as wheels.
+Packages that only provide an sdist are not supported.
+
+We say "technically" because there are some exceptions. Some packages on PyPI rely
+on DSOs (shared libraries, i.e. ``.so``/``.DLL``/``.dylib`` files) that are not available on
+all platforms. This is normal and is supported for most packages. However, there are some
+packages that rely on methods like adding paths using :func:`os.add_dll_directory` or
+hardcoded paths.
+
+Some others rely on `path configuration (.pth) files <https://docs.python.org/3/library/site.html>`_.
+
+When a package relies on these methods, rez-pip will successfully install it, but
+the package might not function correctly (either partly or entirely).
+
+The :doc:`plugin system <plugins>` was created to handled these cases. You can use plugins
+to modify the package metatada, patch source files, add/remove files, etc.
+
+``rez-pip`` comes with some :ref:`built-in plugins <plugins:built-in plugins>` for packages that are popular
+in our communities and are known to be "broken" when installed with ``rez-pip``.
+
+Why does the rez package created by rez-pip create a variant per platform?
+==========================================================================
 
 Sometimes rez-pip creates rez packages that have variants for the platform and arch on which they were installed,
 and sometimes it even creates variants for Python versions. Bellow are the scenarios
