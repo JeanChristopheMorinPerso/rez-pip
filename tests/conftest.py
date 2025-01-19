@@ -180,14 +180,20 @@ def rezRepo() -> typing.Generator[str, None, None]:
     scope="session",
     params=[
         pytest.param(
-            "3.7",
-            marks=pytest.mark.py37,
+            "3.7.16",
+            marks=[
+                pytest.mark.py3,
+                pytest.mark.skipif(
+                    platform.processor() == "arm" and platform.system() == "Darwin",
+                    reason="Python 3.7 is not compatible with Apple Silicon",
+                ),
+            ],
         ),
         pytest.param(
-            "3.9",
+            "3.9.21",
             marks=pytest.mark.py39,
         ),
-        pytest.param("3.11", marks=pytest.mark.py311),
+        pytest.param("3.11.11", marks=pytest.mark.py311),
     ],
 )
 def pythonRezPackage(
