@@ -240,9 +240,11 @@ def _run(args: argparse.Namespace, pipArgs: list[str], pipWorkArea: str) -> None
                 else:
                     downloaded += 1
 
-        _LOG.info(
-            f"[bold]Downloaded {downloaded} wheels, skipped {foundLocally} because they resolved to local files"
-        )
+        message = f"Downloaded {downloaded} wheels"
+        if foundLocally:
+            message += f"skipped {foundLocally} because they resolved to local files"
+
+        _LOG.info(f"[bold]{message}")
 
         with rez_pip.utils.CONSOLE.status(
             f"[bold]Installing wheels into {installedWheelsDir!r}"
@@ -370,7 +372,10 @@ def run() -> int:
         _validateArgs(args)
 
         handler = rich.logging.RichHandler(
-            show_time=False, markup=True, show_path=False
+            show_time=False,
+            markup=True,
+            show_path=False,
+            console=rez_pip.utils.CONSOLE,
         )
         handler.setFormatter(logging.Formatter(fmt="%(message)s"))
 

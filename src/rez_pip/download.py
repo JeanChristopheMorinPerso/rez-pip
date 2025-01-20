@@ -5,6 +5,7 @@ import typing
 import asyncio
 import hashlib
 import logging
+import collections
 
 import aiohttp
 import rich.progress
@@ -58,28 +59,24 @@ async def _downloadPackages(
             # Then create the "total" progress bar. This ensures that total is at the bottom.
             mainTask = progress.add_task(f"[bold]Total (0/{numPackages})", total=0)
 
-            futureGroups: list[
-                list[
-                    typing.Coroutine[
-                        typing.Any,
-                        typing.Any,
-                        rez_pip.pip.DownloadedArtifact | None,
-                    ]
+            futures: list[
+                typing.Coroutine[
+                    typing.Any,
+                    typing.Any,
+                    rez_pip.pip.DownloadedArtifact | None,
                 ]
             ] = []
 
-            # loop = asyncio.get_event_loop()
-            for group in packageGroups:
-                futures: list[
-                    typing.Coroutine[
-                        typing.Any,
-                        typing.Any,
-                        rez_pip.pip.DownloadedArtifact | None,
-                    ]
-                ] = []
+            groupMapping: collections.defaultdict[int, list[str]] = (
+                collections.defaultdict(list)
+            )
+
+            for index, group in enumerate(packageGroups):
                 for package in group.packages:
                     wheelName: str = os.path.basename(package.download_info.url)
                     wheelPath = os.path.join(dest, wheelName)
+
+                    groupMapping[index].append(package.name)
 
                     if not package.isDownloadRequired():
 
@@ -105,24 +102,28 @@ async def _downloadPackages(
                                 wheelPath,
                             )
                         )
-                futureGroups.append(futures)
 
-            for _futures in futureGroups:
-                artifacts = tuple(await asyncio.gather(*_futures))
+            artifacts = tuple(await asyncio.gather(*futures))
 
-                if not all(artifacts):
-                    someFailed = True
+            if not all(artifacts):
+                raise RuntimeError("Some wheels failed to be downloaded")
 
-                artifacts = typing.cast(
-                    typing.Tuple[rez_pip.pip.DownloadedArtifact], artifacts
-                )
+            artifacts = typing.cast(
+                typing.Tuple[rez_pip.pip.DownloadedArtifact], artifacts
+            )
 
+            # Return artifacts in the same groups as they arrived in.
+            # TODO: The amount of looping and gymnastic is a big code smell.
+            for packageNames in groupMapping.values():
                 newPackageGroups.append(
-                    rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact](artifacts)
+                    rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact](
+                        tuple(
+                            artifact
+                            for artifact in artifacts
+                            if artifact.name in packageNames
+                        )
+                    )
                 )
-
-    if someFailed:
-        raise RuntimeError("Some wheels failed to be downloaded")
 
     return newPackageGroups
 
@@ -192,9 +193,9 @@ async def _download(
                 async for chunk, asd in response.content.iter_chunks():
                     if not chunk:
                         break
+                    fd.write(chunk)
                     progress.update(taskID, advance=len(chunk))
                     progress.update(mainTaskID, advance=len(chunk))
-                    fd.write(chunk)
 
             _LOG.info(
                 f"Downloaded {package.name}-{package.version} to {wheelPath!r} ({os.stat(wheelPath).st_size} bytes)"
