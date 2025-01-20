@@ -370,7 +370,10 @@ def run() -> int:
         _validateArgs(args)
 
         handler = rich.logging.RichHandler(
-            show_time=False, markup=True, show_path=False
+            show_time=False,
+            markup=True,
+            show_path=False,
+            console=rez_pip.utils.CONSOLE,
         )
         handler.setFormatter(logging.Formatter(fmt="%(message)s"))
 
