@@ -1,3 +1,7 @@
+REM SPDX-FileCopyrightText: 2022 Contributors to the rez project
+REM
+REM SPDX-License-Identifier: Apache-2.0
+
 @ECHO OFF
 
 pushd %~dp0

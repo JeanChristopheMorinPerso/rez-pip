@@ -1,3 +1,7 @@
+.. SPDX-FileCopyrightText: 2022 Contributors to the rez project
+..
+.. SPDX-License-Identifier: Apache-2.0
+
 .. rez-pip documentation master file, created by
    sphinx-quickstart on Sat May 13 17:23:33 2023.
    You can adapt this file completely to your liking, but it should at least

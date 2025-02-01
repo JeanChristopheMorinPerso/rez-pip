@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2022 Contributors to the rez project
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Development automation"""
 
 import nox
@@ -40,3 +44,9 @@ def download_pip(session: nox.Session):
     session.install("packaging", "gidgethub", "aiohttp")
 
     session.run("python", "./scripts/download_pip.py")
+
+
+@nox.session()
+def reuse(session: nox.Session):
+    session.install("reuse")
+    session.run("reuse", "lint", *session.posargs)

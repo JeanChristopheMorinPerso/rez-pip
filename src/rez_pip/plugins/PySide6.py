@@ -1,5 +1,8 @@
-"""PySide6 plugin.
-"""
+# SPDX-FileCopyrightText: 2022 Contributors to the rez project
+#
+# SPDX-License-Identifier: Apache-2.0
+
+"""PySide6 plugin."""
 
 from __future__ import annotations
 
