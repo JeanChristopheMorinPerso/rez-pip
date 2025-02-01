@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2022 Contributors to the rez project
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # rez-pip
 [![Coverage](https://codecov.io/gh/JeanChristopheMorinPerso/rez-pip/branch/main/graph/badge.svg?token=SYLI4WI7F1)](https://codecov.io/gh/JeanChristopheMorinPerso/rez-pip)
 

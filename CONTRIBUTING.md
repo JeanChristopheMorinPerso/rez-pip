@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2022 Contributors to the rez project
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Welcome to rez-pip docs contributing guide
 
 Thank you for investing your time in contributing to our project!

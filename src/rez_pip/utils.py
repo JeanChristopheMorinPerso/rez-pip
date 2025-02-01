@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2022 Contributors to the rez project
+#
+# SPDX-License-Identifier: Apache-2.0
+
 from __future__ import annotations
 
 import typing
@@ -290,7 +294,7 @@ class CustomPyPackagingRequirement(packaging.requirements.Requirement):
 
 
 def normalizeRequirement(
-    requirement: str | dict[typing.Any, typing.Any]
+    requirement: str | dict[typing.Any, typing.Any],
 ) -> list[CustomPyPackagingRequirement]:
     """Normalize a package requirement.
 

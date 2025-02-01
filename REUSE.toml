@@ -1,0 +1,14 @@
+version = 1
+SPDX-Package-Name = "rez-pip"
+SPDX-PackageSupplier = "Contributors to the rez project"
+
+[[annotations]]
+path = "src/rez_pip/data/pip.pyz"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Copyright (c) 2008-present The pip developers"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "src/rez_pip/data/patches/*.patch"
+SPDX-FileCopyrightText = "Contributors to the rez project"
+SPDX-License-Identifier = "Apache-2.0"
