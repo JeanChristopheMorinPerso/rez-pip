@@ -116,7 +116,7 @@ jobs:
         # 133434221 comes from https://api.github.com/users/rez-pip-update-bot[bot]
         git config user.email '133434221+rez-pip-update-bot[bot]@users.noreply.github.com'
 
-        git commit --signoff -m 'Update pip from $PREVIOUS_PIP_VERSION to $NEW_PIP_VERSION'
+        git commit --signoff -m "Update pip from $PREVIOUS_PIP_VERSION to $NEW_PIP_VERSION"
 
         git push origin __update_pip__
       env:
@@ -136,7 +136,7 @@ jobs:
         set -e
         version=$(echo $NEW_PIP_VERSION | sed 's/\./-/g')
 
-        title=Update pip to $NEW_PIP_VERSION"
+        title="Update pip to $NEW_PIP_VERSION"
 
         cat << EOF > $RUNNER_TEMP/pr_body
         Update pip from $PREVIOUS_PIP_VERSION to $NEW_PIP_VERSION.
