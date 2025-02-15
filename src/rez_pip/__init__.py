@@ -4,9 +4,9 @@
 
 """rez-pip2"""
 
-import argparse
+from __future__ import annotations
 
-import rez.command
+import argparse
 
 
 command_behavior = {
@@ -15,21 +15,28 @@ command_behavior = {
 }
 
 
-def setup_parser(parser: argparse.ArgumentParser, completions=False):
+def setup_parser(parser: argparse.ArgumentParser) -> None:
     import rez_pip.cli
 
     rez_pip.cli._setupParser(parser, fromRez=True)
 
 
-def command(opts, parser=None, extra_arg_groups=None) -> int:
+def command(
+    opts: argparse.Namespace,
+    _: argparse.ArgumentParser,
+    extra_arg_groups: list[list[str]],
+) -> int:
     import rez_pip.cli
 
-    return rez_pip.cli.run(args=opts, pipArgs=extra_arg_groups)
+    pipArgs = [arg for group in extra_arg_groups for arg in group]
+    return rez_pip.cli.run(args=opts, pipArgs=pipArgs)
 
 
-class RezPip(rez.command.Command):
-    """asd"""
+def register_plugin():  # type: ignore
+    # Defined here to avoid cirlular imports
+    import rez.command
 
+    class RezPip(rez.command.Command):  # type: ignore
+        """asd"""
 
-def register_plugin():
     return RezPip
