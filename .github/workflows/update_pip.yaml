@@ -133,7 +133,7 @@ jobs:
         PREVIOUS_PIP_VERSION: ${{ steps.download_pip.outputs.previous-pip-version }}
         PULL_REQUEST_NUMBER: ${{ steps.get-pull-request-number.outputs.number }}
       run: |
-        set -e
+        set -ex
         version=$(echo $NEW_PIP_VERSION | sed 's/\./-/g')
 
         title="Update pip to $NEW_PIP_VERSION"
