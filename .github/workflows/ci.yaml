@@ -51,7 +51,7 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Install uv
-      uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+      uses: astral-sh/setup-uv@6b9c6063abd6010835644d4c2e1bef4cf5cd0fca # v6.0.1
 
     - name: Test
       run: uvx nox --default-venv-backend uv --error-on-missing-interpreter -s test-${{ matrix.python }}
