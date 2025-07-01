@@ -120,21 +120,24 @@ def installWheel(
     # That's kind of dirty, but using any other method returns inconsistent results.
     # For example, importlib.metadata.Distribution.discover(path=['/path']) sometimes
     # won't find the freshly intalled package, even if it exists and everything.
-    path = os.path.join(
-        targetPathPython,
-        f"{package.name.replace('-', '_')}-{package.version}.dist-info",
-    )
-    dist = importlib_metadata.Distribution.at(path)
+    items = [
+        item
+        for item in os.listdir(targetPathPython)
+        if item.endswith(".dist-info")
+        and os.path.isdir(os.path.join(targetPathPython, item))
+    ]
 
-    if not dist.files:
-        path = os.path.join(
-            targetPathPython,
-            # Some packages like sphinx will have have a sphinx.dist-info instead of Sphinx.dist-info.
-            f"{package.name.replace('-', '_').lower()}-{package.version}.dist-info",
+    if len(items) == 0:
+        raise rez_pip.exceptions.RezPipError(
+            f"Could not find a dist-info folder for {package.name!r} in {targetPathPython!r}"
         )
-        dist = importlib_metadata.Distribution.at(path)
-        if not dist.files:
-            raise RuntimeError(f"{path!r} does not exist!")
+
+    elif len(items) > 1:
+        raise rez_pip.exceptions.RezPipError(
+            f"Expected only one dist-info folders for {package.name!r} in {targetPathPython!r}, but found {len(items)}: {items}"
+        )
+
+    dist = importlib_metadata.Distribution.at(os.path.join(targetPathPython, items[0]))
 
     return dist
 
