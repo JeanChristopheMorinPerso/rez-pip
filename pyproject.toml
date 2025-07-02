@@ -53,6 +53,9 @@ Documentation = "https://rez-pip.readthedocs.io"
 [project.scripts]
 rez-pip2 = "rez_pip.cli:run"
 
+[project.entry-points."rez.plugins.command"]
+pip2 = "rez_pip"
+
 [tool.hatch.build.targets.sdist]
 # Ensure the sdist includes a setup.py for older pip versions
 # support-legacy = true

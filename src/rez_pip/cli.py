@@ -42,12 +42,9 @@ def __dir__() -> list[str]:
     return __all__
 
 
-def _createParser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Ingest and convert python packages to rez packages.",
-        prog=__package__.replace("_", "-"),
-        add_help=False,
-    )
+def _setupParser(
+    parser: argparse.ArgumentParser, fromRez: bool = False
+) -> argparse.ArgumentParser:
     parser.add_argument("packages", nargs="*", help="Packages to install.")
 
     generalGroup = parser.add_argument_group(title="general options")
@@ -91,14 +88,16 @@ def _createParser() -> argparse.ArgumentParser:
         help="Standalone pip (https://pip.pypa.io/en/stable/installation/#standalone-zip-application) (default: bundled).",
     )
 
-    # Manually define just to keep the style consistent (capital letters, dot, etc.)
-    generalGroup.add_argument(
-        "-h", "--help", action="help", help="Show this help message and exit."
-    )
+    # Rez injects --version and --help... So we have to
+    # avoid setting them when run from rez.
+    if not fromRez:
+        # Manually define just to keep the style consistent (capital letters, dot, etc.)
+        generalGroup.add_argument(
+            "-h", "--help", action="help", help="Show this help message and exit."
+        )
 
     generalGroup.add_argument(
-        "-v",
-        "--version",
+        "--plugin-version",
         action="version",
         version=importlib_metadata.version(__package__),
     )
@@ -134,6 +133,15 @@ def _createParser() -> argparse.ArgumentParser:
   %(prog)s <package(s)> [-- [pip options]]
 """
     return parser
+
+
+def _createParser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Ingest and convert python packages to rez packages.",
+        prog=__package__.replace("_", "-"),
+        add_help=False,
+    )
+    return _setupParser(parser)
 
 
 def _parseArgs(
@@ -313,8 +321,15 @@ def _debug(
         text=True,
     )
 
+    opts = vars(args)
+
+    # Get rid of non serializable values injected by rez.
+    opts.pop("parser", None)
+    opts.pop("func", None)
+    opts.pop("formatter_class", None)
+
     console.print("[bold]rez-pip provided arguments[/]:")
-    print(textwrap.indent(json.dumps(vars(args), indent=4), prefix))
+    print(textwrap.indent(json.dumps(opts, indent=4), prefix))
 
     console.print(f"[bold]pip config debug[/]:", highlight=False)
     print(textwrap.indent(completedProcess.stdout.strip(), "  "))
@@ -361,9 +376,16 @@ def _printPlugins() -> None:
     rez_pip.utils.CONSOLE.print(table)
 
 
-def run() -> int:
+def run(
+    args: argparse.Namespace | None = None, pipArgs: list[str] | None = None
+) -> int:
     pipWorkArea = tempfile.mkdtemp(prefix="rez-pip-target")
-    args, pipArgs = _parseArgs(sys.argv[1:])
+
+    if args is None:
+        args, pipArgs = _parseArgs(sys.argv[1:])
+
+    assert args is not None
+    assert pipArgs is not None
 
     # Initialize the plugin system
     rez_pip.plugins.getManager()
