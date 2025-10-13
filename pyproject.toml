@@ -29,7 +29,7 @@ dependencies = [
     "pluggy>=1.2",
     # Patches are finicky... Let's lock on the current latest version.
     # We could always relax later if needed.
-    "patch-ng==1.18.1",
+    "patch-ng==1.19.0",
 ]
 
 classifiers = [
