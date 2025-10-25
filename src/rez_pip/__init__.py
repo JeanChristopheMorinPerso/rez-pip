@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""rez-pip2"""
+"""PyPI/python package ingester/converter for the rez package manager"""
 
 from __future__ import annotations
 
