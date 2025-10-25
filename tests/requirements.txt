@@ -5,7 +5,10 @@
 pytest
 pytest-cov
 pytest-print
-pypiserver
+# Needed to fix compatibility with Python 3.13.
+# Remove once merged and released upstream.
+# This is the latest commit from https://github.com/pypiserver/pypiserver/pull/663.
+pypiserver @ git+https://github.com/pypiserver/pypiserver.git@8a8afe6d0a647a07655742a1a0a4e12d2b7fafd3
 # Needed because pypiserver doesn't define it for python 3.8...
 importlib_resources
 build
