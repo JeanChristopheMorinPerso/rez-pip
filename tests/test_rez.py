@@ -177,6 +177,8 @@ def test_convertMetadata_nothing_to_convert(monkeypatch: pytest.MonkeyPatch):
         ],
         # License from License field
         ["License: Apache-2.0", {"license": "Apache-2.0"}, {}],
+        # License from License-Expression field
+        ["License-Expression: Apache-2.0", {"license": "Apache-2.0"}, {}],
         [
             "Classifier: asdasd :: something",
             {},
