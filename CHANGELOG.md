@@ -13,9 +13,9 @@ SPDX-License-Identifier: Apache-2.0
 This is a big release. It includes a lot of changes and improvements.
 
 The most notable changes are:
-* Convert to rez plugin (#136). You can now call the new rez pip using `rez pip2`. It is not a native rez plugin.
-* Drop support for installing rez-pip with Python 3.8 (#120). You can still install Python 3.7 packages.
-* Add plugin system and local wheels support (#91). See https://rez-pip.readthedocs.io/en/stable/plugins.html.
+* Convert to rez plugin. You can now call the new rez pip using `rez pip2`. It is not a native rez plugin (#136).
+* Drop support for installing rez-pip with Python 3.8. You can still install Python 3.7 packages (#120).
+* Add plugin system and local wheels support. See https://rez-pip.readthedocs.io/en/stable/plugins.html (#91).
 * PySide6 can now be installed without issues, including on Windows. It now "just works".
 * Update pip from 23.3.1 to 23.3.2 (#87).
 * Support PEP 639 (#216).

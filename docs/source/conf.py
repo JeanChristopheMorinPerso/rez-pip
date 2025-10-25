@@ -106,18 +106,30 @@ class ReplaceGHRefs(sphinx.transforms.SphinxTransform):
         istext = lambda o: isinstance(o, docutils.nodes.Text)
 
         for node in self.document.traverse(istext):
+            # Handle issue/PR references like (#123)
             match = re.match(r".*\((\#(\d+))\)\.?$", str(node))
-            if not match:
+            if match:
+                newtext = docutils.nodes.Text(str(node)[: match.start(1)])
+                newreference = docutils.nodes.reference(
+                    "", match.group(1), refuri=f"{self.prefix}/{match.group(2)}"
+                )
+                trailingtext = docutils.nodes.Text(str(node)[match.end(1) :])
+                node.parent.replace(node, newtext)
+                node.parent.insert(node.parent.index(newtext) + 1, newreference)
+                node.parent.insert(node.parent.index(newtext) + 2, trailingtext)
                 continue
 
-            newtext = docutils.nodes.Text(str(node)[: match.start(1)])
-            newreference = docutils.nodes.reference(
-                "", match.group(1), refuri=f"{self.prefix}/{match.group(2)}"
-            )
-            trailingtext = docutils.nodes.Text(str(node)[match.end(1) :])
-            node.parent.replace(node, newtext)
-            node.parent.insert(node.parent.index(newtext) + 1, newreference)
-            node.parent.insert(node.parent.index(newtext) + 2, trailingtext)
+            # Handle user tags like @username
+            match = re.search(r"(@([a-zA-Z0-9-]+(?:\[bot\])?))", str(node))
+            if match:
+                newtext = docutils.nodes.Text(str(node)[: match.start(1)])
+                newreference = docutils.nodes.reference(
+                    "", match.group(1), refuri=f"https://github.com/{match.group(2)}"
+                )
+                trailingtext = docutils.nodes.Text(str(node)[match.end(1) :])
+                node.parent.replace(node, newtext)
+                node.parent.insert(node.parent.index(newtext) + 1, newreference)
+                node.parent.insert(node.parent.index(newtext) + 2, trailingtext)
 
         return
 
