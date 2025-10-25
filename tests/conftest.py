@@ -183,21 +183,9 @@ def rezRepo() -> typing.Generator[str, None, None]:
 @pytest.fixture(
     scope="session",
     params=[
-        pytest.param(
-            "3.7.16",
-            marks=[
-                pytest.mark.py3,
-                pytest.mark.skipif(
-                    platform.processor() == "arm" and platform.system() == "Darwin",
-                    reason="Python 3.7 is not compatible with Apple Silicon",
-                ),
-            ],
-        ),
-        pytest.param(
-            "3.9.21",
-            marks=pytest.mark.py39,
-        ),
-        pytest.param("3.11.11", marks=pytest.mark.py311),
+        pytest.param("3.8.20", marks=[pytest.mark.py38]),
+        pytest.param("3.9.21", marks=[pytest.mark.py39]),
+        pytest.param("3.11.11", marks=[pytest.mark.py311]),
     ],
 )
 def pythonRezPackage(
@@ -265,7 +253,7 @@ def pythonRezPackage(
 async def createCondaEnvironment(pythonVersion: str, prefixPath: str):
     """Create a conda environment using py-rattler"""
     records = await rattler.solve(
-        ["https://repo.anaconda.com/pkgs/main"],
+        ["https://conda.anaconda.org/conda-forge"],
         [rattler.MatchSpec(f"python={pythonVersion}")],
         virtual_packages=rattler.VirtualPackage.detect(),
     )
