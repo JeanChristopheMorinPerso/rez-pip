@@ -8,6 +8,29 @@ SPDX-License-Identifier: Apache-2.0
 
 <!-- start-here-sphinx-start-after -->
 
+## 0.4.0 (2025-10-25)
+
+This is a big release. It includes a lot of changes and improvements.
+
+The most notable changes are:
+* Convert to rez plugin (#136). You can now call the new rez pip using `rez pip2`. It is not a native rez plugin.
+* Drop support for installing rez-pip with Python 3.8 (#120). You can still install Python 3.7 packages.
+* Add plugin system and local wheels support (#91). See https://rez-pip.readthedocs.io/en/stable/plugins.html.
+* PySide6 can now be installed without issues, including on Windows. It now "just works".
+* Update pip from 23.3.1 to 23.3.2 (#87).
+* Support PEP 639 (#216).
+* Add support for Python 3.12 and 3.13 (#215).
+
+Other changes:
+* Fix bad dist-info discovery in wheel installation process (#182).
+* Fix logging bugs introduced by PR #91 (#126).
+* Handle error cases in rez_pip.rez.getPythonExecutables explicitly (#125).
+* Use py-rattler instead of conda to create the python packages (#90).
+* Fix compatibility with importlib-metadata 8 and Python 3.13 (#114).
+* Raise an exception when no python package found (#81, @MrLixm).
+* Replace usage of rez.vendor.version with rez.version introduced in rez 2.114.0 (#84).
+* Only return the latest version for major+minor python versions instead of returning all versions (#83).
+
 ## 0.3.2 (2023-12-09)
 
 * Add changelog to docs (#68)
