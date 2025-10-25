@@ -9,8 +9,8 @@ User guide
 Installing packages
 ===================
 
-To install a single package, you can run ``rez-pip example``. Similarly to pip,
-multiple packages can be passed, like ``rez-pip example1 example2``.
+To install a single package, you can run ``rez pip2 example``. Similarly to pip,
+multiple packages can be passed, like ``rez pip2 example1 example2``.
 
 On top of that, you can also use the ``-r``/``--requirement`` command line argument
 to install packages from a requirements file. The behavior is exaclty the same as with pip,
@@ -26,7 +26,7 @@ The ``-c``/``--constraint`` argument is also available and can also be used mult
 Selecting the python version
 ============================
 
-``rez-pip`` will look for python packages that are available based on your
+``rez pip2`` will look for python packages that are available based on your
 rez configuration. By default, it will use all available versions.
 
 By using ``--python-version``, you can select which version of python
@@ -47,7 +47,7 @@ Passing arguments to pip directly
 =================================
 
 Passing command line arguments to pip can be achieved by using ``--``. All arguments specified
-after ``--`` will be forwarded to pip. For example, ``rez-pip example -- --index-url https://example.com/simple``
+after ``--`` will be forwarded to pip. For example, ``rez pip2 example -- --index-url https://example.com/simple``
 will result in a pip command that looks like ``pip install example --index-url https://example.com/simple``.
 
 Changing log level
@@ -141,7 +141,7 @@ modifies the package definition. More particularly, it adds an attribute called 
 to the package definition. Here we use a dummy attribute name just to illustrate the concept.
 But this is a common scenario.
 
-For brevity, we only implement one hook. ``rez-pip`` provides many other hooks that you can implement.
+For brevity, we only implement one hook. ``rez pip2`` provides many other hooks that you can implement.
 Hooks are documented in :ref:`plugins:hooks`.
 
 Once this is done, you can test your plugin by installing it. For example, you can use ``pip install -e .``

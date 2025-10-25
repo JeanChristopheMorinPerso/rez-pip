@@ -146,14 +146,14 @@ class RezAutoArgparseDirective(sphinx.util.docutils.SphinxDirective):
 
         parser = rez_pip.cli._createParser()
 
-        full_cmd = parser.prog.replace(" ", "-")
+        full_cmd = parser.prog.replace(" ", "-").replace("rez-pip", "rez pip2")
 
         # Title
         document = [f".. _{full_cmd}:"]
         document.append("")
-        document.append(f"{'='*len(parser.prog)}")
+        document.append(f"{'='*len(full_cmd)}")
         document.append(f"{full_cmd}")
-        document.append(f"{'='*len(parser.prog)}")
+        document.append(f"{'='*len(full_cmd)}")
         document.append("")
 
         document.append(f".. program:: {full_cmd}")
@@ -164,7 +164,9 @@ class RezAutoArgparseDirective(sphinx.util.docutils.SphinxDirective):
         document.append(".. code-block:: text")
         document.append("")
         for line in parser.format_usage()[7:].split("\n"):
-            document.append(f"   {line}")
+            # TODO: This replace is dirty... How could we more cleany
+            # get the rez pip command as a plugin?
+            document.append(f"   {line}".replace("rez-pip", "rez pip2"))
         document.append("")
 
         document.append("Description")
