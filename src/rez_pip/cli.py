@@ -88,6 +88,9 @@ def _setupParser(
         help="Standalone pip (https://pip.pypa.io/en/stable/installation/#standalone-zip-application) (default: bundled).",
     )
 
+    # Only needed to tests
+    generalGroup.add_argument("--noop", action="store_true", help=argparse.SUPPRESS)
+
     # Rez injects --version and --help... So we have to
     # avoid setting them when run from rez.
     if not fromRez:
@@ -386,6 +389,10 @@ def run(
 
     assert args is not None
     assert pipArgs is not None
+
+    if args.noop:
+        print("Noop mode enabled")
+        return 0
 
     # Initialize the plugin system
     rez_pip.plugins.getManager()

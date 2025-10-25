@@ -36,6 +36,7 @@ def test_parseArgs_empty():
         "release": False,
         "requirement": None,
         "debug_info": False,
+        "noop": False,
     }
 
     assert pipArgs == []
@@ -56,6 +57,7 @@ def test_parseArgs_packages(packages):
         "release": False,
         "requirement": None,
         "debug_info": False,
+        "noop": False,
     }
 
     assert pipArgs == []
@@ -76,6 +78,7 @@ def test_parseArgs_no_package_with_requirements(files):
         "release": False,
         "requirement": [req.split("=")[-1] for req in files],
         "debug_info": False,
+        "noop": False,
     }
 
     assert pipArgs == []
@@ -95,6 +98,7 @@ def test_parseArgs_constraints():
         "release": False,
         "requirement": None,
         "debug_info": False,
+        "noop": False,
     }
 
     assert pipArgs == []
@@ -116,9 +120,32 @@ def test_parseArgs_pipArgs():
         "release": False,
         "requirement": None,
         "debug_info": False,
+        "noop": False,
     }
 
     assert pipArgs == ["adasdasd", "--requirement", "asd.txt"]
+
+
+def test_run_with_main():
+    """Test that __main__ works"""
+    result = subprocess.run(
+        [sys.executable, "-m", "rez_pip", "help"],
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    assert result.stdout
+
+
+def test_run__with_plugin():
+    """Test that the plugin entry point works"""
+    result = subprocess.run(
+        ["rez", "pip2", "--noop"],
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    assert result.stdout == "Noop mode enabled\n"
 
 
 def test_version():
