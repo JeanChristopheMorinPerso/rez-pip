@@ -123,7 +123,7 @@ def test_parseArgs_pipArgs():
 
 def test_version():
     result = subprocess.run(
-        [sys.executable, "-m", "rez_pip", "--version"],
+        [sys.executable, "-m", "rez_pip", "--plugin-version"],
         check=True,
         stdout=subprocess.PIPE,
         text=True,
