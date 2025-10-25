@@ -237,6 +237,9 @@ def _convertMetadata(
     if "License" in dist.metadata:
         metadata["license"] = dist.metadata["License"]
         del originalMetadata["license"]
+    elif "License-Expression" in dist.metadata:
+        metadata["license"] = dist.metadata["License-Expression"]
+        del originalMetadata["license_expression"]
     else:
         licenseClassifiers = [
             item.split("::")[-1].strip()

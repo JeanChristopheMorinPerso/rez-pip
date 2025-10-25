@@ -19,6 +19,7 @@ It is able to to convert most of the `PyPA core metadata`_:
 * Maintainer
 * Maintainer-email
 * License
+* License-Expression
 * Home-page
 * Project-URL
 * Download-URL
@@ -84,11 +85,19 @@ Link: https://packaging.python.org/en/latest/specifications/core-metadata/#licen
 
 If present, it will be stored as in a custom attributed called ``license`` as is.
 
+If not present, ``rez-pip`` will look into ``License-Expression``.
+
+License-Expression
+==================
+
+Link: https://packaging.python.org/en/latest/specifications/core-metadata/#license-expression
+
+If present, it will be stored as in a custom attributed called ``license`` as is.
+
 If not present, ``rez-pip`` will look into `classifiers`_ for any value that starts with ``License ::``.
 If one is found, it will be used as the license. If more than one is found, ``license`` will not be set.
 
 .. _classifiers: https://packaging.python.org/en/latest/specifications/core-metadata/#classifier-multiple-use
-
 
 Home-page
 =========
