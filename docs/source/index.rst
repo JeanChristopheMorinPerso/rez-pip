@@ -27,6 +27,7 @@ Features
 * Better output logs.
 * Implemented as an out-of-tree plugin, which means faster development cycle and more frequent releases.
 * :doc:`Plugin system <plugins>` that allows for easy extensibility (experimental).
+* Built as a rez plugin, available as ``rez pip2``.
 * Maintained by the rez maintainers.
 
 Prerequisites

@@ -37,13 +37,13 @@ Local and editable installs
 ===========================
 
 The ability to install a local (from source) package via ``rez-pip -i .`` as been removed
-and will not make it back. The same can be said about editable installs. ``rez-pip`` is a
+and will not make it back. The same can be said about editable installs. ``rez pip2`` is a
 tool to ingest Python packages and convert them into rez packages. It's not a development
 tool and has never been designed with local development in mind.
 
 I believe these functionalities would be better implemented and would better serve rez's
 users if implemented as a `build_system`_ plugin. It would allow for better integration
-with rez and the user experience would be significantly better than it could with ``rez-pip``.
+with rez and the user experience would be significantly better than it could with ``rez pip2``.
 
 .. _build_system: https://github.com/AcademySoftwareFoundation/rez/tree/main/src/rezplugins/build_system
 
@@ -59,7 +59,7 @@ Pip is now bundled/vendored
 The previous ``rez-pip`` had a complex logic to find both Python and pip. It was error prone,
 confusing and also annoying to setup.
 
-The new ``rez-pip`` bundles pip, which means it's ready to be used as is without any extra work/steps.
+The new ``rez pip2`` bundles pip, which means it's ready to be used as is without any extra work/steps.
 We bundle the `standalone zip application`_ which is extremely convenient because it's a single file.
 
 Bundling has multiple advantages:
@@ -67,7 +67,7 @@ Bundling has multiple advantages:
 #. We control the version of pip used. This is important to ensure rez-pip works as expected.
 #. No setup required after installation of rez-pip.
 
-If somehow you want or need to change the version of pip used, you can user the ``--pip`` command-line
+If somehow you want or need to change the version of pip used, you can user the :option:`rez pip2 --pip` command-line
 argument. You need to provide a path to a zipapp.
 
 .. _standalone zip application: https://pip.pypa.io/en/stable/installation/#standalone-zip-application
