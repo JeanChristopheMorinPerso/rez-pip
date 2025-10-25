@@ -54,7 +54,7 @@ jobs:
       uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba # v6.3.1
 
     - name: Test
-      run: uvx nox --default-venv-backend uv --error-on-missing-interpreter -s test-${{ matrix.python }}
+      run: uvx nox --default-venv-backend uv --error-on-missing-interpreters -s test-${{ matrix.python }}
       env:
         # uv really wants to take control of what python it uses...
         # Force it to only use system pythons
