@@ -25,8 +25,13 @@ def setupPluginManager():
     spec.loader.exec_module(module)
     manager.register(
         module,
-        name=f"rez_pip.set_permissions",
+        name="rez_pip.set_permissions",
     )
+    try:
+        yield manager
+    finally:
+        del manager
+        rez_pip.plugins.getManager.cache_clear()
 
 
 def fakeVariant(root: str, **kwargs) -> unittest.mock.Mock:
