@@ -178,10 +178,21 @@ def createPackage(
         pkg.pip["metadata"] = remainingMetadata
 
         rez_pip.plugins.getHook().metadata(package=pkg)
+        rez_pip.plugins.getHook().postInstall(package=pkg)
 
     _LOG.info(
         f"[bold]Created {len(pkg.installed_variants)} variants and skipped {len(pkg.skipped_variants)}"
     )
+
+    action_variants = [
+        ("[bold]Installed", pkg.installed_variants or []),
+        ("Skipped", pkg.skipped_variants or []),
+    ]
+    for action, pkg_variants in action_variants:
+        for variant in pkg_variants:
+            package = variant.parent
+            suffix = (' (%s)' % variant.subpath) if variant.subpath else ''
+            _LOG.info(f"{action} [{package.qualified_name!r}] {package.uri}{suffix}")
 
 
 def _convertMetadata(
