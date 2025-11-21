@@ -28,12 +28,11 @@ def get_executables(package_root):
                 executables.append(os.path.join(dirpath, filename))
     return executables
 
+
 @rez_pip.plugins.hookimpl
-def postInstall(
-    package: rez.package_maker.PackageMaker
-) -> None:
+def postInstall(package: rez.package_maker.PackageMaker) -> None:
     """
-    Change persmissions post-installation to make sure all 
+    Change persmissions post-installation to make sure all
     .dll, .exe, .pyd files are executables.
     """
 
