@@ -191,7 +191,7 @@ def createPackage(
     for action, pkg_variants in action_variants:
         for variant in pkg_variants:
             package = variant.parent
-            suffix = (' (%s)' % variant.subpath) if variant.subpath else ''
+            suffix = (" (%s)" % variant.subpath) if variant.subpath else ""
             _LOG.info(f"{action} [{package.qualified_name!r}] {package.uri}{suffix}")
 
 
