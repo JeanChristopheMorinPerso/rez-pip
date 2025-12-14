@@ -47,14 +47,11 @@ def iterDistFiles(
              (relative to installedWheelsDir) paths of the files.
     """
     wheelsDirAbsolute = pathlib.Path(installedWheelsDir).resolve()
-    # print(f"{str(wheelsDirAbsolute)=}")
     for file_ in dist.files:
         absolutePath = typing.cast(pathlib.Path, file_.locate()).resolve()
         relPath = os.path.sep.join(
             absolutePath.relative_to(wheelsDirAbsolute).parts[1:]
         )
-        # print(f"{str(absolutePath)=}")
-        # print(f"{str(relPath)=}")
         yield absolutePath, relPath
 
 
