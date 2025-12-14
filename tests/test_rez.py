@@ -39,13 +39,20 @@ def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
                 return obj
 
             return [
+                # Will be included in package.tools
+                # and will trigger rez-pip to add {root}/scripts
+                # to $PATH.
                 make_file("../scripts/package-a-cli"),
+                # Will be ignored because it's nested under scripts.
+                make_file("../scripts/sub/package-a-cli"),
                 make_file("package_a/__init__.py"),
                 make_file("package_a/folder_here/abgt.py"),
             ]
 
-    # Mirror the folder structure we use (python is important here)
-    dist = MyDistribution(source / "python" / "package_a")
+    # Mirror the folder structure we use (package_a and python is important here)
+    # TODO: This is fragile in a test... How could we maybe get the
+    #       path in a more reliable way without duplicating the logic?
+    dist = MyDistribution(source / "package_a" / "python" / "package_a")
 
     for file_ in dist.files:
         path = pathlib.Path(file_.locate().resolve())
@@ -102,6 +109,11 @@ def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
         "rez_pip_version": importlib_metadata.version("rez-pip"),
         "metadata": {},
     }
+
+    assert str(package.commands) == "\n".join(
+        ["env.PYTHONPATH.append('{root}/python')", "env.PATH.append('{root}/scripts')"]
+    )
+    assert package.tools == ["package-a-cli"]
 
 
 def test_convertMetadata_nothing_to_convert(monkeypatch: pytest.MonkeyPatch):
