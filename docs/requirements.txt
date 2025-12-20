@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-sphinx ~= 8.2
+sphinx ~= 7.4
 furo
 sphinx-autobuild
 sphinx-inline-tabs
