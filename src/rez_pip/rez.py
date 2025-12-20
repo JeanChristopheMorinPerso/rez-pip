@@ -33,6 +33,28 @@ class NoPythonFound(rez_pip.exceptions.RezPipError):
     """
 
 
+def iterDistFiles(
+    dist: importlib_metadata.Distribution,
+    installedWheelsDir: str,
+) -> typing.Iterator[tuple[pathlib.Path, str]]:
+    """Iterate over the files in the distribution and return their absolute
+    and relative paths.
+
+    :param dist: The distribution to iterate over.
+    :param installedWheelsDir: The directory where the wheel was install installed to.
+
+    :return: An iterator of tuples containing the absolute and relative
+             (relative to installedWheelsDir) paths of the files.
+    """
+    wheelsDirAbsolute = pathlib.Path(installedWheelsDir).resolve()
+    for file_ in dist.files:
+        absolutePath = typing.cast(pathlib.Path, file_.locate()).resolve()
+        relPath = os.path.sep.join(
+            absolutePath.relative_to(wheelsDirAbsolute).parts[1:]
+        )
+        yield absolutePath, relPath
+
+
 def createPackage(
     packageGroup: rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact],
     pythonVersion: rez.version.Version,
@@ -111,18 +133,9 @@ def createPackage(
                     f"{dist.name} package has no files registered! Something is wrong maybe?"
                 )
 
-            wheelsDirAbsolute = pathlib.Path(installedWheelsDir).resolve()
-            for src in dist.files:
-                srcAbsolute: pathlib.Path = typing.cast(
-                    pathlib.Path, src.locate()
-                ).resolve()
-                dest = os.path.join(
-                    path,
-                    os.path.sep.join(
-                        srcAbsolute.relative_to(wheelsDirAbsolute).parts[1:]
-                    ),
-                )
-                # print(dest)
+            for srcAbsolute, relPath in iterDistFiles(dist, installedWheelsDir):
+                dest = os.path.join(path, relPath)
+
                 if not os.path.exists(os.path.dirname(dest)):
                     os.makedirs(os.path.dirname(dest))
 
@@ -145,11 +158,24 @@ def createPackage(
         # commands
         commands = ["env.PYTHONPATH.append('{root}/python')"]
 
-        console_scripts = [
-            ep.name for ep in dist.entry_points if ep.group == "console_scripts"
-        ]
+        # Collect console scripts from entry_points
+        console_scripts = set(
+            [ep.name for ep in dist.entry_points if ep.group == "console_scripts"]
+        )
+
+        # Also check for scripts from dist-info data.
+        # (some packages like ruff don't use entry_points but put scripts in .data/scripts/)
+        if dist.files:
+            for _, relPath in iterDistFiles(dist, installedWheelsDir):
+                # Check if path matches pattern: <name>-<version>.data/scripts/<script_name>
+                # Skip anything that is nested under scripts (.data/scripts/sub/file)
+                if os.path.dirname(
+                    relPath
+                ) == "scripts" and os.path.sep not in os.path.basename(relPath):
+                    console_scripts.add(os.path.basename(relPath))
+
         if console_scripts:
-            pkg.tools = console_scripts
+            pkg.tools = list(console_scripts)
             # TODO: Don't hardcode scripts here.
             commands.append("env.PATH.append('{root}/scripts')")
 
