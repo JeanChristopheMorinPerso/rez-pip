@@ -88,13 +88,13 @@ jobs:
 
     - name: Generate SLSA attestation for sdist
       id: sdist-attestation
-      uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a  # v3.0.0
+      uses: actions/attest-build-provenance@00014ed6ed5efc5b1ab7f7f34a39eb55d41aa4f8  # v3.1.0
       with:
         subject-path: 'dist/python/*.tar.gz'
 
     - name: Generate SLSA attestation for wheel
       id: wheel-attestation
-      uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a  # v3.0.0
+      uses: actions/attest-build-provenance@00014ed6ed5efc5b1ab7f7f34a39eb55d41aa4f8  # v3.1.0
       with:
         subject-path: 'dist/python/*.whl'
 
@@ -123,13 +123,13 @@ jobs:
 
     - name: Generate SLSA attestation for git archive zip
       id: git-archive-zip-attestation
-      uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a  # v3.0.0
+      uses: actions/attest-build-provenance@00014ed6ed5efc5b1ab7f7f34a39eb55d41aa4f8  # v3.1.0
       with:
         subject-path: 'dist/git/${{ github.ref_name }}.zip'
 
     - name: Generate SLSA attestation for git archive tar.gz
       id: git-archive-tar-gz-attestation
-      uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a  # v3.0.0
+      uses: actions/attest-build-provenance@00014ed6ed5efc5b1ab7f7f34a39eb55d41aa4f8  # v3.1.0
       with:
         subject-path: 'dist/git/${{ github.ref_name }}.tar.gz'
 
