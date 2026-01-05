@@ -42,13 +42,13 @@ jobs:
       run: python -m build --sdist --wheel --outdir ./dist/python .
 
     - name: Upload to workflow (python)
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4  # v5.0.0
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
       with:
         name: dist-python
         path: 'dist/python/*'
 
     - name: Upload to workflow (git)
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4  # v5.0.0
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
       with:
         name: dist-git
         path: 'dist/git/*'
