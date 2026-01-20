@@ -14,7 +14,6 @@ import packaging.requirements
 
 import rez_pip.utils
 
-
 # @pytest.fixture
 # def distPath():
 #     cls.settings = {}
