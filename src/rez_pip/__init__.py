@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 
-
 command_behavior = {
     "hidden": False,  # optional: bool
     "arg_mode": "grouped",  # optional: None, "passthrough", "grouped"

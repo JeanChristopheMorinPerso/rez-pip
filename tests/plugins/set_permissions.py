@@ -14,7 +14,6 @@ import rez
 import rez_pip.plugins
 import rez.package_maker
 
-
 _LOG = logging.getLogger(__name__)
 
 
