@@ -8,6 +8,14 @@ SPDX-License-Identifier: Apache-2.0
 
 <!-- start-here-sphinx-start-after -->
 
+## 0.4.2 (2025-12-20)
+
+* Add support for entrypoint-less scripts (for example, ruff).
+
+## 0.4.1 (2025-10-25)
+
+Same as 0.4.1. Re-released due to technical problems during the release.
+
 ## 0.4.0 (2025-10-25)
 
 This is a big release. It includes a lot of changes and improvements.
