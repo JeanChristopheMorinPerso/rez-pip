@@ -624,7 +624,9 @@ def getRezRequirements(
         #
         sys_variant_requires.append("python-%s" % str(pythonVersion.trim(2)))
     else:
-        requiresPython = installedDist.metadata["Requires-Python"]
+        requiresPython = None
+        if "Requires-Python" in installedDist.metadata:
+            requiresPython = installedDist.metadata["Requires-Python"]
         if requiresPython:
             result_requires.append(
                 f"python-{pythonSpecifierToRezRequirement(packaging.specifiers.SpecifierSet(requiresPython))}"
