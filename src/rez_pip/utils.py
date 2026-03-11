@@ -555,9 +555,22 @@ def getRezRequirements(
         reqs = normalizeRequirement(req_)
 
         for req in reqs:
-            # skip if env marker is present and doesn't evaluate
-            if req.marker and not req.marker.evaluate(environment=marker_env):
-                continue
+            # Inspect marker(s) to see if this requirement should be varianted.
+            # Markers may also cause other system requirements to be added to
+            # the variant.
+            #
+            to_variant = False
+
+            if req.marker:
+                marker_reqs = convertMarker(str(req.marker))
+
+                if marker_reqs:
+                    sys_requires.update(marker_reqs)
+                    to_variant = True
+
+                # skip if env marker is present and doesn't evaluate
+                if not req.marker.evaluate(environment=marker_env):
+                    continue
 
             # skip if req is conditional on extras that weren't requested
             if req.conditional_extras and not (
@@ -572,19 +585,6 @@ def getRezRequirements(
                     "not yet supported"
                 )
                 continue
-
-            # Inspect marker(s) to see if this requirement should be varianted.
-            # Markers may also cause other system requirements to be added to
-            # the variant.
-            #
-            to_variant = False
-
-            if req.marker:
-                marker_reqs = convertMarker(str(req.marker))
-
-                if marker_reqs:
-                    sys_requires.update(marker_reqs)
-                    to_variant = True
 
             # remap the requirement name
             remapped = name_mapping.get(req.name.lower())
@@ -616,7 +616,7 @@ def getRezRequirements(
         sys_variant_requires.append(f"os-{_system.os}")
 
     # JC: TODO: This is a modified version based on rez. It needs to be verified.
-    if not isPure:
+    if "python" in sys_requires or not isPure:
         # Add python variant requirement. Note that this is always MAJOR.MINOR,
         # because to do otherwise would mean analysing any present env markers.
         # This could become quite complicated, and could also result in strange
