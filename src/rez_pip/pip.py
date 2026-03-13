@@ -8,6 +8,7 @@ import os
 import sys
 import json
 import typing
+import asyncio
 import logging
 import tempfile
 import itertools
@@ -109,6 +110,79 @@ class DownloadedArtifact(PackageInfo):
         return self._localPath
 
 
+@dataclasses.dataclass(frozen=True)
+class PipRunner:
+    pythonExecutable: str
+    pythonVersion: str
+    pip: str
+
+    def command(
+        self,
+        pipCommand: str,
+        arguments: list[str],
+    ) -> list[str]:
+        return [
+            # We need to use the real interpreter because pip can't resolve
+            # markers correctly even if --python-version is provided.
+            # See https://github.com/pypa/pip/issues/11664.
+            self.pythonExecutable,
+            self.pip,
+            pipCommand,
+            "--quiet",
+            "--disable-pip-version-check",
+            "--only-binary=:all:",
+            f"--python-version={self.pythonVersion}" if self.pythonVersion else "",
+            *arguments,
+        ]
+
+    def run(self, pipCommand: str, arguments: list[str]) -> None:
+        command = self.command(pipCommand, arguments)
+
+        _LOG.debug(f"Running {' '.join(command)!r}")
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+
+        pipOutput: list[str] = []
+        while True:
+            stdout = typing.cast(typing.IO[str], process.stdout).readline()
+            if process.poll() is not None:
+                break
+            if stdout:
+                pipOutput.append(stdout.rstrip())
+                _ = sys.stdout.write(stdout)
+
+        if process.poll() != 0:
+            self.raisePipError(command, "\n".join(pipOutput))
+
+    async def runAsync(self, pipCommand: str, arguments: list[str]) -> None:
+        command = self.command(pipCommand, arguments)
+
+        _LOG.debug(f"Running {' '.join(command)!r}")
+        process = await asyncio.create_subprocess_exec(
+            command[0],
+            *command[1:],
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+
+        stdout, _ = await process.communicate()
+
+        if process.returncode != 0:
+            self.raisePipError(command, stdout.decode())
+
+    @staticmethod
+    def raisePipError(command: list[str], output: str) -> None:
+        raise rez_pip.exceptions.PipError(
+            f"[bold red]Failed to run pip command[/]: {' '.join(command)!r}\n\n"
+            "[bold]Pip reported this[/]:\n\n"
+            f"{output}",
+        )
+
+
 T = typing.TypeVar("T", PackageInfo, DownloadedArtifact)
 
 
@@ -157,10 +231,8 @@ def getBundledPip() -> str:
 
 
 def getPackages(
+    runner: PipRunner,
     packageNames: list[str],
-    pip: str,
-    pythonVersion: str,
-    pythonExecutable: str,
     requirements: list[str],
     constraints: list[str],
     extraArgs: list[str],
@@ -175,53 +247,21 @@ def getPackages(
     # Windows doesn't allow two different processes to write if the file is
     # already opened.
     try:
-        command = [
-            # We need to use the real interpreter because pip can't resolve
-            # markers correctly even if --python-version is provided.
-            # See https://github.com/pypa/pip/issues/11664.
-            pythonExecutable,
-            pip,
+        runner.run(
             "install",
-            "-q",
-            *packageNames,
-            *list(itertools.chain(*zip(["-r"] * len(requirements), requirements))),
-            *list(itertools.chain(*zip(["-c"] * len(constraints), constraints))),
-            "--disable-pip-version-check",
-            "--dry-run",
-            "--ignore-installed",
-            f"--python-version={pythonVersion}" if pythonVersion else "",
-            "--only-binary=:all:",
-            "--target=/tmp/asd",
-            "--disable-pip-version-check",
-            "--report",  # This is the "magic". Pip will generate a JSON with all the resolved URLs.
-            tmpFile,
-            *extraArgs,
-        ]
-
-        _LOG.debug(f"Running {' '.join(command)!r}")
-        process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
+            [
+                "--dry-run",
+                "--ignore-installed",
+                "--target=/tmp/asd",
+                "--report",  # This is the "magic". Pip will generate a JSON with all the resolved URLs.
+                tmpFile,
+                *packageNames,
+                *list(itertools.chain(*zip(["-r"] * len(requirements), requirements))),
+                *list(itertools.chain(*zip(["-c"] * len(constraints), constraints))),
+                *extraArgs,
+            ],
         )
 
-        pipOutput = []
-        while True:
-            stdout = typing.cast(typing.IO[str], process.stdout).readline()
-            if process.poll() is not None:
-                break
-            if stdout:
-                pipOutput.append(stdout.rstrip())
-                sys.stdout.write(stdout)
-
-        if process.poll() != 0:
-            output = "\n".join(pipOutput)
-            raise rez_pip.exceptions.PipError(
-                f"[bold red]Failed to run pip command[/]: {' '.join(command)!r}\n\n"
-                "[bold]Pip reported this[/]:\n\n"
-                f"{output}",
-            )
         reportContent = _readPipReport(reportPath=tmpFile)
     finally:
         os.remove(tmpFile)
