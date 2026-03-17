@@ -249,7 +249,7 @@ def _run(args: argparse.Namespace, pipArgs: list[str], pipWorkArea: str) -> None
 
         packageGroups: list[
             rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]
-        ] = rez_pip.download.downloadPackages(_packageGroups, wheelsDir)
+        ] = rez_pip.download.downloadPackages(_packageGroups, wheelsDir, runner)
 
         foundLocally = downloaded = 0
         for group in packageGroups:

@@ -14,6 +14,7 @@ import collections
 import aiohttp
 import rich.progress
 
+from rez_pip import exceptions
 import rez_pip.pip
 import rez_pip.utils
 from rez_pip.compat import importlib_metadata
@@ -25,18 +26,19 @@ _lock = asyncio.Lock()
 def downloadPackages(
     packageGroups: list[rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]],
     dest: str,
+    runner: rez_pip.pip.PipRunner,
 ) -> list[rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]]:
-    return asyncio.run(_downloadPackages(packageGroups, dest))
+    return asyncio.run(_downloadPackages(packageGroups, dest, runner))
 
 
 async def _downloadPackages(
     packageGroups: list[rez_pip.pip.PackageGroup[rez_pip.pip.PackageInfo]],
     dest: str,
+    runner: rez_pip.pip.PipRunner,
 ) -> list[rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]]:
-    newPackageGroups: list[rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]] = (
-        []
-    )
-    someFailed = False
+    newPackageGroups: list[
+        rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]
+    ] = []
 
     async with aiohttp.ClientSession() as session:
         with rich.progress.Progress(
@@ -83,7 +85,6 @@ async def _downloadPackages(
                     groupMapping[index].append(package.name)
 
                     if not package.isDownloadRequired():
-
                         # Note the subtlety of having to pass variables in the function
                         # signature. We can't rely on the scoped variable.
                         async def _return_local(
@@ -104,6 +105,7 @@ async def _downloadPackages(
                                 mainTask,
                                 wheelName,
                                 wheelPath,
+                                runner,
                             )
                         )
 
@@ -132,20 +134,34 @@ async def _downloadPackages(
     return newPackageGroups
 
 
-def getSHA256(path: str) -> str:
+# TODO: Should we support weak hashes md5, sha1, sha224?  Do any repositories still use them?
+HASHES = {"md5", "sha1", "sha224", "sha256", "sha384", "sha512"}
+
+
+def checkHashes(path: str, hashes: dict[str, str]) -> bool:
+    # Accept file without hashes.  The Simple Repository API says each URL SHOULD include a hash and not a MUST
+    if not hashes:
+        return True
+
     buf = bytearray(2**18)  # Reusable buffer to reduce allocations.
     view = memoryview(buf)
 
-    digestobj = hashlib.new("sha256")
+    # Support multiple hash functions on a URL
+    digests = {algo: hashlib.new(algo) for algo in HASHES if algo in hashes}
+
+    # Reject files if all the hashes are unknown
+    if not digests:
+        return False
 
     with open(path, "rb") as fd:
         while True:
             size = fd.readinto(buf)
             if size == 0:
                 break  # EOF
-            digestobj.update(view[:size])
+            for digest in digests.values():
+                digest.update(view[:size])
 
-    return digestobj.hexdigest()
+    return all(digests[algo].hexdigest() == hashes[algo] for algo in digests)
 
 
 async def _download(
@@ -156,18 +172,22 @@ async def _download(
     mainTaskID: rich.progress.TaskID,
     wheelName: str,
     wheelPath: str,
+    runner: rez_pip.pip.PipRunner,
 ) -> rez_pip.pip.DownloadedArtifact | None:
-    # TODO: Handle case where sha256 doesn't exist. We should also support the other supported
-    # hash types.
-    if (
-        os.path.exists(wheelPath)
-        and getSHA256(wheelPath) == package.download_info.archive_info.hashes["sha256"]
+    # TODO: Handle case where hash doesn't exist.
+
+    mainTask = [task for task in progress.tasks if task.id == mainTaskID][0]
+
+    if os.path.exists(wheelPath) and checkHashes(
+        wheelPath, package.download_info.archive_info.hashes
     ):
         _LOG.info(f"{wheelName} found in cache at {wheelPath!r}. Skipping download.")
     else:
         _LOG.debug(
             f"Downloading {package.name}-{package.version} from {package.download_info.url}"
         )
+
+        tryPipFallback = False
 
         async with session.get(
             package.download_info.url,
@@ -176,34 +196,73 @@ async def _download(
                 "User-Agent": f"rez-pip/{importlib_metadata.version('rez-pip')}",
             },
         ) as response:
-            size = int(response.headers.get("content-length", 0))
-            progress.update(taskID, total=size)
-
-            async with _lock:
-                mainTask = [task for task in progress.tasks if task.id == mainTaskID][0]
-
-                progress.update(
-                    mainTaskID,
-                    total=typing.cast(int, mainTask.total) + size,
+            if response.status == 401:
+                _LOG.debug(
+                    f"unauthorized to download {package.download_info.url}. Trying to download with pip."
                 )
-
-            if response.status != 200:
+                tryPipFallback = True
+            elif response.status != 200:
                 _LOG.error(
                     f"failed to download {package.download_info.url}: {response.status} - {response.reason}, {response.request_info}"
                 )
+
+                return None
+            else:
+                size = int(response.headers.get("content-length", 0))
+                progress.update(taskID, total=size)
+
+                async with _lock:
+                    progress.update(
+                        mainTaskID,
+                        total=typing.cast(int, mainTask.total) + size,
+                    )
+
+                with open(wheelPath, "wb") as fd:
+                    async for chunk, asd in response.content.iter_chunks():
+                        if not chunk:
+                            break
+                        _ = fd.write(chunk)
+                        progress.update(taskID, advance=len(chunk))
+                        progress.update(mainTaskID, advance=len(chunk))
+
+        if tryPipFallback:
+            try:
+                await runner.runAsync(
+                    "download",
+                    [
+                        "--no-deps",
+                        "--dest",
+                        os.path.dirname(wheelPath),
+                        f"{package.name}=={package.version}",
+                    ],
+                )
+            except exceptions.PipError as e:
+                _LOG.error(f"failed to download {package.name}-{package.version}: {e}")
+                return None
+            if not os.path.exists(wheelPath):
+                _LOG.error(
+                    f"failed downloading {package.name}-{package.version} to {wheelPath}"
+                )
                 return None
 
-            with open(wheelPath, "wb") as fd:
-                async for chunk, asd in response.content.iter_chunks():
-                    if not chunk:
-                        break
-                    fd.write(chunk)
-                    progress.update(taskID, advance=len(chunk))
-                    progress.update(mainTaskID, advance=len(chunk))
+            size = os.stat(wheelPath).st_size
+            progress.update(taskID, total=size)
+            progress.update(taskID, advance=size)
+            async with _lock:
+                progress.update(
+                    mainTaskID, total=typing.cast(int, mainTask.total) + size
+                )
+            progress.update(mainTaskID, advance=size)
 
-            _LOG.info(
-                f"Downloaded {package.name}-{package.version} to {wheelPath!r} ({os.stat(wheelPath).st_size} bytes)"
+        if not checkHashes(wheelPath, package.download_info.archive_info.hashes):
+            _LOG.error(
+                f"failed to download {package.download_info.url}: invalid file hash"
             )
+            return None
+
+        _LOG.info(
+            f"Downloaded {package.name}-{package.version} to {wheelPath!r} ({os.stat(wheelPath).st_size} bytes)"
+        )
 
     progress.update(taskID, visible=False)
 
