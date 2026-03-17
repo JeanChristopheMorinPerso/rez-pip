@@ -167,11 +167,15 @@ def test_getPackages_no_deps(
             "sha256": index.getWheelHash(expectedPackage.name)
         }
 
+    runner = rez_pip.pip.PipRunner(
+        pythonExecutable=executable,
+        pythonVersion="3.11",
+        pip=rez_pip.pip.getBundledPip(),
+    )
+
     resolvedPackages = rez_pip.pip.getPackages(
+        runner,
         packages,
-        rez_pip.pip.getBundledPip(),
-        "3.11",
-        executable,
         [],
         [],
         ["--index-url", pypi, "-vvv", "--no-deps", "--retries=0"],
@@ -194,11 +198,15 @@ def test_getPackages_with_deps(
     executable, ctx = utils.getPythonRezPackageExecutablePath(pythonRezPackage, rezRepo)
     assert executable is not None
 
+    runner = rez_pip.pip.PipRunner(
+        pythonExecutable=executable,
+        pythonVersion="3.11",
+        pip=rez_pip.pip.getBundledPip(),
+    )
+
     resolvedPackages = rez_pip.pip.getPackages(
+        runner,
         ["package_a"],
-        rez_pip.pip.getBundledPip(),
-        "3.11",
-        executable,
         [],
         [],
         ["--index-url", pypi, "-vvv", "--retries=0"],
@@ -217,12 +225,16 @@ def test_getPackages_error(
 
     packageName = str(uuid.uuid4())
 
+    runner = rez_pip.pip.PipRunner(
+        pythonExecutable=executable,
+        pythonVersion=".".join(str(i) for i in sys.version_info[:2]),
+        pip=rez_pip.pip.getBundledPip(),
+    )
+
     with pytest.raises(rez_pip.exceptions.PipError) as exc:
-        rez_pip.pip.getPackages(
+        _ = rez_pip.pip.getPackages(
+            runner,
             [packageName],
-            rez_pip.pip.getBundledPip(),
-            ".".join(str(i) for i in sys.version_info[:2]),
-            executable,
             [],
             [],
             # Disable retries to speed up the test
@@ -247,7 +259,7 @@ def test_getPackages_error(
 
     assert match is not None
 
-    # Lowercase to avoid discrepencies between C:\ and c:\
+    # Lowercase to avoid discrepancies between C:\ and c:\
     assert (
         "\n".join(capture.get().splitlines()[1:]).lower()
         == f"""

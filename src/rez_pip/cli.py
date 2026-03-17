@@ -207,14 +207,18 @@ def _run(args: argparse.Namespace, pipArgs: list[str], pipWorkArea: str) -> None
         installedWheelsDir = os.path.join(pipWorkArea, "installed", pythonVersion)
         os.makedirs(installedWheelsDir, exist_ok=True)
 
+        runner = rez_pip.pip.PipRunner(
+            pythonExecutable=os.fspath(pythonExecutable),
+            pythonVersion=pythonVersion,
+            pip=args.pip,
+        )
+
         with rez_pip.utils.CONSOLE.status(
             f"[bold]Resolving dependencies for {rich.markup.escape(', '.join(args.packages))} (python-{pythonVersion})"
         ):
             packages = rez_pip.pip.getPackages(
+                runner,
                 args.packages,
-                args.pip,
-                pythonVersion,
-                os.fspath(pythonExecutable),
                 args.requirement or [],
                 args.constraint or [],
                 pipArgs,
@@ -245,7 +249,7 @@ def _run(args: argparse.Namespace, pipArgs: list[str], pipWorkArea: str) -> None
 
         packageGroups: list[
             rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact]
-        ] = rez_pip.download.downloadPackages(_packageGroups, wheelsDir)
+        ] = rez_pip.download.downloadPackages(_packageGroups, wheelsDir, runner)
 
         foundLocally = downloaded = 0
         for group in packageGroups:
