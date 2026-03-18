@@ -21,10 +21,15 @@ import rez_pip.utils
 #     cls.dist_path = cls.data_path("pip", "installed_distributions")
 
 
-def test_pythontDistributionNameToRez():
+def test_pythonDistributionNameToRez():
     """ """
-    assert rez_pip.utils.pythontDistributionNameToRez("asd") == "asd"
-    assert rez_pip.utils.pythontDistributionNameToRez("package-name") == "package_name"
+    assert rez_pip.utils.pythonDistributionNameToRez("asd") == "asd"
+    assert rez_pip.utils.pythonDistributionNameToRez("package-name") == "package_name"
+    assert rez_pip.utils.pythonDistributionNameToRez("package.name") == "package_name"
+    assert (
+        rez_pip.utils.pythonDistributionNameToRez("multi-package.name")
+        == "multi_package_name"
+    )
 
 
 @pytest.mark.parametrize(

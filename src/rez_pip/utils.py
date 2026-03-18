@@ -33,7 +33,7 @@ class RequirementsDict:
     metadata: dict[str, typing.Any]
 
 
-def pythontDistributionNameToRez(name: str) -> str:
+def pythonDistributionNameToRez(name: str) -> str:
     """Convert a distribution name to a rez compatible name.
 
     The rez package name can't be simply set to the dist name, because some
@@ -41,10 +41,16 @@ def pythontDistributionNameToRez(name: str) -> str:
     name (it would be interpreted as the start of the version).
     Example: my-pkg-1.2 is 'my', version 'pkg-1.2'.
 
+    Python package names can also contain periods.  PEP-0503 states these should
+    be normalized to dash.  Since dashes are important to rez convert periods
+    to underscores.
+
     :param name: Distribution name to convert.
     :returns: Rez-compatible package name.
     """
-    return name.replace("-", "_")
+    # TODO: Should we fully implement PEP-0503 and substitute multiple period and
+    # TODO: dashes in a row with a single underscore?
+    return name.replace("-", "_").replace(".", "_")
 
 
 def pythonDistributionVersionToRez(version: str) -> str:
@@ -280,7 +286,7 @@ def pythonReqToRezReq(
             f"Ignoring extras requested on {pythonReq!r} - this is not yet supported"
         )
 
-    req = pythontDistributionNameToRez(pythonReq.name)
+    req = pythonDistributionNameToRez(pythonReq.name)
 
     if pythonReq.specifier:
         range_ = pythonSpecifierToRezRequirement(pythonReq.specifier)

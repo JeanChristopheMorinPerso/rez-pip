@@ -69,7 +69,7 @@ def createPackage(
     )
 
     rezNames = [
-        rez_pip.utils.pythontDistributionNameToRez(dist.name)
+        rez_pip.utils.pythonDistributionNameToRez(dist.name)
         for dist in packageGroup.dists
     ]
 
