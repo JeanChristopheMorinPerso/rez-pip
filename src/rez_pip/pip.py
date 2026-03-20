@@ -17,6 +17,7 @@ import dataclasses
 import dataclasses_json
 
 import rez_pip.data
+import rez_pip.utils
 import rez_pip.plugins
 import rez_pip.exceptions
 
@@ -104,7 +105,7 @@ class DownloadedArtifact(PackageInfo):
         """Path to the package on disk."""
         if not self.isDownloadRequired():
             # It's a local file, so we can return the URL (without file://)
-            return self.download_info.url[7:]
+            return rez_pip.utils.urlToPathname(self.download_info.url)
 
         return self._localPath
 

@@ -4,9 +4,12 @@
 
 from __future__ import annotations
 
+import os
 import typing
 import logging
 import dataclasses
+import urllib.parse
+import urllib.request
 
 import rez.system
 import rez.version
@@ -650,3 +653,30 @@ def getRezRequirements(
         variant_requires=variant_requires,
         metadata={"is_pure_python": isPure},  # TODO: This is probably useless.
     )
+
+
+def urlToPathname(fileUrl: str) -> str:
+    """Converts a file:// URL with a Windows drive letter or UNC path to a usable path string."""
+
+    # Example URLs: file:///C:/Users/User/file.txt or # file://localhost/Users/User/file.txt
+
+    parsedUrl = urllib.parse.urlparse(fileUrl)
+
+    if parsedUrl.scheme != "file":
+        raise ValueError("URL scheme must be 'file://'")
+
+    # Convert the path to a platform-specific path.  url2pathname handles
+    # removing the leading slash for Windows drive letters.
+    filePath = urllib.request.url2pathname(parsedUrl.path)
+
+    # Handle UNC paths (e.g., file://server/share/file.txt)
+    if parsedUrl.netloc:
+        # For UNC paths, the format should be \\server\share\...
+        # url2pathname handles the path part, we prepend the netloc
+        filePath = (
+            f"\\\\{parsedUrl.netloc}{filePath}"
+            if os.name == "nt"
+            else f"/{parsedUrl.netloc}{filePath}"
+        )
+
+    return filePath
