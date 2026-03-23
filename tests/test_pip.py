@@ -248,16 +248,13 @@ def test_getPackages_error(
     assert match is not None
 
     # Lowercase to avoid discrepencies between C:\ and c:\
-    assert (
-        "\n".join(capture.get().splitlines()[1:]).lower()
-        == f"""
+    assert "\n".join(capture.get().splitlines()[1:]).lower() == f"""
 Pip reported this:
 
 Looking in indexes: {pypi}
 Looking in links: {os.fspath(tmp_path)}
 ERROR: Could not find a version that satisfies the requirement {packageName} (from versions: none)
 ERROR: No matching distribution found for {packageName}""".lower()
-    )
 
 
 def test__readPipReport(tmp_path: pathlib.Path):

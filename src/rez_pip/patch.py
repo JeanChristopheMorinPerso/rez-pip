@@ -21,7 +21,6 @@ import rez_pip.exceptions
 import rez_pip.data.patches
 from rez_pip.compat import importlib_metadata
 
-
 _LOG = logging.getLogger(__name__)
 
 

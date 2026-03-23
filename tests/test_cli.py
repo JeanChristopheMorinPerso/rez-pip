@@ -376,9 +376,7 @@ def test_debug(capsys: pytest.CaptureFixture, monkeypatch: pytest.MonkeyPatch):
 
     captured = capsys.readouterr()
 
-    assert (
-        captured.out
-        == f"""rez-pip version: {importlib_metadata.version("rez-pip")}
+    assert captured.out == f"""rez-pip version: {importlib_metadata.version("rez-pip")}
 rez version: 2.112.0
 python version: {sys.version}
 python executable: {sys.executable}
@@ -398,7 +396,6 @@ rez python packages:
   /path/to/another/python-3.100.7 (3.100.7)
 
 """
-    )
 
 
 def test_list_plugins(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture):
@@ -408,10 +405,7 @@ def test_list_plugins(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFix
 
     output = capsys.readouterr().out
     output = "\n".join(map(str.strip, output.split("\n")))
-    assert (
-        output
-        == """Name               Hooks
+    assert output == """Name               Hooks
 rez_pip.PySide6    cleanup, groupPackages, patches, postPipResolve, prePipResolve
 rez_pip.shiboken6  cleanup
 """
-    )
