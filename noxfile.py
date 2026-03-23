@@ -26,7 +26,7 @@ def mypy(session: nox.Session):
 def format(session: nox.Session):
     session.install("black")
 
-    session.run("black", ".", "--check")
+    session.run("black", ".", "--check", "--target-version", "py312")
 
 
 @nox.session(python=["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"])
