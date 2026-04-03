@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import re
 import typing
 import logging
 import dataclasses
@@ -41,16 +42,18 @@ def pythonDistributionNameToRez(name: str) -> str:
     name (it would be interpreted as the start of the version).
     Example: my-pkg-1.2 is 'my', version 'pkg-1.2'.
 
-    Python package names can also contain periods.  PEP-0503 states these should
-    be normalized to dash.  Since dashes are important to rez convert periods
-    to underscores.
+    The `Python Packaging User Guide`_ specifies how package names are normalized.
+    "The name should be lowercased with all runs of the characters ., -, or _ replaced with a
+    single - character."  Since dashes are meaningful to rez we will replace with an underscore
+    instead of a dash.
+
 
     :param name: Distribution name to convert.
     :returns: Rez-compatible package name.
+
+    .. _Python Packaging User Guide: https://packaging.python.org/en/latest/specifications/name-normalization/#name-normalization
     """
-    # TODO: Should we fully implement PEP-0503 and substitute multiple period and
-    # TODO: dashes in a row with a single underscore?
-    return name.replace("-", "_").replace(".", "_")
+    return re.sub(r"[-_.]+", "_", name).lower()
 
 
 def pythonDistributionVersionToRez(version: str) -> str:

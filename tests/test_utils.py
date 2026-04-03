@@ -21,15 +21,23 @@ import rez_pip.utils
 #     cls.dist_path = cls.data_path("pip", "installed_distributions")
 
 
-def test_pythonDistributionNameToRez():
-    """ """
-    assert rez_pip.utils.pythonDistributionNameToRez("asd") == "asd"
-    assert rez_pip.utils.pythonDistributionNameToRez("package-name") == "package_name"
-    assert rez_pip.utils.pythonDistributionNameToRez("package.name") == "package_name"
-    assert (
-        rez_pip.utils.pythonDistributionNameToRez("multi-package.name")
-        == "multi_package_name"
-    )
+@pytest.mark.parametrize(
+    "distribution,expected",
+    [
+        ["asd", "asd"],
+        ["multi-separators.package", "multi_separators_package"],
+        # Examples from the Python Packaging User Guide
+        ["friendly-bard", "friendly_bard"],
+        ["Friendly-Bard", "friendly_bard"],
+        ["FRIENDLY-BARD", "friendly_bard"],
+        ["friendly.bard", "friendly_bard"],
+        ["friendly_bard", "friendly_bard"],
+        ["friendly--bard", "friendly_bard"],
+        ["FrIeNdLy-._.-bArD", "friendly_bard"],
+    ],
+)
+def test_pythonDistributionNameToRez(distribution: str, expected: str):
+    assert rez_pip.utils.pythonDistributionNameToRez(distribution) == expected
 
 
 @pytest.mark.parametrize(
