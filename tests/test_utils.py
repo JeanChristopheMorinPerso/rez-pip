@@ -22,22 +22,28 @@ import rez_pip.utils
 
 
 @pytest.mark.parametrize(
-    "distribution,expected",
+    "package,expected",
     [
         ["asd", "asd"],
-        ["multi-separators.package", "multi_separators_package"],
+        ["multi_separators.package", "multi-separators-package"],
         # Examples from the Python Packaging User Guide
-        ["friendly-bard", "friendly_bard"],
-        ["Friendly-Bard", "friendly_bard"],
-        ["FRIENDLY-BARD", "friendly_bard"],
-        ["friendly.bard", "friendly_bard"],
-        ["friendly_bard", "friendly_bard"],
-        ["friendly--bard", "friendly_bard"],
-        ["FrIeNdLy-._.-bArD", "friendly_bard"],
+        ["friendly-bard", "friendly-bard"],
+        ["Friendly-Bard", "friendly-bard"],
+        ["FRIENDLY-BARD", "friendly-bard"],
+        ["friendly.bard", "friendly-bard"],
+        ["friendly_bard", "friendly-bard"],
+        ["friendly--bard", "friendly-bard"],
+        ["FrIeNdLy-._.-bArD", "friendly-bard"],
     ],
 )
-def test_pythonDistributionNameToRez(distribution: str, expected: str):
-    assert rez_pip.utils.pythonDistributionNameToRez(distribution) == expected
+def test_normalizePythonPackageName(package: str, expected: str):
+    assert rez_pip.utils.normalizePythonPackageName(package) == expected
+
+
+def test_pythonDistributionNameToRez():
+    """ """
+    assert rez_pip.utils.pythonDistributionNameToRez("asd") == "asd"
+    assert rez_pip.utils.pythonDistributionNameToRez("package-name") == "package_name"
 
 
 @pytest.mark.parametrize(
