@@ -75,15 +75,12 @@ def test_python_packages(pythonRezPackage: str, rezRepo: str):
 
 
 @pytest.mark.parametrize(
-    "packagesToInstall,rezPackages,imports",
-    [[["PySide6"], ["pyside6"], ["PySide6"]]],
-    ids=["PySide6"],
+    "packagesToInstall,imports", [[["PySide6"], ["PySide6"]]], ids=["PySide6"]
 )
 def test_installs(
     pythonRezPackage: str,
     rezRepo: str,
     packagesToInstall: list[str],
-    rezPackages: list[str],
     imports: list[str],
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
@@ -118,7 +115,7 @@ def test_installs(
         subprocess.check_call(command, env=env)
 
     ctx = rez.resolved_context.ResolvedContext(
-        rezPackages + [f"python-{pythonRezPackage}"],
+        packagesToInstall + [f"python-{pythonRezPackage}"],
         package_paths=[rezRepo, os.fspath(tmp_path)],
     )
     assert ctx.status == rez.resolved_context.ResolverStatus.solved
@@ -133,7 +130,6 @@ def test_installs(
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        norc=True,
     )
     print(stdout)
     print("****")
