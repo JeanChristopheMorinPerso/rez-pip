@@ -137,8 +137,8 @@ def test_installs(
     assert code == 0
 
     for path in stdout.strip().split("\n"):
-        assert path.lower().startswith(os.fspath(tmp_path).lower()), (
-            f"{path!r} does not start with {os.fspath(tmp_path)!r}"
-        )
+        assert path.lower().startswith(
+            os.fspath(tmp_path).lower()
+        ), f"{path!r} does not start with {os.fspath(tmp_path)!r}"
 
     assert not stderr
