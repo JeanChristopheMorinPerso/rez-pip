@@ -12,6 +12,7 @@ import dataclasses
 import rez.system
 import rez.version
 import rich.console
+import packaging.utils
 import packaging.version
 import packaging.specifiers
 import packaging.requirements
@@ -46,7 +47,7 @@ def normalizePythonPackageName(name: str) -> str:
 
     .. _Python Packaging User Guide: https://packaging.python.org/en/latest/specifications/name-normalization/#name-normalization
     """
-    return re.sub(r"[-_.]+", "-", name).lower()
+    return packaging.utils.canonicalize_name(name, validate=False)
 
 
 def pythonDistributionNameToRez(name: str) -> str:
