@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import re
 import typing
 import logging
 import dataclasses
@@ -36,7 +35,7 @@ class RequirementsDict:
 
 
 def normalizePythonPackageName(name: str) -> str:
-    """Normalize a Python package name according to the packing guidelines.
+    """Normalize a Python package name according to the packging guidelines.
 
     The `Python Packaging User Guide`_ specifies how package names are normalized.
     "The name should be lowercased with all runs of the characters ., -, or _ replaced with a
@@ -600,7 +599,9 @@ def getRezRequirements(
                     to_variant = True
 
             # remap the requirement name
-            req.name = normalizedPackageNames.get(req.name, req.name)
+            req.name = normalizedPackageNames.get(
+                normalizePythonPackageName(req.name), req.name
+            )
 
             # convert the requirement to rez equivalent
             rez_req = str(pythonReqToRezReq(req))
