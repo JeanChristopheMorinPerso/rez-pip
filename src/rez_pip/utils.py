@@ -35,7 +35,7 @@ class RequirementsDict:
 
 
 def normalizePythonPackageName(name: str) -> str:
-    """Normalize a Python package name according to the packging guidelines.
+    """Normalize a Python package name according to the packaging guidelines.
 
     The `Python Packaging User Guide`_ specifies how package names are normalized.
     "The name should be lowercased with all runs of the characters ., -, or _ replaced with a
