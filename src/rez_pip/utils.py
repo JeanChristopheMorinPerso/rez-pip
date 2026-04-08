@@ -11,6 +11,7 @@ import dataclasses
 import rez.system
 import rez.version
 import rich.console
+import packaging.utils
 import packaging.version
 import packaging.specifiers
 import packaging.requirements
@@ -33,7 +34,22 @@ class RequirementsDict:
     metadata: dict[str, typing.Any]
 
 
-def pythontDistributionNameToRez(name: str) -> str:
+def normalizePythonPackageName(name: str) -> str:
+    """Normalize a Python package name according to the packaging guidelines.
+
+    The `Python Packaging User Guide`_ specifies how package names are normalized.
+    "The name should be lowercased with all runs of the characters ., -, or _ replaced with a
+    single - character."
+
+    :param name: The package name to convert.
+    :returns:  The normalized package name.
+
+    .. _Python Packaging User Guide: https://packaging.python.org/en/latest/specifications/name-normalization/#name-normalization
+    """
+    return packaging.utils.canonicalize_name(name, validate=False)
+
+
+def pythonDistributionNameToRez(name: str) -> str:
     """Convert a distribution name to a rez compatible name.
 
     The rez package name can't be simply set to the dist name, because some
@@ -280,7 +296,7 @@ def pythonReqToRezReq(
             f"Ignoring extras requested on {pythonReq!r} - this is not yet supported"
         )
 
-    req = pythontDistributionNameToRez(pythonReq.name)
+    req = pythonDistributionNameToRez(pythonReq.name)
 
     if pythonReq.specifier:
         range_ = pythonSpecifierToRezRequirement(pythonReq.specifier)
@@ -475,7 +491,7 @@ def convertMarker(marker: str) -> list[str]:
 def getRezRequirements(
     installedDist: importlib_metadata.Distribution,
     pythonVersion: rez.version.Version,
-    nameCasings: list[str] | None = None,
+    normalizedPackageNames: dict[str, str],
 ) -> RequirementsDict:
     """Get requirements of the given dist, in rez-compatible format.
 
@@ -501,22 +517,18 @@ def getRezRequirements(
 
     :param installedDist: Distribution to convert.
     :param pythonVersion: Python version used to perform the installation.
-    :param nameCasings: A list of pip package names in their correct
-        casings (eg, 'Foo' rather than 'foo'). Any requirement whose name
-        case-insensitive-matches a name in this list, is set to that name.
-        This is needed because pip package names are case insensitive, but
-        rez is case-sensitive. So a package may list a requirement for package
-        'foo', when in fact the package that pip has downloaded is called 'Foo'.
-        Be sure to provide names in PIP format, not REZ format (the pip package
+    :param normalizedPackageNames: A mapping from normalized python package names
+        to the original package name.  Any requirement whose name matches
+        a normalized name is mapped back to the original package name.
+        So a package may list a requirement for package 'foo', when in fact
+        the package that pip has downloaded is called 'Foo'. Be sure to
+        provide package names in PIP format, not REZ format (the pip package
         'foo-bah' will be converted to 'foo_bah' in rez).
     :returns: See example above.
     """
     _system = rez.system.System()
     result_requires: list[str] = []
     result_variant_requires: list[str] = []
-
-    # create cased names lookup
-    name_mapping = {x.lower(): x for x in (nameCasings or [])}
 
     # requirements such as platform, arch, os, and python
     sys_requires: set[str] = set()
@@ -587,9 +599,9 @@ def getRezRequirements(
                     to_variant = True
 
             # remap the requirement name
-            remapped = name_mapping.get(req.name.lower())
-            if remapped:
-                req.name = remapped
+            req.name = normalizedPackageNames.get(
+                normalizePythonPackageName(req.name), req.name
+            )
 
             # convert the requirement to rez equivalent
             rez_req = str(pythonReqToRezReq(req))

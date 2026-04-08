@@ -93,6 +93,7 @@ def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
             packageGroup,
             rez.version.Version("3.7.0"),
             source,
+            {},
             prefix=repo,
         )
 
@@ -264,7 +265,9 @@ def test_convertMetadata(
     monkeypatch.setattr(
         dist,
         "read_text",
-        lambda x: f"Metadata-Version: 2.0\nName: package_a\nVersion: 1.0.0\n{metadataText}",
+        lambda x: (
+            f"Metadata-Version: 2.0\nName: package_a\nVersion: 1.0.0\n{metadataText}"
+        ),
     )
 
     converted, remaining = rez_pip.rez._convertMetadata(dist)
