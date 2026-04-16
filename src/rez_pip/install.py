@@ -21,6 +21,7 @@ import pathlib
 import zipfile
 import itertools
 import sysconfig
+import collections.abc
 import dataclasses
 
 import packaging.utils
@@ -135,6 +136,20 @@ class Installation:
             return False
 
         return self.dist == other.dist  # We only care if the distributions are equal
+
+    def iterSourceAndDestinationFiles(
+        self, destinationPath: str
+    ) -> collections.abc.Iterator[tuple[pathlib.Path, pathlib.Path]]:
+        # Files are relative to the python directory
+        installRoot = os.path.join(destinationPath, "python")
+
+        for srcPath, relativeDstPath in self.files.items():
+            if relativeDstPath.isAbsolutePath():
+                raise RuntimeError(
+                    f"{self.dist.name} package installs file {relativeDstPath.file!r} to an absolute path"
+                )
+            dstPath = pathlib.Path(relativeDstPath.absolutePath(installRoot))
+            yield pathlib.Path(srcPath), dstPath
 
     def isWheelPure(self) -> bool:
         """

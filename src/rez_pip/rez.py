@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import os
 import copy
 import shutil
 import typing
@@ -105,19 +104,10 @@ def createPackage(
                     f"{install.dist.name} package has no files registered! Something is wrong maybe?"
                 )
 
-            # Files are relative to the python directory
-            installRoot = os.path.join(path, "python")
-
-            for srcPath, relPath in install.files.items():
-                if relPath.isAbsolutePath():
-                    raise RuntimeError(
-                        f"{install.dist.name} package installs file {relPath.file!r} to an absolute path"
-                    )
-                destPath = pathlib.Path(relPath.absolutePath(installRoot))
-                destPath.parent.mkdir(parents=True, exist_ok=True)
-
-                _LOG.debug(f"Copying {str(srcPath)!r} to {str(destPath)!r}")
-                _ = shutil.copy2(srcPath, destPath)
+            for srcFile, dstFile in install.iterSourceAndDestinationFiles(path):
+                dstFile.parent.mkdir(parents=True, exist_ok=True)
+                _LOG.debug(f"Copying {str(srcFile)!r} to {str(dstFile)!r}")
+                _ = shutil.copy2(srcFile, dstFile)
 
     with rez.package_maker.make_package(
         name, packagesPath, make_root=make_root, skip_existing=True, warn_on_skip=False
