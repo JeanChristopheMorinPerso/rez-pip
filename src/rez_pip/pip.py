@@ -17,11 +17,9 @@ import dataclasses
 import dataclasses_json
 
 import rez_pip.data
+import rez_pip.install
 import rez_pip.plugins
 import rez_pip.exceptions
-
-if typing.TYPE_CHECKING:
-    import rez_pip.compat
 
 _LOG = logging.getLogger(__name__)
 
@@ -113,18 +111,18 @@ T = typing.TypeVar("T", PackageInfo, DownloadedArtifact)
 
 
 class PackageGroup(typing.Generic[T]):
-    """A group of package. The order of packages and dists must be the same."""
+    """A group of package. The order of packages and installations must be the same."""
 
     #: List of packages
     packages: tuple[T, ...]
 
-    #: List of distributions
-    dists: list[rez_pip.compat.importlib_metadata.Distribution]
+    #: List of installations
+    installations: list[rez_pip.install.Installation]
 
     # Using a tuple to make it immutable
     def __init__(self, packages: tuple[T, ...]) -> None:
         self.packages = packages
-        self.dists = []
+        self.installations = []
 
     def __str__(self) -> str:
         return "PackageGroup({})".format(
@@ -144,7 +142,10 @@ class PackageGroup(typing.Generic[T]):
         if not isinstance(value, PackageGroup):
             return False
 
-        return self.packages == value.packages and self.dists == value.dists
+        return (
+            self.packages == value.packages
+            and self.installations == value.installations
+        )
 
     @property
     def downloadUrls(self) -> list[str]:
