@@ -264,7 +264,7 @@ class Installation:
             _LOG.debug(f"Updating distribution info in {self.distInfoDir!r}")
             with open(
                 os.path.join(self.distInfoDir, "RECORD"),
-                "wb",
+                "w",
                 newline="",
                 encoding="utf-8",
             ) as recordFile:
@@ -280,6 +280,11 @@ class Installation:
     def _findDistInfoDir(package: rez_pip.pip.PackageInfo, root: str) -> str:
         # https://packaging.python.org/en/latest/specifications/recording-installed-packages/#the-dist-info-directory
         packageName = packaging.utils.canonicalize_name(package.name).replace("-", "_")
+
+        distInfoPath = os.path.join(root, f"{packageName}-{package.version}.dist-info")
+        if os.path.isdir(distInfoPath):
+            return distInfoPath
+
         packageVersion = packaging.utils.canonicalize_version(package.version)
         distInfoPath = os.path.join(root, f"{packageName}-{packageVersion}.dist-info")
         if os.path.isdir(distInfoPath):
@@ -302,7 +307,7 @@ class Installation:
                 f"Expected only one dist-info folders for {package.name!r} in {root!r}, but found {len(distInfoDirs)}"
             )
 
-        return distInfoDirs[0]
+        return os.path.join(root, distInfoDirs[0])
 
     def _removePath(self, path: str) -> None:
         if not os.path.exists(path):
