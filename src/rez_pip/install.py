@@ -89,7 +89,9 @@ class PackageFile:
         if self.isAbsolutePath():
             try:
                 return PackageFile(
-                    os.path.relpath(self.file, prefix), self.hash, self.size
+                    pathlib.PurePath(os.path.relpath(self.file, prefix)).as_posix(),
+                    self.hash,
+                    self.size,
                 )
             except ValueError:
                 return self
@@ -233,17 +235,17 @@ class Installation:
             for item in typing.cast("list[patch_ng.Patch]", patchset.items):
                 if not item.target:
                     continue
-                target = pathlib.PurePath(item.target).as_posix()
-                if "dev/null" in target:
+                target = item.target.decode()
+                if "dev/null" in pathlib.PurePath(target).as_posix():
                     # The patch removed a file
                     if not item.source:
                         continue
-                    _ = self.files.pop(
-                        pathlib.PurePath(self.path).joinpath(item.source).as_posix()
-                    )
+                    source = item.source.decode()
+                    fullPath = pathlib.Path(self.path) / source
+                    _ = self.files.pop(fullPath.as_posix(), None)
                 else:
                     # The patch created or modified a file
-                    fullPath = pathlib.Path(self.path) / item.target
+                    fullPath = pathlib.Path(self.path) / target
                     if not fullPath.is_file() or fullPath.is_symlink():
                         return
 
