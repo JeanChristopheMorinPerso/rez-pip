@@ -140,7 +140,10 @@ def createPackage(
             for file in install.files:
                 filePath = pathlib.Path(file)
                 if filePath.parent == scriptPath:
-                    console_scripts.add(filePath.parts[-1].removesuffix(".exe"))
+                    script = filePath.parts[-1]
+                    if script.endswith(".exe"):
+                        script = script[:-4]
+                    console_scripts.add(script)
 
         if console_scripts:
             pkg.tools = list(sorted(console_scripts))
