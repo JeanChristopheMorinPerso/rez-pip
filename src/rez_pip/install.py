@@ -133,12 +133,6 @@ class Installation:
             file.absolutePath(self.root): file for file in files
         }
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Installation):
-            return False
-
-        return self.dist == other.dist  # We only care if the distributions are equal
-
     def iterSourceAndDestinationFiles(
         self, destinationPath: str
     ) -> collections.abc.Iterator[tuple[pathlib.Path, pathlib.Path]]:
@@ -159,7 +153,7 @@ class Installation:
         """
         with open(os.path.join(self.distInfoDir, "WHEEL")) as fd:
             metadata = installer.utils.parse_metadata_file(fd.read())
-        return metadata["Root-Is-Purelib"] == "true"
+        return bool(metadata["Root-Is-Purelib"] == "true")
 
     def cleanup(self) -> None:
         """Run cleanup hooks.
@@ -169,7 +163,7 @@ class Installation:
         """
         actions: itertools.chain[rez_pip.plugins.CleanupAction] = (
             itertools.chain.from_iterable(
-                rez_pip.plugins.getHook().cleanup(dist=self.dist, path=self.path)
+                rez_pip.plugins.getHook().cleanup(dist=self.dist, path=self.path)  # type: ignore[arg-type]
             )
         )
 
