@@ -143,7 +143,7 @@ def createPackage(
                     console_scripts.add(filePath.parts[-1].removesuffix(".exe"))
 
         if console_scripts:
-            pkg.tools = list(console_scripts)
+            pkg.tools = list(sorted(console_scripts))
             # TODO: Don't hardcode scripts here.
             commands.append("env.PATH.append('{root}/scripts')")
 
