@@ -9,6 +9,6 @@ SPDX-FileCopyrightText = "Copyright (c) 2008-present The pip developers"
 SPDX-License-Identifier = "MIT"
 
 [[annotations]]
-path = "src/rez_pip/data/patches/*.patch"
+path = [ "src/rez_pip/data/patches/*.patch", "tests/data/installed_wheels/package-a/python/package_a-1.post0.dist-info/*" ]
 SPDX-FileCopyrightText = "Contributors to the rez project"
 SPDX-License-Identifier = "Apache-2.0"
