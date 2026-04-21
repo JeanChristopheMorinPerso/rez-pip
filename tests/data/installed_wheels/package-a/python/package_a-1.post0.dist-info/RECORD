@@ -1,8 +1,0 @@
-package_a/__init__.py,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
-package_a/folder_here/abgt.py,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
-../scripts/package-a-cli,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
-../scripts/sub/package-a-cli,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
-package_a-1.post0.dist-info/WHEEL,sha256=7DDkY2AB2kJxz-mL27X25EGUbV1NdG8JoSHZbDny_3E,81
-package_a-1.post0.dist-info/METADATA,sha256=gicxviKSmBRWGPR79XA5e52RmFNJZw0VkV2lXbWO_rA,58
-package_a-1.post0.dist-info/INSTALLER,sha256=1YV7SDEPFM2v6FqIv0EVO7_VZ536DwGYfBXobL6N7KY,13
-package_a-1.post0.dist-info/RECORD,,

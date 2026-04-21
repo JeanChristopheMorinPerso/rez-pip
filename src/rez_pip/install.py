@@ -25,8 +25,9 @@ import collections.abc
 import dataclasses
 
 import packaging.utils
+import packaging.version
 
-if typing.TYPE_CHECKING:
+if typing.TYPE_CHECKING:  # pragma: no cover
     from typing import Literal
 
 import patch_ng
@@ -84,7 +85,7 @@ class PackageFile:
 
         return cls(path.resolve().as_posix(), f"sha256={digest}", path.stat().st_size)
 
-    def toRelativePath(self, prefix: str) -> "PackageFile":
+    def toRelativePath(self, prefix: str | os.PathLike[str]) -> "PackageFile":
         """If the path is an absolute path, convert to its relative path from `prefix`."""
         if self.isAbsolutePath():
             try:
@@ -93,7 +94,7 @@ class PackageFile:
                     self.hash,
                     self.size,
                 )
-            except ValueError:
+            except ValueError:  # pragma: no cover
                 return self
 
         return self
@@ -102,7 +103,7 @@ class PackageFile:
         """Convert to a row suitable for writing to a csv file."""
         return self.file, self.hash, self.size
 
-    def absolutePath(self, prefix: str) -> str:
+    def absolutePath(self, prefix: str | os.PathLike[str]) -> str:
         """Get the absolute posix path to the package file."""
         if self.isAbsolutePath():
             return pathlib.Path(self.file).resolve().as_posix()
@@ -168,14 +169,15 @@ class Installation:
         )
 
         for action in actions:
-            actionPath = os.path.normpath(action.path)
             # Security measure. Only perform operations on paths that are within the install path.
+            actionPath = os.path.normpath(action.path)
             try:
                 if os.path.commonpath([self.path, actionPath]) != self.path:
                     raise CleanupError(
-                        f"Typing to {action.op} {action.path!r} which is outside of {self.path!r}"
+                        f"Trying to {action.op} {action.path!r} which is outside of {self.path!r}"
                     )
-            except ValueError as err:
+            except ValueError as err:  # pragma: no cover
+                # ValueError is raised when files are on different Windows drives
                 raise CleanupError(
                     f"Typing to {action.op} {action.path!r} which is outside of {self.path!r}"
                 ) from err
@@ -217,7 +219,9 @@ class Installation:
 
             patchset = patch_ng.fromfile(patch)
             if not patchset:
-                raise rez_pip.patch.PatchError(f"Could not load {patch!r}")
+                raise rez_pip.patch.PatchError(f"Could not load patch {patch!r}")
+
+            patchItems: list[patch_ng.Patch] = list(patchset.items)
 
             with rez_pip.patch.logIfErrorOrRaises():
                 if not patchset.apply(root=self.path):
@@ -226,13 +230,13 @@ class Installation:
                         f"Failed to apply patch {patch!r} on {self.path!r}"
                     )
 
-            for item in typing.cast("list[patch_ng.Patch]", patchset.items):
-                if not item.target:
+            for item in patchItems:
+                if not item.target:  # pragma: no cover
                     continue
                 target = item.target.decode()
-                if "dev/null" in pathlib.PurePath(target).as_posix():
+                if target.endswith("/dev/null"):
                     # The patch removed a file
-                    if not item.source:
+                    if not item.source:  # pragma: no cover
                         continue
                     source = item.source.decode()
                     fullPath = pathlib.Path(self.path) / source
@@ -241,10 +245,10 @@ class Installation:
                     # The patch created or modified a file
                     fullPath = pathlib.Path(self.path) / target
                     if not fullPath.is_file() or fullPath.is_symlink():
-                        return
+                        continue
 
                     packageFile = PackageFile.fromPath(fullPath)
-                    self.files[packageFile.absolutePath(self.root)] = (
+                    self.files[packageFile.absolutePath(self.path)] = (
                         packageFile.toRelativePath(self.root)
                     )
 
@@ -276,12 +280,8 @@ class Installation:
     def _findDistInfoDir(package: rez_pip.pip.PackageInfo, root: str) -> str:
         # https://packaging.python.org/en/latest/specifications/recording-installed-packages/#the-dist-info-directory
         packageName = packaging.utils.canonicalize_name(package.name).replace("-", "_")
+        packageVersion = packaging.version.Version(package.version)
 
-        distInfoPath = os.path.join(root, f"{packageName}-{package.version}.dist-info")
-        if os.path.isdir(distInfoPath):
-            return distInfoPath
-
-        packageVersion = packaging.utils.canonicalize_version(package.version)
         distInfoPath = os.path.join(root, f"{packageName}-{packageVersion}.dist-info")
         if os.path.isdir(distInfoPath):
             return distInfoPath
@@ -300,7 +300,7 @@ class Installation:
 
         if len(distInfoDirs) > 1:
             raise rez_pip.exceptions.RezPipError(
-                f"Expected only one dist-info folders for {package.name!r} in {root!r}, but found {len(distInfoDirs)}"
+                f"Expected only one dist-info folder for {package.name!r} in {root!r}, but found {len(distInfoDirs)}"
             )
 
         return os.path.join(root, distInfoDirs[0])

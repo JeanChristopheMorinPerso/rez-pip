@@ -40,7 +40,7 @@ def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
         _localPath=source,
         metadata=rez_pip.pip.Metadata(name="package-a", version="1.0.0.post0"),
         download_info=rez_pip.pip.DownloadInfo(
-            url=f"http://localhost/asd",
+            url="http://localhost/asd",
             archive_info=rez_pip.pip.ArchiveInfo("hash", {}),
         ),
         is_direct=True,

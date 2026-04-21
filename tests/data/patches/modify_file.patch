@@ -1,0 +1,5 @@
+--- scripts/package-a-cli	2026-04-20 17:08:02
++++ scripts/package-a-cli	2026-04-20 18:36:29
+@@ -1 +1 @@
+-echo "hello world"
++echo "goodbye cruel world"
