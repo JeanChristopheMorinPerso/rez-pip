@@ -306,17 +306,19 @@ class TestInstallation:
 
         files = [
             (src, dest)
-            for src, dest in installation.iterSourceAndDestinationFiles("/destination")
+            for src, dest in installation.iterSourceAndDestinationFiles(
+                f"{packagePath.drive}/destination"
+            )
         ]
 
         assert files == [
             (
                 packagePath.joinpath("python", "__init__.py"),
-                pathlib.Path("/destination/python/__init__.py"),
+                pathlib.Path(f"{packagePath.drive}/destination/python/__init__.py"),
             ),
             (
                 packagePath.joinpath("scripts", "hello_world"),
-                pathlib.Path("/destination/scripts/hello_world"),
+                pathlib.Path(f"{packagePath.drive}/destination/scripts/hello_world"),
             ),
         ]
 
