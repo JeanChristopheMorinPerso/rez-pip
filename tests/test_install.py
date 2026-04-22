@@ -578,9 +578,14 @@ class TestInstallation:
         # Nothing should be modified if the files are not modified
         assert installation.dist is dist
 
-        installation.files[
-            tmpPackagePath.joinpath("scripts", "hello_world").as_posix()
-        ] = rez_pip.install.PackageFile("../scripts/hello_world")
+        helloWorld = tmpPackagePath.joinpath("scripts", "hello_world")
+        helloWorld.touch()
+
+        installation.files[helloWorld.as_posix()] = (
+            rez_pip.install.PackageFile.fromPath(helloWorld).toRelativePath(
+                installation.root
+            )
+        )
 
         installation.finalize()
         # dist should be reloaded
