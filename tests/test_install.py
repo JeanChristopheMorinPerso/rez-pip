@@ -331,7 +331,9 @@ class TestInstallation:
         )
 
         installation.files = {
-            "/absolute/path": rez_pip.install.PackageFile("/absolute/path"),
+            "/absolute/path": rez_pip.install.PackageFile(
+                f"{packagePath.drive}/absolute/path"
+            ),
         }
 
         with pytest.raises(
