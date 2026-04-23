@@ -125,14 +125,17 @@ class Installation:
             importlib_metadata.Distribution.at(self.distInfoDir)
         )
 
-        # Make sure files are relative to the distribution
-        files = [
-            PackageFile.fromPackagePath(file).toRelativePath(self.root)
-            for file in self.dist.files or []
-        ]
-        self.files: dict[str, PackageFile] = {
-            file.absolutePath(self.root): file for file in files
-        }
+        self.files: dict[str, PackageFile] = {}
+        self._originalFiles: dict[str, PackageFile] = {}
+
+        for file in self.dist.files or []:
+            packageFile = PackageFile.fromPackagePath(file)
+            relativePackageFile = packageFile.toRelativePath(self.root)
+            self._originalFiles[packageFile.absolutePath(self.root)] = packageFile
+            # Make sure files are relative to the distribution
+            self.files[relativePackageFile.absolutePath(self.root)] = (
+                relativePackageFile
+            )
 
     def iterSourceAndDestinationFiles(
         self, destinationPath: str
@@ -255,12 +258,7 @@ class Installation:
     def finalize(self) -> None:
         """Update distribution if any files have been modified."""
 
-        # Do not remap to relative path.  We want to know if any files changed from an absolute path.
-        packageFiles = [
-            PackageFile.fromPackagePath(file) for file in self.dist.files or []
-        ]
-        files = {file.absolutePath(self.root): file for file in packageFiles}
-        if files != self.files:
+        if self.files != self._originalFiles:
             _LOG.debug(f"Updating distribution info in {self.distInfoDir!r}")
             with open(
                 os.path.join(self.distInfoDir, "RECORD"),
@@ -275,6 +273,7 @@ class Installation:
                     writer.writerow(file.toRow())
             # Reload the distribution with updated files
             self.dist = importlib_metadata.Distribution.at(self.distInfoDir)
+            self._originalFiles = dict(self.files)
 
     @staticmethod
     def _findDistInfoDir(package: rez_pip.pip.PackageInfo, root: str) -> str:
