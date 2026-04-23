@@ -127,9 +127,6 @@ class PluginSpec:
         :param dist: Python distribution.
         :param path: Root path of the installed content.
         """
-        # TODO: This will alter files (obviously) and change their hashes.
-        # This could be a problem to verify the integrity of the package.
-        # https://packaging.python.org/en/latest/specifications/recording-installed-packages/#the-record-file
         ...
 
     @hookspec

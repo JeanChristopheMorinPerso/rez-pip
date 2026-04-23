@@ -10,21 +10,27 @@ from __future__ import annotations
 
 import io
 import os
-import re
+import csv
 import sys
+import base64
 import shutil
 import typing
+import hashlib
 import logging
 import pathlib
 import zipfile
+import itertools
 import sysconfig
 import collections.abc
+import dataclasses
 
-import rez_pip.exceptions
+import packaging.utils
+import packaging.version
 
-if typing.TYPE_CHECKING:
+if typing.TYPE_CHECKING:  # pragma: no cover
     from typing import Literal
 
+import patch_ng
 import installer
 import installer.utils
 import installer.records
@@ -33,6 +39,7 @@ import installer.sources
 import installer.destinations
 
 import rez_pip.pip
+import rez_pip.patch
 import rez_pip.plugins
 import rez_pip.exceptions
 from rez_pip.compat import importlib_metadata
@@ -50,18 +57,267 @@ class CleanupError(rez_pip.exceptions.RezPipError):
     """
 
 
-def isWheelPure(dist: importlib_metadata.Distribution) -> bool:
-    # dist.files should never be empty, but assert to silence mypy.
-    assert dist.files is not None
+@dataclasses.dataclass(frozen=True)
+class PackageFile:
+    """Posix path to a package file and attributes."""
 
-    path = next(
-        f
-        for f in dist.files
-        if os.fspath(f.locate()).endswith(os.path.join(".dist-info", "WHEEL"))
-    )
-    with open(path.locate()) as fd:
-        metadata = installer.utils.parse_metadata_file(fd.read())
-    return typing.cast(str, metadata["Root-Is-Purelib"]) == "true"
+    file: str
+    hash: str | None = None
+    size: int | None = None
+
+    @classmethod
+    def fromPackagePath(cls, file: importlib_metadata.PackagePath) -> "PackageFile":
+        """Build a PackageFile from an importlib_metadata.PackagePath."""
+        return cls(
+            file.as_posix(),
+            f"{file.hash.mode}={file.hash.value}" if file.hash else None,
+            file.size,
+        )
+
+    @classmethod
+    def fromPath(cls, path: pathlib.Path) -> "PackageFile":
+        """Build a PackageFile from a file on disk."""
+        hasher = hashlib.sha256()
+        with path.open(mode="rb") as f:
+            while chunk := f.read(8192):
+                hasher.update(chunk)
+        digest = base64.urlsafe_b64encode(hasher.digest()).decode("ascii").rstrip("=")
+
+        return cls(path.resolve().as_posix(), f"sha256={digest}", path.stat().st_size)
+
+    def toRelativePath(self, prefix: str | os.PathLike[str]) -> "PackageFile":
+        """If the path is an absolute path, convert to its relative path from `prefix`."""
+        if self.isAbsolutePath():
+            try:
+                return PackageFile(
+                    pathlib.PurePath(os.path.relpath(self.file, prefix)).as_posix(),
+                    self.hash,
+                    self.size,
+                )
+            except ValueError:  # pragma: no cover
+                return self
+
+        return self
+
+    def toRow(self) -> tuple[str, str | None, int | None]:
+        """Convert to a row suitable for writing to a csv file."""
+        return self.file, self.hash, self.size
+
+    def absolutePath(self, prefix: str | os.PathLike[str]) -> str:
+        """Get the absolute posix path to the package file."""
+        if self.isAbsolutePath():
+            return pathlib.Path(self.file).resolve().as_posix()
+        return pathlib.Path(os.path.join(prefix, self.file)).resolve().as_posix()
+
+    def isAbsolutePath(self) -> bool:
+        """Check if this package file is an absolute path."""
+        return os.path.isabs(self.file)
+
+
+class Installation:
+    def __init__(self, package: rez_pip.pip.PackageInfo, installationPrefix: str):
+        self.path: str = installationPrefix
+        self.root: str = os.path.join(installationPrefix, "python")
+        self.pythonDir: str = self.root
+        self.scriptsDir: str = os.path.join(installationPrefix, "scripts")
+        self.distInfoDir: str = self._findDistInfoDir(package, self.root)
+        self.dist: importlib_metadata.PathDistribution = (
+            importlib_metadata.Distribution.at(self.distInfoDir)
+        )
+
+        self.files: dict[str, PackageFile] = {}
+        self._originalFiles: dict[str, PackageFile] = {}
+
+        for file in self.dist.files or []:
+            packageFile = PackageFile.fromPackagePath(file)
+            relativePackageFile = packageFile.toRelativePath(self.root)
+            self._originalFiles[packageFile.absolutePath(self.root)] = packageFile
+            # Make sure files are relative to the distribution
+            self.files[relativePackageFile.absolutePath(self.root)] = (
+                relativePackageFile
+            )
+
+    def iterSourceAndDestinationFiles(
+        self, destinationPath: str
+    ) -> collections.abc.Iterator[tuple[pathlib.Path, pathlib.Path]]:
+        # Files are relative to the python directory
+        installRoot = os.path.join(destinationPath, "python")
+
+        for srcPath, relativeDstPath in self.files.items():
+            if relativeDstPath.isAbsolutePath():
+                raise RuntimeError(
+                    f"{self.dist.name} package installs file {relativeDstPath.file!r} to an absolute path"
+                )
+            dstPath = pathlib.Path(relativeDstPath.absolutePath(installRoot))
+            yield pathlib.Path(srcPath), dstPath
+
+    def isWheelPure(self) -> bool:
+        """
+        Check if this installation is python only.
+        """
+        with open(os.path.join(self.distInfoDir, "WHEEL")) as fd:
+            metadata = installer.utils.parse_metadata_file(fd.read())
+        return bool(metadata["Root-Is-Purelib"] == "true")
+
+    def cleanup(self) -> None:
+        """Run cleanup hooks.
+
+        Note that this lives in install because the cleanups
+        are made on the installation (the wheel install).
+        """
+        actions: itertools.chain[rez_pip.plugins.CleanupAction] = (
+            itertools.chain.from_iterable(
+                rez_pip.plugins.getHook().cleanup(dist=self.dist, path=self.path)  # type: ignore[arg-type]
+            )
+        )
+
+        for action in actions:
+            # Security measure. Only perform operations on paths that are within the install path.
+            actionPath = os.path.normpath(action.path)
+            try:
+                if os.path.commonpath([self.path, actionPath]) != self.path:
+                    raise CleanupError(
+                        f"Trying to {action.op} {action.path!r} which is outside of {self.path!r}"
+                    )
+            except ValueError as err:  # pragma: no cover
+                # ValueError is raised when files are on different Windows drives
+                raise CleanupError(
+                    f"Typing to {action.op} {action.path!r} which is outside of {self.path!r}"
+                ) from err
+
+            if action.op == "remove":
+                self._removePath(actionPath)
+            else:
+                raise CleanupError(f"Unknown action: {action.op}")
+
+    def patch(self) -> None:
+        """Run patch hooks.
+
+        Note that this lives in install because the patches
+        are made on the installation (the wheel install).
+        """
+        _LOG.debug(f"[bold]Attempting to patch {self.dist.name!r} at {self.path!r}")
+
+        patches: list[str] = list(
+            itertools.chain.from_iterable(
+                rez_pip.plugins.getHook().patches(dist=self.dist, path=self.path)
+            )
+        )
+        if not patches:
+            _LOG.debug("No patches found")
+            return
+
+        _LOG.info(
+            f"Applying {len(patches)} patches for {self.dist.name!r} at {self.path!r}"
+        )
+
+        for patch in patches:
+            _LOG.info(f"Applying patch {patch!r} on {self.path!r}")
+
+            if not os.path.isabs(patch):
+                raise rez_pip.patch.PatchError(f"{patch!r} is not an absolute path")
+
+            if not os.path.exists(patch):
+                raise rez_pip.patch.PatchError(f"Patch at {patch!r} does not exist")
+
+            patchset = patch_ng.fromfile(patch)
+            if not patchset:
+                raise rez_pip.patch.PatchError(f"Could not load patch {patch!r}")
+
+            patchItems: list[patch_ng.Patch] = list(patchset.items)
+
+            with rez_pip.patch.logIfErrorOrRaises():
+                if not patchset.apply(root=self.path):
+                    # A logger that only gets flushed on demand would be better...
+                    raise rez_pip.patch.PatchError(
+                        f"Failed to apply patch {patch!r} on {self.path!r}"
+                    )
+
+            for item in patchItems:
+                if not item.target:  # pragma: no cover
+                    continue
+                target = item.target.decode()
+                if target.endswith("/dev/null"):
+                    # The patch removed a file
+                    if not item.source:  # pragma: no cover
+                        continue
+                    source = item.source.decode()
+                    fullPath = pathlib.Path(self.path) / source
+                    _ = self.files.pop(fullPath.as_posix(), None)
+                else:
+                    # The patch created or modified a file
+                    fullPath = pathlib.Path(self.path) / target
+                    if not fullPath.is_file() or fullPath.is_symlink():
+                        continue
+
+                    packageFile = PackageFile.fromPath(fullPath)
+                    self.files[packageFile.absolutePath(self.path)] = (
+                        packageFile.toRelativePath(self.root)
+                    )
+
+    def finalize(self) -> None:
+        """Update distribution if any files have been modified."""
+
+        if self.files != self._originalFiles:
+            _LOG.debug(f"Updating distribution info in {self.distInfoDir!r}")
+            with open(
+                os.path.join(self.distInfoDir, "RECORD"),
+                "w",
+                newline="",
+                encoding="utf-8",
+            ) as recordFile:
+                writer = csv.writer(
+                    recordFile, delimiter=",", quotechar='"', lineterminator="\n"
+                )
+                for file in self.files.values():
+                    writer.writerow(file.toRow())
+            # Reload the distribution with updated files
+            self.dist = importlib_metadata.Distribution.at(self.distInfoDir)
+            self._originalFiles = dict(self.files)
+
+    @staticmethod
+    def _findDistInfoDir(package: rez_pip.pip.PackageInfo, root: str) -> str:
+        # https://packaging.python.org/en/latest/specifications/recording-installed-packages/#the-dist-info-directory
+        packageName = packaging.utils.canonicalize_name(package.name).replace("-", "_")
+        packageVersion = packaging.version.Version(package.version)
+
+        distInfoPath = os.path.join(root, f"{packageName}-{packageVersion}.dist-info")
+        if os.path.isdir(distInfoPath):
+            return distInfoPath
+
+        # Fallback to walking the filesystem
+        distInfoDirs = [
+            path
+            for path in os.listdir(root)
+            if path.endswith(".dist-info") and os.path.isdir(os.path.join(root, path))
+        ]
+
+        if len(distInfoDirs) == 0:
+            raise rez_pip.exceptions.RezPipError(
+                f"Could not find a dist-info folder for {package.name!r} in {root!r}"
+            )
+
+        if len(distInfoDirs) > 1:
+            raise rez_pip.exceptions.RezPipError(
+                f"Expected only one dist-info folder for {package.name!r} in {root!r}, but found {len(distInfoDirs)}"
+            )
+
+        return os.path.join(root, distInfoDirs[0])
+
+    def _removePath(self, path: str) -> None:
+        if not os.path.exists(path):
+            return
+
+        _LOG.info(f"Removing {path!r}")
+        if os.path.isdir(path):
+            for dirpath, _, filenames in os.walk(path):
+                directory = pathlib.Path(dirpath)
+                for filename in filenames:
+                    _ = self.files.pop(directory.joinpath(filename).as_posix(), None)
+            shutil.rmtree(path)
+        else:
+            _ = self.files.pop(pathlib.Path(path).as_posix(), None)
+            os.remove(path)
 
 
 # Taken from https://github.com/pypa/installer/blob/main/src/installer/__main__.py#L49
@@ -83,7 +339,7 @@ def getSchemeDict(name: str, target: str) -> dict[str, str]:
         schemeDict["platlib"] = os.path.join(target, "python")
         schemeDict["headers"] = os.path.join(target, "headers", name)
         schemeDict["scripts"] = os.path.join(target, "scripts")
-        # Potentiall handle data?
+        # Potential handle data?
     return schemeDict
 
 
@@ -91,7 +347,7 @@ def installWheel(
     package: rez_pip.pip.PackageInfo,
     wheelPath: str,
     targetPath: str,
-) -> importlib_metadata.Distribution:
+) -> Installation:
     # TODO: Technically, target should be optional. We will always want to install in "pip install --target"
     #       mode. So right now it's a CLI option for debugging purposes.
 
@@ -115,31 +371,7 @@ def installWheel(
             },
         )
 
-    targetPathPython = os.path.join(targetPath, "python")
-
-    # That's kind of dirty, but using any other method returns inconsistent results.
-    # For example, importlib.metadata.Distribution.discover(path=['/path']) sometimes
-    # won't find the freshly intalled package, even if it exists and everything.
-    items = [
-        item
-        for item in os.listdir(targetPathPython)
-        if item.endswith(".dist-info")
-        and os.path.isdir(os.path.join(targetPathPython, item))
-    ]
-
-    if len(items) == 0:
-        raise rez_pip.exceptions.RezPipError(
-            f"Could not find a dist-info folder for {package.name!r} in {targetPathPython!r}"
-        )
-
-    elif len(items) > 1:
-        raise rez_pip.exceptions.RezPipError(
-            f"Expected only one dist-info folders for {package.name!r} in {targetPathPython!r}, but found {len(items)}: {items}"
-        )
-
-    dist = importlib_metadata.Distribution.at(os.path.join(targetPathPython, items[0]))
-
-    return dist
+    return Installation(package, targetPath)
 
 
 # TODO: Document where this code comes from.
@@ -223,103 +455,3 @@ class Script(installer.scripts.Script):
         name = f"{self.name}.exe"
         data = launcher + shebang + b"\n" + stream.getvalue()
         return (name, data)
-
-
-def cleanup(dist: importlib_metadata.Distribution, path: str) -> None:
-    """
-    Run cleanup hooks.
-
-    Note that this lives in install because the cleanups
-    are made on the installs (the wheel install). We could move this somewhere
-    else but it's not clear where.
-    """
-    actionsGroups: collections.abc.Sequence[
-        collections.abc.Sequence[rez_pip.plugins.CleanupAction]
-    ] = rez_pip.plugins.getHook().cleanup(
-        dist=dist, path=path
-    )  # type: ignore[assignment]
-
-    # Flatten
-    actions: list[rez_pip.plugins.CleanupAction] = [
-        action for group in actionsGroups for action in group
-    ]
-
-    recordEntriesToRemove = []
-
-    for action in actions:
-        if not action.path.startswith(path):
-            # Security measure. Only perform operations on
-            # paths that are within the install path.
-            raise CleanupError(
-                f"Typing to {action.op} {action.path!r} which is outside of {path!r}"
-            )
-
-        if action.op == "remove":
-            if not os.path.exists(action.path):
-                continue
-
-            _LOG.info(f"Removing {action.path!r}")
-            if os.path.isdir(action.path):
-                shutil.rmtree(action.path)
-            else:
-                os.remove(action.path)
-
-            recordEntriesToRemove.append(
-                os.path.normpath(os.path.relpath(action.path, path)).replace("\\", "/")
-            )
-        else:
-            raise CleanupError(f"Unknown action: {action.op}")
-
-    if recordEntriesToRemove:
-        deleteEntryFromRecord(dist, path, recordEntriesToRemove)
-
-
-def deleteEntryFromRecord(
-    dist: importlib_metadata.Distribution, path: str, entries: list[str]
-) -> None:
-    """
-    Delete an entry from the record file.
-
-    This code is not great. I feel like updating the RECORD file should
-    be simpler. Which means that we miht need to refactor things a bit.
-    """
-    items = [
-        os.fspath(item)
-        for item in dist.files
-        if re.search(r"[a-zA-Z0-9._+]+\.dist-info/RECORD", os.fspath(item))
-    ]
-
-    if not items:
-        raise CleanupError(f"RECORD file not found for {dist.name!r}")
-
-    recordFilePathRel = items[0]
-    recordFilePath = os.path.join(path, "python", recordFilePathRel)
-
-    with open(recordFilePath) as f:
-        lines = f.readlines()
-
-    schemesRaw = getSchemeDict(dist.name, path)
-    schemes = {
-        key: os.path.relpath(value, path)
-        for key, value in schemesRaw.items()
-        if value.startswith(path)
-    }
-
-    # Format the entries to match the record file. This is important
-    # because when we install the files, we use a custom scheme.
-    # For example, we have to trim "python/" or "scripts/".
-    for index, entry in enumerate(entries):
-        for schemePath in schemes.values():
-            if entry.startswith(schemePath):
-                _LOG.debug(f"Stripping {schemePath!r}/ from {entry!r}")
-                entries[index] = entry.lstrip(schemePath + "/")
-                # Break on first match
-                break
-
-    for index, elements in enumerate(installer.records.parse_record_file(lines)):
-        if elements[0] in entries:
-            lines.pop(index)
-
-    with open(recordFilePath, "w") as f:
-        for line in lines:
-            f.write(line)

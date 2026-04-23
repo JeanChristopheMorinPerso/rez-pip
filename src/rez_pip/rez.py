@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import os
 import copy
 import shutil
 import typing
@@ -33,60 +32,33 @@ class NoPythonFound(rez_pip.exceptions.RezPipError):
     """
 
 
-def iterDistFiles(
-    dist: importlib_metadata.Distribution,
-    installedWheelsDir: str,
-) -> typing.Iterator[tuple[pathlib.Path, str]]:
-    """Iterate over the files in the distribution and return their absolute
-    and relative paths.
-
-    :param dist: The distribution to iterate over.
-    :param installedWheelsDir: The directory where the wheel was install installed to.
-
-    :return: An iterator of tuples containing the absolute and relative
-             (relative to installedWheelsDir) paths of the files.
-    """
-    wheelsDirAbsolute = pathlib.Path(installedWheelsDir).resolve()
-    for file_ in dist.files:
-        absolutePath = typing.cast(pathlib.Path, file_.locate()).resolve()
-        relPath = os.path.sep.join(
-            absolutePath.relative_to(wheelsDirAbsolute).parts[1:]
-        )
-        yield absolutePath, relPath
-
-
 def createPackage(
     packageGroup: rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact],
     pythonVersion: rez.version.Version,
-    installedWheelsDir: str,
     prefix: str | None = None,
     release: bool = False,
 ) -> None:
     _LOG.info(
         "Creating rez package for {0}".format(
-            " + ".join(dist.name for dist in packageGroup.dists)
+            " + ".join(install.dist.name for install in packageGroup.installations)
         )
     )
 
     rezNames = [
-        rez_pip.utils.pythontDistributionNameToRez(dist.name)
-        for dist in packageGroup.dists
+        rez_pip.utils.pythontDistributionNameToRez(install.dist.name)
+        for install in packageGroup.installations
     ]
 
     name = rezNames[0]
     version = rez_pip.utils.pythonDistributionVersionToRez(
-        packageGroup.dists[0].version
+        packageGroup.installations[0].dist.version
     )
 
     requires = []
     variant_requires = []
-    metadata: dict[str, typing.Any] = {}
     isPure = True
-    for dist in packageGroup.dists:
-        requirements = rez_pip.utils.getRezRequirements(dist, pythonVersion, [])
-        if not metadata:
-            # For now we only use the metadata from the first package. Far from ideal...
-            metadata = requirements.metadata
+    for install in packageGroup.installations:
+        requirements = rez_pip.utils.getRezRequirements(install, pythonVersion, [])
 
         # TODO: Remove grouped packages (PySide-Addons, etc)
         requires += [
@@ -106,7 +78,7 @@ def createPackage(
             and rez.version.Requirement(require).name not in rezNames[1:]
         ]
         if isPure:
-            isPure = metadata["is_pure_python"]
+            isPure = typing.cast(bool, requirements.metadata["is_pure_python"])
 
     if prefix:
         packagesPath = prefix
@@ -118,30 +90,24 @@ def createPackage(
         )
 
     def make_root(variant: rez.packages.Variant, path: str) -> None:
-        """Using distlib to iterate over all installed files of the current
-        distribution to copy files to the target directory of the rez package
-        variant
+        """Iterate over all installed files of the current installation to copy files to the target directory
+        of the rez package variant.
         """
         formattedRequirements = ", ".join(str(req) for req in variant.variant_requires)
 
         _LOG.info(
             rf"Installing {variant.qualified_package_name} \[{formattedRequirements}]"
         )
-        for dist in packageGroup.dists:
-            if not dist.files:
+        for install in packageGroup.installations:
+            if not install.files:
                 raise RuntimeError(
-                    f"{dist.name} package has no files registered! Something is wrong maybe?"
+                    f"{install.dist.name} package has no files registered! Something is wrong maybe?"
                 )
 
-            for srcAbsolute, relPath in iterDistFiles(dist, installedWheelsDir):
-                dest = os.path.join(path, relPath)
-
-                if not os.path.exists(os.path.dirname(dest)):
-                    os.makedirs(os.path.dirname(dest))
-
-                _LOG.debug(f"Copying {str(srcAbsolute)!r} to {str(dest)!r}")
-                shutil.copyfile(srcAbsolute, dest)
-                shutil.copystat(srcAbsolute, dest)
+            for srcFile, dstFile in install.iterSourceAndDestinationFiles(path):
+                dstFile.parent.mkdir(parents=True, exist_ok=True)
+                _LOG.debug(f"Copying {str(srcFile)!r} to {str(dstFile)!r}")
+                _ = shutil.copy2(srcFile, dstFile)
 
     with rez.package_maker.make_package(
         name, packagesPath, make_root=make_root, skip_existing=True, warn_on_skip=False
@@ -160,22 +126,27 @@ def createPackage(
 
         # Collect console scripts from entry_points
         console_scripts = set(
-            [ep.name for ep in dist.entry_points if ep.group == "console_scripts"]
+            [
+                ep.name
+                for install in packageGroup.installations
+                for ep in install.dist.entry_points
+                if ep.group == "console_scripts"
+            ]
         )
 
-        # Also check for scripts from dist-info data.
-        # (some packages like ruff don't use entry_points but put scripts in .data/scripts/)
-        if dist.files:
-            for _, relPath in iterDistFiles(dist, installedWheelsDir):
-                # Check if path matches pattern: <name>-<version>.data/scripts/<script_name>
-                # Skip anything that is nested under scripts (.data/scripts/sub/file)
-                if os.path.dirname(
-                    relPath
-                ) == "scripts" and os.path.sep not in os.path.basename(relPath):
-                    console_scripts.add(os.path.basename(relPath))
+        # Add everything under the scripts directory
+        for install in packageGroup.installations:
+            scriptPath = pathlib.Path(install.scriptsDir)
+            for file in install.files:
+                filePath = pathlib.Path(file)
+                if filePath.parent == scriptPath:
+                    script = filePath.parts[-1]
+                    if script.endswith(".exe"):
+                        script = script[:-4]
+                    console_scripts.add(script)
 
         if console_scripts:
-            pkg.tools = list(console_scripts)
+            pkg.tools = list(sorted(console_scripts))
             # TODO: Don't hardcode scripts here.
             commands.append("env.PATH.append('{root}/scripts')")
 
@@ -188,8 +159,8 @@ def createPackage(
         pkg.hashed_variants = True
 
         pkg.pip = {
-            "name": dist.name,
-            "version": dist.version,
+            "name": packageGroup.installations[0].dist.name,
+            "version": packageGroup.installations[0].dist.version,
             "is_pure_python": isPure,
             "wheel_urls": packageGroup.downloadUrls,
             "rez_pip_version": importlib_metadata.version("rez-pip"),
@@ -197,7 +168,9 @@ def createPackage(
 
         # Take all the metadata that can be converted and put it
         # in the rez package definition.
-        convertedMetadata, remainingMetadata = _convertMetadata(dist)
+        convertedMetadata, remainingMetadata = _convertMetadata(
+            packageGroup.installations[0].dist
+        )
         for key, values in convertedMetadata.items():
             setattr(pkg, key, values)
 

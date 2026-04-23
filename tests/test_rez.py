@@ -20,50 +20,15 @@ import rez.package_repository
 import rez_pip.pip
 import rez_pip.rez
 import rez_pip.utils
+import rez_pip.install
 from rez_pip.compat import importlib_metadata
 
 
 def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
-    source = tmp_path / "source"
-    repo = os.fspath(tmp_path / "repo")
-
-    class MyDistribution(importlib_metadata.PathDistribution):
-        name = "package-a"
-        version = "1.0.0.post0"
-
-        @property
-        def files(self):
-            def make_file(path: str) -> importlib_metadata.PackagePath:
-                obj = importlib_metadata.PackagePath(path)
-                obj.dist = self
-                return obj
-
-            return [
-                # Will be included in package.tools
-                # and will trigger rez-pip to add {root}/scripts
-                # to $PATH.
-                make_file("../scripts/package-a-cli"),
-                # Will be ignored because it's nested under scripts.
-                make_file("../scripts/sub/package-a-cli"),
-                make_file("package_a/__init__.py"),
-                make_file("package_a/folder_here/abgt.py"),
-            ]
-
-    # Mirror the folder structure we use (package_a and python is important here)
-    # TODO: This is fragile in a test... How could we maybe get the
-    #       path in a more reliable way without duplicating the logic?
-    dist = MyDistribution(source / "package_a" / "python" / "package_a")
-
-    for file_ in dist.files:
-        path = pathlib.Path(file_.locate().resolve())
-        os.makedirs(path.parent)
-        path.touch()
-
-    monkeypatch.setattr(
-        dist,
-        "read_text",
-        lambda x: "Metadata-Version: 2.0\nName: package-a\nVersion: 1.0.0.post0",
+    source = os.path.join(
+        os.path.dirname(__file__), "data", "installed_wheels", "package-a"
     )
+    repo = os.fspath(tmp_path / "repo")
 
     expectedRequirements = rez_pip.utils.RequirementsDict(
         requires=["requests"],
@@ -71,20 +36,21 @@ def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
         metadata={"is_pure_python": False},
     )
 
-    packageGroup = rez_pip.pip.PackageGroup(
-        [
-            rez_pip.pip.PackageInfo(
-                metadata=rez_pip.pip.Metadata(name="package-a", version="1.0.0.post0"),
-                download_info=rez_pip.pip.DownloadInfo(
-                    url=f"http://localhost/asd",
-                    archive_info=rez_pip.pip.ArchiveInfo("hash", {}),
-                ),
-                is_direct=True,
-                requested=True,
-            )
-        ]
+    packageInfo = rez_pip.pip.DownloadedArtifact(
+        _localPath=source,
+        metadata=rez_pip.pip.Metadata(name="package-a", version="1.0.0.post0"),
+        download_info=rez_pip.pip.DownloadInfo(
+            url="http://localhost/asd",
+            archive_info=rez_pip.pip.ArchiveInfo("hash", {}),
+        ),
+        is_direct=True,
+        requested=True,
     )
-    packageGroup.dists = [dist]
+    packageGroup = rez_pip.pip.PackageGroup(
+        (packageInfo,),
+    )
+    installation = rez_pip.install.Installation(packageInfo, source)
+    packageGroup.installations = [installation]
 
     with unittest.mock.patch.object(
         rez_pip.utils, "getRezRequirements", return_value=expectedRequirements
@@ -92,7 +58,6 @@ def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
         rez_pip.rez.createPackage(
             packageGroup,
             rez.version.Version("3.7.0"),
-            source,
             prefix=repo,
         )
 
@@ -102,8 +67,8 @@ def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
     assert package.get_variant(0) is not None
     assert package.data.get("pip")
     assert package.data["pip"] == {
-        "name": dist.name,
-        "version": dist.version,
+        "name": installation.dist.name,
+        "version": installation.dist.version,
         "is_pure_python": False,
         "wheel_urls": ["http://localhost/asd"],
         "rez_pip_version": importlib_metadata.version("rez-pip"),
@@ -264,7 +229,9 @@ def test_convertMetadata(
     monkeypatch.setattr(
         dist,
         "read_text",
-        lambda x: f"Metadata-Version: 2.0\nName: package_a\nVersion: 1.0.0\n{metadataText}",
+        lambda x: (
+            f"Metadata-Version: 2.0\nName: package_a\nVersion: 1.0.0\n{metadataText}"
+        ),
     )
 
     converted, remaining = rez_pip.rez._convertMetadata(dist)
