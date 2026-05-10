@@ -17,7 +17,9 @@ license = { file="LICENSE" }
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-    "installer>=0.7.0",
+    # Later versions of installer uses absolute paths on Windows.
+    # Use 0.7.0 until workaround can be developed.
+    "installer==0.7.0",
     "aiohttp",
     "packaging>=23.1",
     # 3.3.0 introduces supoprt for entry points plugins.
