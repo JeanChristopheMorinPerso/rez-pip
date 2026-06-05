@@ -59,6 +59,7 @@ def createPackage(
     packageGroup: rez_pip.pip.PackageGroup[rez_pip.pip.DownloadedArtifact],
     pythonVersion: rez.version.Version,
     installedWheelsDir: str,
+    normalizedPackageNames: dict[str, str],
     prefix: str | None = None,
     release: bool = False,
 ) -> None:
@@ -69,7 +70,7 @@ def createPackage(
     )
 
     rezNames = [
-        rez_pip.utils.pythontDistributionNameToRez(dist.name)
+        rez_pip.utils.pythonDistributionNameToRez(dist.name)
         for dist in packageGroup.dists
     ]
 
@@ -83,7 +84,9 @@ def createPackage(
     metadata: dict[str, typing.Any] = {}
     isPure = True
     for dist in packageGroup.dists:
-        requirements = rez_pip.utils.getRezRequirements(dist, pythonVersion, [])
+        requirements = rez_pip.utils.getRezRequirements(
+            dist, pythonVersion, normalizedPackageNames
+        )
         if not metadata:
             # For now we only use the metadata from the first package. Far from ideal...
             metadata = requirements.metadata
