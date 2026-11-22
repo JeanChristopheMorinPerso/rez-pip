@@ -253,14 +253,15 @@ def pythonSpecifierToRezRequirement(
     total_range = rez.version.VersionRange(ranges[0])
 
     for range_ in ranges[1:]:
-        range_ = rez.version.VersionRange(range_)
-        total_range = total_range.intersection(range_)
+        intersection = total_range.intersection(rez.version.VersionRange(range_))
 
-        if total_range is None:
+        if intersection is None:
             raise ValueError(
                 f"PEP440 specifier {specifier} converts to a non-intersecting rez "
                 "version range"
             )
+
+        total_range = intersection
 
     return total_range
 
@@ -624,7 +625,11 @@ def getRezRequirements(
         #
         sys_variant_requires.append("python-%s" % str(pythonVersion.trim(2)))
     else:
-        requiresPython = installedDist.metadata.get("Requires-Python")
+        requiresPython = (
+            installedDist.metadata["Requires-Python"]
+            if "Requires-Python" in installedDist.metadata
+            else None
+        )
         if requiresPython:
             result_requires.append(
                 f"python-{pythonSpecifierToRezRequirement(packaging.specifiers.SpecifierSet(requiresPython))}"

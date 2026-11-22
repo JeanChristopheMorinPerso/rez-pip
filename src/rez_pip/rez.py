@@ -47,7 +47,7 @@ def iterDistFiles(
              (relative to installedWheelsDir) paths of the files.
     """
     wheelsDirAbsolute = pathlib.Path(installedWheelsDir).resolve()
-    for file_ in dist.files:
+    for file_ in dist.files or []:
         # PackagePath is a PurePosixPath; joining it to a Windows path breaks
         # absolute RECORD paths on Python < 3.12. Use native string parsing.
         # https://github.com/python/importlib_metadata/issues/535
@@ -320,7 +320,7 @@ def getPythonExecutables(
     :returns: Dict where the keys are the python versions and values are abolute paths to executables.
     """
     for family in rez.packages.iter_package_families():
-        if family.name == "python":
+        if family.name == "python":  # type: ignore[attr-defined]
             break
     else:
         raise NoPythonFound(f"No package family named {packageFamily!r} found")
