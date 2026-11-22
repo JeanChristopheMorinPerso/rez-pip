@@ -24,7 +24,21 @@ import rez_pip.utils
 from rez_pip.compat import importlib_metadata
 
 
-@pytest.mark.parametrize("scriptPathKind", ["relative", "absolute", "absolute-posix"])
+@pytest.mark.parametrize(
+    "scriptPathKind",
+    [
+        "relative",
+        "absolute",
+        pytest.param(
+            "absolute-posix",
+            marks=pytest.mark.skipif(
+                platform.system() == "Windows"
+                and importlib_metadata.__name__ == "importlib_metadata",
+                reason="The metadata backport drops absolute POSIX paths before iteration",
+            ),
+        ),
+    ],
+)
 def test_iterDistFiles(tmp_path: pathlib.Path, scriptPathKind: str):
     source = (tmp_path / "installed wheels").resolve()
     pythonDir = source / "package_a" / "python"
