@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import os
+import csv
 import stat
 import typing
 import pathlib
@@ -21,6 +22,55 @@ import rez_pip.pip
 import rez_pip.rez
 import rez_pip.utils
 from rez_pip.compat import importlib_metadata
+
+
+@pytest.mark.parametrize("scriptPathKind", ["relative", "absolute", "absolute-posix"])
+def test_iterDistFiles(tmp_path: pathlib.Path, scriptPathKind: str):
+    source = (tmp_path / "installed wheels").resolve()
+    pythonDir = source / "package_a" / "python"
+    module = pythonDir / "package_a" / "__init__.py"
+    script = source / "package_a" / "scripts" / "package-a-cli.exe"
+    distInfo = pythonDir / "package_a-1.0.0.dist-info"
+    metadata = distInfo / "METADATA"
+    record = distInfo / "RECORD"
+
+    module.parent.mkdir(parents=True)
+    script.parent.mkdir(parents=True)
+    distInfo.mkdir()
+    module.write_text("def main(): pass\n", encoding="utf-8")
+    script.write_bytes(b"console script")
+    metadata.write_text(
+        "Metadata-Version: 2.1\nName: package-a\nVersion: 1.0.0\n",
+        encoding="utf-8",
+    )
+
+    # Installer 1.x records scripts outside the library scheme as absolute
+    # Windows paths. RECORD permits both native and forward slashes.
+    if scriptPathKind == "absolute":
+        scriptRecordPath = str(script)
+    elif scriptPathKind == "absolute-posix":
+        scriptRecordPath = script.as_posix()
+    else:
+        scriptRecordPath = "../scripts/package-a-cli.exe"
+
+    with record.open("w", encoding="utf-8", newline="") as stream:
+        csv.writer(stream).writerows(
+            (path, "", "")
+            for path in [
+                "package_a/__init__.py",
+                scriptRecordPath,
+                "package_a-1.0.0.dist-info/METADATA",
+                "package_a-1.0.0.dist-info/RECORD",
+            ]
+        )
+
+    dist = importlib_metadata.Distribution.at(distInfo)
+    assert list(rez_pip.rez.iterDistFiles(dist, str(source))) == [
+        (module, os.path.join("python", "package_a", "__init__.py")),
+        (script, os.path.join("scripts", "package-a-cli.exe")),
+        (metadata, os.path.join("python", distInfo.name, "METADATA")),
+        (record, os.path.join("python", distInfo.name, "RECORD")),
+    ]
 
 
 def test_createPackage(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path):
