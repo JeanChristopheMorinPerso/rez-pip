@@ -28,7 +28,7 @@ permissions: {}
 jobs:
   test:
     name: test
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.runner || format('{0}-latest', matrix.os) }}
 
     strategy:
       matrix:
@@ -36,6 +36,15 @@ jobs:
         # Ping macos to 13 so that we get intel CPUs.
         # TODO: Make our tests support arm64.
         os: ['ubuntu', 'windows', 'macos']
+        include:
+        # actions/setup-python has no Python 3.8 or 3.9 builds for
+        # Ubuntu 26.04 (ubuntu-latest), so keep them on 24.04.
+        - python: '3.8'
+          os: ubuntu
+          runner: ubuntu-24.04
+        - python: '3.9'
+          os: ubuntu
+          runner: ubuntu-24.04
       fail-fast: false
 
     permissions:
