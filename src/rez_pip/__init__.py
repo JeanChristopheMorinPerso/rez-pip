@@ -35,7 +35,7 @@ def register_plugin():  # type: ignore
     # Defined here to avoid cirlular imports
     import rez.command
 
-    class RezPip(rez.command.Command):  # type: ignore
+    class RezPip(rez.command.Command):
         """asd"""
 
     return RezPip

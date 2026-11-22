@@ -285,7 +285,7 @@ def deleteEntryFromRecord(
     """
     items = [
         os.fspath(item)
-        for item in dist.files
+        for item in dist.files or []
         if re.search(r"[a-zA-Z0-9._+]+\.dist-info/RECORD", os.fspath(item))
     ]
 
