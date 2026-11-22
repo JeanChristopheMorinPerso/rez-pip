@@ -48,7 +48,10 @@ def iterDistFiles(
     """
     wheelsDirAbsolute = pathlib.Path(installedWheelsDir).resolve()
     for file_ in dist.files:
-        absolutePath = typing.cast(pathlib.Path, file_.locate()).resolve()
+        # PackagePath is a PurePosixPath; joining it to a Windows path breaks
+        # absolute RECORD paths on Python < 3.12. Use native string parsing.
+        # https://github.com/python/importlib_metadata/issues/535
+        absolutePath = typing.cast(pathlib.Path, dist.locate_file(str(file_))).resolve()
         relPath = os.path.sep.join(
             absolutePath.relative_to(wheelsDirAbsolute).parts[1:]
         )
