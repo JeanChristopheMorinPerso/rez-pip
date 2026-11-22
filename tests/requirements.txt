@@ -11,6 +11,11 @@ pytest-print
 pypiserver @ git+https://github.com/pypiserver/pypiserver.git@8a8afe6d0a647a07655742a1a0a4e12d2b7fafd3
 # Needed because pypiserver doesn't define it for python 3.8...
 importlib_resources
+# pypiserver prefers waitress over wsgiref when installed. wsgiref's server_bind
+# calls socket.getfqdn(), which stalls 35 s on macOS 15+ GitHub runners, and it
+# only listens on 127.0.0.1, so on Windows each connection to localhost first
+# waits 2 s for ::1 to be refused.
+waitress; sys_platform == "darwin" or sys_platform == "win32"
 build
 hatchling
 py-rattler
