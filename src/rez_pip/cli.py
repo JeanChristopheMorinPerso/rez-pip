@@ -257,9 +257,9 @@ def _run(args: argparse.Namespace, pipArgs: list[str], pipWorkArea: str) -> None
 
         message = f"Downloaded {downloaded} wheels"
         if foundLocally:
-            message += f"skipped {foundLocally} because they resolved to local files"
+            message += f", skipped {foundLocally} because they resolved to local files"
 
-        _LOG.info(f"[bold]{message}")
+        _LOG.info(f"[bold]{message}.")
 
         with rez_pip.utils.CONSOLE.status(
             f"[bold]Installing wheels into {installedWheelsDir!r}"
@@ -280,11 +280,18 @@ def _run(args: argparse.Namespace, pipArgs: list[str], pipWorkArea: str) -> None
                     group.dists.append(dist)
 
         with rez_pip.utils.CONSOLE.status("[bold]Creating rez packages..."):
+            normalizedPackageNames = {
+                rez_pip.utils.normalizePythonPackageName(dist.name): dist.name
+                for group in packageGroups
+                for dist in group.dists
+            }
+
             for group in packageGroups:
                 rez_pip.rez.createPackage(
                     group,
                     rez.version.Version(pythonVersion),
                     installedWheelsDir,
+                    normalizedPackageNames,
                     prefix=args.prefix,
                     release=args.release,
                 )
