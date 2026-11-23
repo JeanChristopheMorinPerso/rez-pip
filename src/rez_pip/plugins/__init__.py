@@ -138,7 +138,17 @@ class PluginSpec:
         Modify/inject metadata in the rez package. The plugin is expected to modify
         "package" in place.
 
-        :param package: An insatnce of :class:`rez.package_maker.PackageMaker`.
+        :param package: An instance of :class:`rez.package_maker.PackageMaker`.
+        """
+        ...
+
+    @hookspec
+    def postInstall(self, package: rez.package_maker.PackageMaker) -> None:
+        """
+        Common hook to modify package post installation. The plugin is expected to modify
+        "package" in place.
+
+        :param package: An instance of :class:`rez.package_maker.PackageMaker`.
         """
         ...
 
