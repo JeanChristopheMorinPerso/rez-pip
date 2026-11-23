@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import os
 import typing
 
 import pytest
@@ -242,3 +243,35 @@ def test_normalizeRequirement(
     assert [str(req) for req in result] == [str(req) for req in expected]
     for index, req in enumerate(result):
         assert req.conditional_extras == conditional_extras[index]
+
+
+def test_urlToPathname() -> None:
+    with pytest.raises(ValueError):
+        _ = rez_pip.utils.urlToPathname("http://example.com")
+
+    if os.name == "nt":
+        assert (
+            rez_pip.utils.urlToPathname("file:///regular/path/to/file")
+            == "\\regular\\path\\to\\file"
+        )
+        assert (
+            rez_pip.utils.urlToPathname("file:///C:/drive/path/to/file")
+            == "C:\\drive\\path\\to\\file"
+        )
+        assert (
+            rez_pip.utils.urlToPathname("file://hostname/unc/path/to/file")
+            == "\\\\hostname\\unc\\path\\to\\file"
+        )
+    else:
+        assert (
+            rez_pip.utils.urlToPathname("file:///regular/path/to/file")
+            == "/regular/path/to/file"
+        )
+        assert (
+            rez_pip.utils.urlToPathname("file:///C:/drive/path/to/file")
+            == "/C:/drive/path/to/file"
+        )
+        assert (
+            rez_pip.utils.urlToPathname("file://hostname/unc/path/to/file")
+            == "/hostname/unc/path/to/file"
+        )

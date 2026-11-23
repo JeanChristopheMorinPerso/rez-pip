@@ -79,7 +79,10 @@ def test_DownloadedArtifact(url: str):
 
     assert info.name == "package_a"
     assert info.version == "1.0.0"
-    assert info.path == "/tmp/package_a-1.0.0-py2.py3-none-any.whl"
+    if os.name == "nt":
+        assert info.path == "\\tmp\\package_a-1.0.0-py2.py3-none-any.whl"
+    else:
+        assert info.path == "/tmp/package_a-1.0.0-py2.py3-none-any.whl"
 
 
 def test_getBundledPip():
